@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  asterisk: 
+    image: registry.gitlab.com/cloudonix/docker/asterisk-docker:14
+    volumes: 
+      - ./configuration/extensions.conf:/etc/asterisk/extensions.conf:ro
+      - ./configuration/http.conf:/etc/asterisk/http.conf:ro
+      - ./configuration/ari.conf:/etc/asterisk/ari.conf:ro
+      - ./configuration/sip.conf:/etc/asterisk/sip.conf:ro
+    ports:
+      - 8088:8088
+    
+  ari:
+    build: .
+ 
+    
