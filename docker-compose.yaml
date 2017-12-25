@@ -10,8 +10,16 @@ services:
       - ./configuration/sip.conf:/etc/asterisk/sip.conf:ro
     ports:
       - 8088:8088
+    networks:
+      mynet:
+        ipv4_address: 172.25.0.6
     
   ari:
     build: .
- 
-    
+
+networks:
+ mynet:
+   driver: bridge
+   ipam:
+     config:
+      - subnet: 172.25.0.0/24
