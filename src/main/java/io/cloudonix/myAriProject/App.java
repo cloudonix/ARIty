@@ -1,10 +1,10 @@
 package io.cloudonix.myAriProject;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
@@ -12,6 +12,7 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.Dial;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
@@ -22,15 +23,15 @@ import ch.loway.oss.ari4java.tools.RestException;
 public class App {
 
 	private final static Logger logger = Logger.getLogger(App.class.getName());
-	// list of lists (each list is a verb)
-	private static Map<String, Map<String, CompletableFuture<Object>>> verbs = new HashMap<>();
-//	private static Map<String, CompletableFuture<Playback>> play =  Collections.synchronizedMap(new HashMap<String, CompletableFuture<Playback>>());
+
+	// map for each verb
+	private static ConcurrentMap<String, CompletableFuture<Playback>> playMap = new ConcurrentHashMap<String, CompletableFuture<Playback>>();
+	private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
 
 	public static void main(String[] args) {
-		CreateList();
-		
+
 		AtomicReference<StasisStart> ss = new AtomicReference<StasisStart>(null);
-		
+
 		try {
 
 			ARI ari = AriFactory.nettyHttp("http://127.0.0.1:8088/", "userid", "secret", AriVersion.ARI_2_0_0);
@@ -50,32 +51,29 @@ public class App {
 					logger.info("success! Asterisk id: " + as_id);
 
 					if (result instanceof StasisStart) {
+						ss.set((StasisStart) result);
 						// StasisStart case
-
-						// StasisStart event = (StasisStart) ss;
-						// latchStasis.await();
-						/*ss.set((StasisStart) result);
-						
-						logger.info("the channel id is:" + channID);*/
-						// answer the call
-
 						voiceApp(ari, ss);
 
 					} else if (result instanceof PlaybackFinished) {
 						// PlaybackFinished case
 
-						CompletableFuture<Object> pbfFuture = getFuture("play",
-								((PlaybackFinished) result).getPlayback().getId());
+						Playback playback = Objects.requireNonNull(((PlaybackFinished) result).getPlayback(), "error playback");
+						
+						
+						CompletableFuture<Playback> pbfFuture = playMap
+								.get(playback.getId());
 						logger.info("playback completed");
-						pbfFuture.complete(((PlaybackFinished) result).getPlayback());
+
+						pbfFuture.complete(playback);
+
+						// remove from playMap
+						playMap.remove(playback.getId());
 					}
+					
 
 				}
 			});
-
-		
-
-
 
 		} catch (Throwable t) {
 			t.printStackTrace();
@@ -83,14 +81,14 @@ public class App {
 
 	}
 
-	private static CompletableFuture<Object> play(ARI ari, AtomicReference<StasisStart> s) {
+	private static CompletableFuture<Playback> play(ARI ari, AtomicReference<StasisStart> s) {
 
 		Channel currChannel = s.get().getChannel();
 		String channID = currChannel.getId();
 
-		CompletableFuture<Object> res = new CompletableFuture<Object>();
+		CompletableFuture<Playback> res = new CompletableFuture<Playback>();
 
-		ari.channels().play(channID, "sound:hello-world", currChannel.getLanguage(), 0, 0, UUID.randomUUID().toString() ,
+		ari.channels().play(channID, "sound:hello-world", currChannel.getLanguage(), 0, 0, UUID.randomUUID().toString(),
 				new AriCallback<Playback>() {
 
 					@Override
@@ -108,66 +106,65 @@ public class App {
 
 						// get the id from the playback
 						String pbID = resultM.getId();
-						// set and say to witch list in the hash (by name?) Receiving: (id, future)
-						setLst("play", pbID, res);
+						// add to map with playback id and playback future
+						playMap.put(pbID, res);
+
 					}
 
 				});
 		return res;
 	}
 
-	private static void CreateList() {
+	private static CompletableFuture<Void> hangUpCall(ARI ari, AtomicReference<StasisStart> ss) {
 		// TODO Auto-generated method stub
-
-		Map<String, CompletableFuture<Object>> synchronizedMapPlay = Collections
-				.synchronizedMap(new HashMap<String, CompletableFuture<Object>>());
-		Map<String, CompletableFuture<Object>> synchronizedMapSay = Collections
-				.synchronizedMap(new HashMap<String, CompletableFuture<Object>>());
-
-		verbs.put("play", synchronizedMapPlay);
-		verbs.put("say", synchronizedMapSay);
-
-	}
-
-	public static void setLst(String lstName, String id, CompletableFuture<Object> future) {
-
-		// add to list lstName (for example play) new entry with id and future
-		verbs.get(lstName).put(id, future);
-
-	}
-
-	public static CompletableFuture<Object> getFuture(String lstName, String id) {
-		// remove
-		verbs.get(lstName).remove(id);		
-		// get the future according to the id, in the relevant lstName
-		return verbs.get(lstName).get(id);
-	}
-
-
-	private static void voiceApp(ARI ari, AtomicReference<StasisStart> ss) {
-		CompletableFuture<Void> cf = CompletableFuture.completedFuture(null);
-		String channID = ss.get().getChannel().getId();
-		
+		String currChannel = ss.get().getChannel().getId();
 		try {
-			
-			ari.channels().answer(channID);
+			ari.channels().hangup(currChannel, "normal");
 		} catch (RestException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//play (complete somehow that the user will call play)
-		play(ari, ss).thenAccept(pb ->{
-			Playback p = (Playback) pb;
-			logger.info("finished playback! id: " + p.getId());	
-			// hangup call
-			logger.info("hangup my call");
-			try {
-				ari.channels().hangup(channID, "normal");
-			} catch (RestException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		});
+
+		return CompletableFuture.completedFuture(null);
 	}
 
+	private static CompletableFuture<Void> answer(ARI ari, AtomicReference<StasisStart> ss) {
+		// TODO Auto-generated method stub
+		String currChannel = ss.get().getChannel().getId();
+
+		try {
+			// answer the call
+			ari.channels().answer(currChannel);
+		} catch (RestException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return CompletableFuture.completedFuture(null);
+
+	}
+
+	private static void voiceApp(ARI ari, AtomicReference<StasisStart> ss) {
+		// CompletableFuture<Void> cf = CompletableFuture.completedFuture(null);
+
+		// answer the call
+		// ari.channels().answer(channID);
+		answer(ari, ss).thenAccept(v -> {
+			logger.info("call answered");
+
+			// play (complete somehow that the user will call play)
+			play(ari, ss).thenAccept(pb -> {
+				
+				logger.info("finished playback! id: " + pb.getId());
+
+				// hang up the call
+				hangUpCall(ari, ss).thenAccept(h -> {
+					logger.info("hang up call");
+				});
+
+			});
+
+		}).exceptionally(t-> null);
+
+	}
 }
