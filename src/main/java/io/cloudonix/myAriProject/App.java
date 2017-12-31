@@ -48,7 +48,7 @@ public class App {
 				public void onSuccess(Message result) {
 
 					String as_id = result.getAsterisk_id();
-					logger.info("success! Asterisk id: " + as_id);
+					//logger.info("success! Asterisk id: " + as_id);
 
 					if (result instanceof StasisStart) {
 						ss.set((StasisStart) result);
@@ -58,19 +58,21 @@ public class App {
 					} else if (result instanceof PlaybackFinished) {
 						// PlaybackFinished case
 
-						Playback playback = Objects.requireNonNull(((PlaybackFinished) result).getPlayback(), "error playback");
+						// Playback playback = Objects.requireNonNull(((PlaybackFinished)
+						// result).getPlayback(), "error playback");
+						Playback playback = ((PlaybackFinished) result).getPlayback();
 						
 						
-						CompletableFuture<Playback> pbfFuture = playMap
-								.get(playback.getId());
+						
+						CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
 						logger.info("playback completed");
-
-						pbfFuture.complete(playback);
 
 						// remove from playMap
 						playMap.remove(playback.getId());
+
+						pbfFuture.complete(playback);
+
 					}
-					
 
 				}
 			});
@@ -87,8 +89,11 @@ public class App {
 		String channID = currChannel.getId();
 
 		CompletableFuture<Playback> res = new CompletableFuture<Playback>();
+		
+		String pbID = UUID.randomUUID().toString();
+		playMap.put(pbID, res);
 
-		ari.channels().play(channID, "sound:hello-world", currChannel.getLanguage(), 0, 0, UUID.randomUUID().toString(),
+		ari.channels().play(channID, "sound:hello-world", currChannel.getLanguage(), 0, 0,pbID,
 				new AriCallback<Playback>() {
 
 					@Override
@@ -107,8 +112,8 @@ public class App {
 						// get the id from the playback
 						String pbID = resultM.getId();
 						// add to map with playback id and playback future
-						playMap.put(pbID, res);
-
+						logger.info("playback added");
+						
 					}
 
 				});
@@ -149,22 +154,25 @@ public class App {
 
 		// answer the call
 		// ari.channels().answer(channID);
-		answer(ari, ss).thenAccept(v -> {
+		answer(ari, ss).thenCompose(v -> {
 			logger.info("call answered");
 
 			// play (complete somehow that the user will call play)
-			play(ari, ss).thenAccept(pb -> {
-				
-				logger.info("finished playback! id: " + pb.getId());
 
-				// hang up the call
-				hangUpCall(ari, ss).thenAccept(h -> {
-					logger.info("hang up call");
-				});
+			return play(ari, ss);
+		}).thenCompose(pb -> {
 
-			});
+			logger.info("finished playback! id: " + pb.getId());
 
-		}).exceptionally(t-> null);
+			// hang up the call
+			return hangUpCall(ari, ss);
+		}).thenAccept(h -> {
+			logger.info("hang up call");
+
+		}).exceptionally(t -> {
+			logger.severe(t.toString());
+			return null;
+		});
 
 	}
 }
