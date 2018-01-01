@@ -1,13 +1,19 @@
 package io.cloudonix.myAriProject;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import java.util.function.Predicate;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
@@ -28,10 +34,9 @@ public class App {
 	// map for each verb
 	private static ConcurrentMap<String, CompletableFuture<Playback>> playMap = new ConcurrentHashMap<String, CompletableFuture<Playback>>();
 	private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
+	private static CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>> futureEvents = new CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>>();
 
 	public static void main(String[] args) {
-
-		// AtomicReference<StasisStart> ss = new AtomicReference<StasisStart>(null);
 
 		try {
 
@@ -53,28 +58,32 @@ public class App {
 
 					if (result instanceof StasisStart) {
 						// StasisStart case
-						/*
-						 * AtomicReference<StasisStart> ss = new AtomicReference<StasisStart>(null);
-						 * ss.set((StasisStart) result);
-						 */
 						voiceApp(ari, (StasisStart) result);
 
-					} else if (result instanceof PlaybackFinished) {
-						// PlaybackFinished case
-
-						// Playback playback = Objects.requireNonNull(((PlaybackFinished)
-						// result).getPlayback(), "error playback");
-						Playback playback = ((PlaybackFinished) result).getPlayback();
-
-						CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
-						logger.info("playback completed");
-
-						// remove from playMap
-						playMap.remove(playback.getId());
-
-						pbfFuture.complete(playback);
-
 					}
+
+					for (Map.Entry<Predicate<Message>, Consumer<Message>> entry : futureEvents) {
+						if (entry.getKey().test(result)) {
+							entry.getValue().accept(result);
+							break;
+						}
+					}
+
+					/*
+					 * else if (result instanceof PlaybackFinished) {
+					 * 
+					 * 
+					 * Playback playback = ((PlaybackFinished) result).getPlayback();
+					 * 
+					 * CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
+					 * logger.info("playback completed");
+					 * 
+					 * // remove from playMap playMap.remove(playback.getId());
+					 * 
+					 * pbfFuture.complete(playback);
+					 * 
+					 * }
+					 */
 				}
 			});
 
@@ -112,22 +121,59 @@ public class App {
 							return;
 
 						logger.info("playback added");
-						// get the event "playbackEnded" somehow and handle it before returning
-						waitForPBtoFinished((PlaybackFinished pEnd)-> res.complete(resultM) );
+						//add a playback finished future events to the futureEvent list 
+						Predicate<Message> pred = (Message pb) -> pb instanceof PlaybackFinished;
+						Consumer<Message> consumer = (Message pbf) -> {
+							Playback playback = ((PlaybackFinished) pbf).getPlayback();
+							if (playback.getId() == resultM.getId()) {
+								CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
+								logger.info("playback completed");
 
+								// remove from playMap
+								playMap.remove(playback.getId());
+
+								pbfFuture.complete(playback);
+							}
+						};
+						
+						//Entry <Predicate<Message>, Consumer<Message>> entry = new Entry<Predicate<Message>, Consumer<Message>> (pred, consumer);
+			//			futureEvents.add(new Entry<Predicate<Message>, Consumer<Message>> (pred, consumer));
+						/*
+						 * else if (result instanceof PlaybackFinished) {
+						 * 
+						 * 
+						 * Playback playback = ((PlaybackFinished) result).getPlayback();
+						 * 
+						 * CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
+						 * logger.info("playback completed");
+						 * 
+						 * // remove from playMap playMap.remove(playback.getId());
+						 * 
+						 * pbfFuture.complete(playback);
+						 * 
+						 * }
+						 */
+
+						/*
+						 * CompletableFuture<PlaybackFinished> pbf = waitForPBtoFinished(pbID);
+						 * pbf.thenAccept(p ->res.complete(resultM));
+						 */
+
+					//	waitForPBtoFinished((PlaybackFinished pEnd) -> res.complete(resultM));
+						// waitForPBtoFinished(pbID).thenAccept((PlaybackFinished pEnd) ->
+						// res.complete(resultM));
 					}
 
 				});
 
-
 		return res;
 	}
 
-	protected static void waitForPBtoFinished(Consumer<PlaybackFinished> pbEnd) {
-		//pbEnd.accept(t);
+	/*protected static CompletableFuture<PlaybackFinished> waitForPBtoFinished(String id) {
 		// TODO Auto-generated method stub
-		
-	}
+		CompletableFuture<PlaybackFinished> pbf = new CompletableFuture<PlaybackFinished>();
+
+	}*/
 
 	private static CompletableFuture<Void> hangUpCall(ARI ari, StasisStart result) {
 		// TODO Auto-generated method stub
@@ -158,13 +204,22 @@ public class App {
 
 	}
 
+	private static CompletableFuture<Playback> play(ARI ari, StasisStart result, int times) {
+		// TODO Auto-generated method stub
+
+		if (times == 1) {
+			return play(ari, result);
+		}
+
+		return play(ari, result, times - 1).thenCompose(x -> play(ari, result));
+
+	}
+
 	private static void voiceApp(ARI ari, StasisStart result) {
 		// CompletableFuture<Void> cf = CompletableFuture.completedFuture(null);
 
 		// answer the call
-		// ari.channels().answer(channID);
 		answer(ari, result).thenCompose(v -> play(ari, result, 4)).thenCompose(pb -> {
-
 			logger.info("finished playback! id: " + pb.getId());
 
 			// hang up the call
@@ -176,18 +231,6 @@ public class App {
 			logger.severe(t.toString());
 			return null;
 		});
-
-	}
-
-	private static CompletableFuture<Playback> play(ARI ari, StasisStart result, int times) {
-		// TODO Auto-generated method stub
-		
-		
-		if(times == 1) {
-			return play(ari , result);
-		}
-		
-		return play(ari , result, times-1).thenCompose(x-> play (ari, result));		
 
 	}
 }
