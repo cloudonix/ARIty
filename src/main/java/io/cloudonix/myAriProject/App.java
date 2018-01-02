@@ -60,18 +60,12 @@ public class App {
 						if (currEntry.getKey().test(result)) {
 							currEntry.getValue().accept(result);
 							//remove from the list of future events
+							logger.info("future event was removed");
 							itr.remove();
 							break;
 						}
 					}
 					
-					/*for (Map.Entry<Predicate<Message>, Consumer<Message>> entry : futureEvents) {
-						if (entry.getKey().test(result)) {
-							entry.getValue().accept(result);
-							break;
-						}
-					}*/
-
 				}
 			});
 
@@ -188,7 +182,7 @@ public class App {
 		// CompletableFuture<Void> cf = CompletableFuture.completedFuture(null);
 
 		// answer the call
-		answer(ari, result).thenCompose(v -> play(ari, result))
+		answer(ari, result).thenCompose(v -> play(ari, result, 2))
 		.thenCompose(pb -> {
 			logger.info("finished playback! id: " + pb.getId());
 
