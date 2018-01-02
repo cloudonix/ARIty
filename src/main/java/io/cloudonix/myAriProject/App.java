@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.Iterator;
@@ -28,7 +29,7 @@ public class App {
 
 	//private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
 	//private static CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>> futureEvents = new CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>>();
-	private static CopyOnWriteArrayList<Predicate<Message>> futureEvents = new CopyOnWriteArrayList<Predicate<Message>>();
+	private static CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
 
 	public static void main(String[] args) {
 
@@ -51,11 +52,11 @@ public class App {
 						voiceApp(ari, (StasisStart) event);
 					}
 
-					Iterator<Predicate<Message>> itr = futureEvents.iterator();
+					Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
 					
 					while(itr.hasNext()) {
-						Predicate<Message> currEntry = itr.next();
-						if (currEntry.test(event)) {
+						Function<Message, Boolean> currEntry = itr.next();
+						if (currEntry.apply(event)) {
 							//currEntry.getValue().accept(event);
 							//remove from the list of future events
 							logger.info("future event was removed");
@@ -104,7 +105,7 @@ public class App {
 						logger.info("playback started! playback id: " + resultM.getId());
 
 						// add a playback finished future event to the futureEvent list
-						Predicate<Message> pred = (Message pb) -> {
+						Function<Message, Boolean> pred = (Message pb) -> {
 
 							if (!(pb instanceof PlaybackFinished))
 								return false;
