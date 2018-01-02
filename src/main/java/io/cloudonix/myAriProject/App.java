@@ -1,25 +1,20 @@
 package io.cloudonix.myAriProject;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
 import java.util.function.Predicate;
+import java.util.logging.Logger;
+import java.util.Iterator;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.Dial;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
@@ -31,9 +26,7 @@ public class App {
 
 	private final static Logger logger = Logger.getLogger(App.class.getName());
 
-	// map for each verb
-	private static ConcurrentMap<String, CompletableFuture<Playback>> playMap = new ConcurrentHashMap<String, CompletableFuture<Playback>>();
-	private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
+	//private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
 	private static CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>> futureEvents = new CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>>();
 
 	public static void main(String[] args) {
@@ -53,37 +46,32 @@ public class App {
 				@Override
 				public void onSuccess(Message result) {
 
-					// String as_id = result.getAsterisk_id();
-					// logger.info("success! Asterisk id: " + as_id);
-
 					if (result instanceof StasisStart) {
 						// StasisStart case
 						voiceApp(ari, (StasisStart) result);
 
 					}
 
-					for (Map.Entry<Predicate<Message>, Consumer<Message>> entry : futureEvents) {
+					
+					Iterator<Entry<Predicate<Message>, Consumer<Message>>> itr = futureEvents.iterator();
+					
+					while(itr.hasNext()) {
+						Entry<Predicate<Message>, Consumer<Message>> currEntry = itr.next();
+						if (currEntry.getKey().test(result)) {
+							currEntry.getValue().accept(result);
+							//remove from the list of future events
+							itr.remove();
+							break;
+						}
+					}
+					
+					/*for (Map.Entry<Predicate<Message>, Consumer<Message>> entry : futureEvents) {
 						if (entry.getKey().test(result)) {
 							entry.getValue().accept(result);
 							break;
 						}
-					}
+					}*/
 
-					/*
-					 * else if (result instanceof PlaybackFinished) {
-					 * 
-					 * 
-					 * Playback playback = ((PlaybackFinished) result).getPlayback();
-					 * 
-					 * CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
-					 * logger.info("playback completed");
-					 * 
-					 * // remove from playMap playMap.remove(playback.getId());
-					 * 
-					 * pbfFuture.complete(playback);
-					 * 
-					 * }
-					 */
 				}
 			});
 
@@ -101,11 +89,12 @@ public class App {
 		CompletableFuture<Playback> res = new CompletableFuture<Playback>();
 
 		String pbID = UUID.randomUUID().toString();
+		logger.info("UUID: "+ pbID);
+
 		// add to map with playback id and playback future
-		playMap.put(pbID, res);
 
 		ari.channels().play(channID, "sound:hello-world", currChannel.getLanguage(), 0, 0, pbID,
-				new AriCallback<Playback>() {
+ 				new AriCallback<Playback>() {
 
 					@Override
 					public void onFailure(RestException e) {
@@ -120,46 +109,31 @@ public class App {
 						if (!(resultM instanceof Playback))
 							return;
 
-						logger.info("playback added");
-						//add a playback finished future events to the futureEvent list 
-						Predicate<Message> pred = (Message pb) -> pb instanceof PlaybackFinished;
-						Consumer<Message> consumer = (Message pbf) -> {
-							Playback playback = ((PlaybackFinished) pbf).getPlayback();
-							if (playback.getId() == resultM.getId()) {
-								CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
-								logger.info("playback completed");
+						logger.info("playback started! playback id: " + resultM.getId());
 
-								// remove from playMap
-								playMap.remove(playback.getId());
+						// add a playback finished future event to the futureEvent list
+						Predicate<Message> pred = (Message pb) -> {
 
-								pbfFuture.complete(playback);
-							}
+							if (!(pb instanceof PlaybackFinished))
+								return false;
+							PlaybackFinished playb = (PlaybackFinished) pb;
+							if (!(playb.getPlayback().getId().equals(pbID)))
+								return false;
+							logger.info("playbackFinished and same playback id. Id is: "+ pbID);
+							return true;
 						};
-						
-						//Entry <Predicate<Message>, Consumer<Message>> entry = new Entry<Predicate<Message>, Consumer<Message>> (pred, consumer);
-			//			futureEvents.add(new Entry<Predicate<Message>, Consumer<Message>> (pred, consumer));
-						/*
-						 * else if (result instanceof PlaybackFinished) {
-						 * 
-						 * 
-						 * Playback playback = ((PlaybackFinished) result).getPlayback();
-						 * 
-						 * CompletableFuture<Playback> pbfFuture = playMap.get(playback.getId());
-						 * logger.info("playback completed");
-						 * 
-						 * // remove from playMap playMap.remove(playback.getId());
-						 * 
-						 * pbfFuture.complete(playback);
-						 * 
-						 * }
-						 */
 
-						/*
-						 * CompletableFuture<PlaybackFinished> pbf = waitForPBtoFinished(pbID);
-						 * pbf.thenAccept(p ->res.complete(resultM));
-						 */
+						Consumer<Message> consumer = (pbf) -> {
+							logger.info("playback completed");
+							res.complete(((PlaybackFinished) pbf).getPlayback());
 
-					//	waitForPBtoFinished((PlaybackFinished pEnd) -> res.complete(resultM));
+						};
+
+						futureEvents.add(new SimpleEntry<Predicate<Message>, Consumer<Message>>(pred, consumer));
+						logger.info("future event of playback finished was added");
+
+
+						// waitForPBtoFinished((PlaybackFinished pEnd) -> res.complete(resultM));
 						// waitForPBtoFinished(pbID).thenAccept((PlaybackFinished pEnd) ->
 						// res.complete(resultM));
 					}
@@ -169,11 +143,6 @@ public class App {
 		return res;
 	}
 
-	/*protected static CompletableFuture<PlaybackFinished> waitForPBtoFinished(String id) {
-		// TODO Auto-generated method stub
-		CompletableFuture<PlaybackFinished> pbf = new CompletableFuture<PlaybackFinished>();
-
-	}*/
 
 	private static CompletableFuture<Void> hangUpCall(ARI ari, StasisStart result) {
 		// TODO Auto-generated method stub
@@ -199,7 +168,7 @@ public class App {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		logger.info("call answered");
 		return CompletableFuture.completedFuture(null);
 
 	}
@@ -219,7 +188,8 @@ public class App {
 		// CompletableFuture<Void> cf = CompletableFuture.completedFuture(null);
 
 		// answer the call
-		answer(ari, result).thenCompose(v -> play(ari, result, 4)).thenCompose(pb -> {
+		answer(ari, result).thenCompose(v -> play(ari, result))
+		.thenCompose(pb -> {
 			logger.info("finished playback! id: " + pb.getId());
 
 			// hang up the call
