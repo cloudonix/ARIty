@@ -27,14 +27,14 @@ public class App {
 	private final static Logger logger = Logger.getLogger(App.class.getName());
 
 	//private static ConcurrentMap<String, CompletableFuture<Dial>> dialMap = new ConcurrentHashMap<String, CompletableFuture<Dial>>();
-	private static CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>> futureEvents = new CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>>();
+	//private static CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>> futureEvents = new CopyOnWriteArrayList<Map.Entry<Predicate<Message>, Consumer<Message>>>();
+	private static CopyOnWriteArrayList<Predicate<Message>> futureEvents = new CopyOnWriteArrayList<Predicate<Message>>();
 
 	public static void main(String[] args) {
 
 		try {
 
 			ARI ari = AriFactory.nettyHttp("http://127.0.0.1:8088/", "userid", "secret", AriVersion.ARI_2_0_0);
-
 			ari.events().eventWebsocket("stasisAPP", true, new AriCallback<Message>() {
 
 				@Override
@@ -44,21 +44,19 @@ public class App {
 				}
 
 				@Override
-				public void onSuccess(Message result) {
+				public void onSuccess(Message event) {
 
-					if (result instanceof StasisStart) {
+					if (event instanceof StasisStart) {
 						// StasisStart case
-						voiceApp(ari, (StasisStart) result);
-
+						voiceApp(ari, (StasisStart) event);
 					}
 
-					
-					Iterator<Entry<Predicate<Message>, Consumer<Message>>> itr = futureEvents.iterator();
+					Iterator<Predicate<Message>> itr = futureEvents.iterator();
 					
 					while(itr.hasNext()) {
-						Entry<Predicate<Message>, Consumer<Message>> currEntry = itr.next();
-						if (currEntry.getKey().test(result)) {
-							currEntry.getValue().accept(result);
+						Predicate<Message> currEntry = itr.next();
+						if (currEntry.test(event)) {
+							//currEntry.getValue().accept(event);
 							//remove from the list of future events
 							logger.info("future event was removed");
 							itr.remove();
@@ -114,22 +112,13 @@ public class App {
 							if (!(playb.getPlayback().getId().equals(pbID)))
 								return false;
 							logger.info("playbackFinished and same playback id. Id is: "+ pbID);
+							// if it is play back finished with the same id, handle it here
+							res.complete(playb.getPlayback());
 							return true;
 						};
 
-						Consumer<Message> consumer = (pbf) -> {
-							logger.info("playback completed");
-							res.complete(((PlaybackFinished) pbf).getPlayback());
-
-						};
-
-						futureEvents.add(new SimpleEntry<Predicate<Message>, Consumer<Message>>(pred, consumer));
+						futureEvents.add(pred);
 						logger.info("future event of playback finished was added");
-
-
-						// waitForPBtoFinished((PlaybackFinished pEnd) -> res.complete(resultM));
-						// waitForPBtoFinished(pbID).thenAccept((PlaybackFinished pEnd) ->
-						// res.complete(resultM));
 					}
 
 				});
