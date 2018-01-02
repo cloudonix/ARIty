@@ -105,21 +105,20 @@ public class App {
 						logger.info("playback started! playback id: " + resultM.getId());
 
 						// add a playback finished future event to the futureEvent list
-						Function<Message, Boolean> pred = (Message pb) -> {
+							//PlaybackFinished playb = (PlaybackFinished) pb;
+							executeHandler(PlaybackFinished.class , (playb)->{ 
+								if (!(playb.getPlayback().getId().equals(pbID)))
+									return false;
+								logger.info("playbackFinished and same playback id. Id is: "+ pbID);
+								// if it is play back finished with the same id, handle it here
+								res.complete(playb.getPlayback());
+								return true;							
+								
+							});
+							logger.info("future event of playback finished was added");
+					//	};
 
-							if (!(pb instanceof PlaybackFinished))
-								return false;
-							PlaybackFinished playb = (PlaybackFinished) pb;
-							if (!(playb.getPlayback().getId().equals(pbID)))
-								return false;
-							logger.info("playbackFinished and same playback id. Id is: "+ pbID);
-							// if it is play back finished with the same id, handle it here
-							res.complete(playb.getPlayback());
-							return true;
-						};
-
-						futureEvents.add(pred);
-						logger.info("future event of playback finished was added");
+						
 					}
 
 				});
@@ -127,6 +126,23 @@ public class App {
 		return res;
 	}
 
+
+	protected static <T> void executeHandler(Class<T> class1, Function<T, Boolean> func) {
+		// TODO Auto-generated method stub
+		
+			@SuppressWarnings("unchecked")
+			Function<Message, Boolean> pred = (Message pb) -> {
+							
+							if (class1.isInstance(pb))
+								return func.apply((T) pb);
+							return false;
+			};
+			
+						futureEvents.add(pred);
+						
+		 
+		
+	}
 
 	private static CompletableFuture<Void> hangUpCall(ARI ari, StasisStart result) {
 		// TODO Auto-generated method stub
