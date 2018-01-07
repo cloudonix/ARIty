@@ -1,4 +1,4 @@
-package io.cloudonix.myAriProject;
+package io.cloudonix.ariAppService;
 
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -15,18 +15,26 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.logicException.ConnectionFailedException;
 
+/**
+ * The class represents the creation of ari and websocket service that handles
+ * the incoming events
+ * 
+ * @author naamag
+ *
+ */
 public class Service implements AriCallback<Message> {
-	
+
 	private final static Logger logger = Logger.getLogger(Service.class.getName());
-	//List of future events
+	// List of future events
 	private CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
 
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
-	
-	public Service(String uri, String name, String login, String pass) {
+
+	public Service(String uri, String name, String login, String pass) throws ConnectionFailedException, URISyntaxException{
 		appName = name;	
 		
 		try {
@@ -35,33 +43,35 @@ public class Service implements AriCallback<Message> {
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("websocket is open");
 			
-		} catch (ARIException | URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (ARIException e) {
+			/*// TODO Auto-generated catch block
+			e.printStackTrace();*/
+			logger.severe("connection failed: " + e.getMessage());
+			throw new ConnectionFailedException(e);
 		}
 	}
-	
+
 	/**
 	 * The method register a new call to be executed
+	 * 
 	 * @param voiceApp
 	 */
-	public void registerVoiceApp (Consumer<Call> voiceApp ) {
-		this.voiceApp = voiceApp; 
-		
+	public void registerVoiceApp(Consumer<Call> voiceApp) {
+		this.voiceApp = voiceApp;
 	}
-	
+
 	@Override
 	public void onSuccess(Message event) {
 		if (event instanceof StasisStart) {
 			// StasisStart case
-			Call call = new Call((StasisStart)event , ari, this);
-			logger.info("New call created! "+ call);
+			Call call = new Call((StasisStart) event, ari, this);
+			logger.info("New call created! " + call);
 			voiceApp.accept(call);
 		}
 
+		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
-		
-		// look for a future event
+
 		while (itr.hasNext()) {
 			Function<Message, Boolean> currEntry = itr.next();
 			if (currEntry.apply(event)) {
@@ -72,17 +82,20 @@ public class Service implements AriCallback<Message> {
 			}
 		}
 
-	}		
+	}
 
 	@Override
 	public void onFailure(RestException e) {
-		e.printStackTrace();
+		// e.printStackTrace();
+		logger.warning(e.getMessage());
 	}
-	
+
 	/**
-	 * The method handles a adding a future event from a specific class and add it to the future event list
-	 * @param class1
-	 * @param func
+	 * The method handles adding a future event from a specific class (event) to the
+	 * future event list
+	 * 
+	 * @param class1- class of the finished event (example: PlaybackFinished)
+	 * @param func- function to be executed
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
 
@@ -93,12 +106,11 @@ public class Service implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
-
 		futureEvents.add(futureEvent);
 	}
-	
-	public String getAppName () {
+
+	public String getAppName() {
 		return appName;
 	}
-	
+
 }

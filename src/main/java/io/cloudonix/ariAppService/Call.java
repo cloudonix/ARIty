@@ -1,4 +1,4 @@
-package io.cloudonix.myAriProject;
+package io.cloudonix.ariAppService;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -10,7 +10,14 @@ import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-
+import io.cloudonix.logicException.AnswerCallException;
+import io.cloudonix.logicException.HangUpException;
+import io.cloudonix.logicException.PlaybackException;
+/**
+ * The class represents an incoming call 
+ * @author naamag
+ *
+ */
 public class Call {
 
 	private StasisStart callStasisStart;
@@ -29,7 +36,7 @@ public class Call {
 	}
 	
 	/**
-	 * The method executes the voice application
+	 * The method executes the application
 	 * @param voiceApp
 	 */
 	public void executeVoiceApp (Runnable voiceApp ) {
@@ -52,9 +59,9 @@ public class Call {
 
 					@Override
 					public void onFailure(RestException e) {
-						// TODO Auto-generated method stub
-						res.completeExceptionally(e);
-						// e.printStackTrace();
+						logger.warning("failed in playing playback 'hello-world' " + e.getMessage());
+						res.completeExceptionally(new PlaybackException(e));
+						
 					}
 
 					@Override
@@ -96,20 +103,20 @@ public class Call {
 		}
 		
 		return play(times - 1).thenCompose(x -> play());
-		
 	}
-	
-	
-	
+
 	/**
 	 * The method hang up a call
 	 * @return
 	 */
-	public CompletableFuture<Void> hangUpCall() {
+	public CompletableFuture<Void> hangUpCall()throws HangUpException {
 		try {
 			ari.channels().hangup(channelID, "normal");
 		} catch (RestException e) {
-			e.printStackTrace();
+			logger.warning("failed to answer the call");
+			throw new HangUpException(e);
+			
+			
 		}
 
 		return CompletableFuture.completedFuture(null);
@@ -129,6 +136,7 @@ public class Call {
 		} catch (RestException e) {
 			e.printStackTrace();
 		}
+		
 		logger.info("call answered");
 		return CompletableFuture.completedFuture(null);
 
