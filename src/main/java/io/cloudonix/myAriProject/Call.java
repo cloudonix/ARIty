@@ -1,24 +1,13 @@
 package io.cloudonix.myAriProject;
 
-import java.net.URISyntaxException;
-import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
-import ch.loway.oss.ari4java.AriFactory;
-import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 
@@ -39,10 +28,13 @@ public class Call {
 		this.service = service;
 	}
 	
+	/**
+	 * The method executes the voice application
+	 * @param voiceApp
+	 */
 	public void executeVoiceApp (Runnable voiceApp ) {
 		voiceApp.run();
 	}
-	
 	
 	/**
 	 * The method plays a playback of a specific ARI channel
@@ -140,6 +132,12 @@ public class Call {
 		logger.info("call answered");
 		return CompletableFuture.completedFuture(null);
 
+	}
+	
+	@Override
+	public String toString () {
+		String SSstatus = this.callStasisStart.equals(null) ? "doesn't exist" : "exists";
+		return " Call ID: " + this.channelID + " App name: "+ this.ari.getAppName() + "Stasis start: "+SSstatus ;
 	}
 
 }
