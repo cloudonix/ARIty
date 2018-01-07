@@ -46,14 +46,4 @@ public class App {
 				});
 
 	}
-	/*
-	 * private static void voiceApp(ARIfunctionality myARI) { // answer the call
-	 * myARI.answer() // then play .thenCompose(v -> myARI.play(2)).thenCompose(pb
-	 * -> { logger.info("finished playback! id: " + pb.getId()); // hang up the call
-	 * return myARI.hangUpCall(); }).thenAccept(h -> {
-	 * logger.info("hanged up call"); }).exceptionally(t -> {
-	 * logger.severe(t.toString()); return null; });
-	 */
-
-	// }
 }

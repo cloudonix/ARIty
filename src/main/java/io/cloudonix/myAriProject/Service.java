@@ -97,4 +97,8 @@ public class Service implements AriCallback<Message> {
 		futureEvents.add(futureEvent);
 	}
 	
+	public String getAppName () {
+		return appName;
+	}
+	
 }

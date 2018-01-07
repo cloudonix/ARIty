@@ -136,8 +136,8 @@ public class Call {
 	
 	@Override
 	public String toString () {
-		String SSstatus = this.callStasisStart.equals(null) ? "doesn't exist" : "exists";
-		return " Call ID: " + this.channelID + " App name: "+ this.ari.getAppName() + "Stasis start: "+SSstatus ;
+		//String SSstatus = this.callStasisStart.equals(null) ? "doesn't exist" : "exists";
+		return " Channel id of the call: " + this.channelID + " App Name: "+ this.service.getAppName() ;
 	}
 
 }
