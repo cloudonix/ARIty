@@ -1,11 +1,12 @@
-package io.cloudonix.ariAppService;
+package io.cloudonix.service;
 
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
-import io.cloudonix.ariAppService.Service;
-import io.cloudonix.logicException.ConnectionFailedException;
-import io.cloudonix.logicException.HangUpException;
+import io.cloudonix.service.Service;
+import io.cloudonix.service.errors.AnswerCallException;
+import io.cloudonix.service.errors.ConnectionFailedException;
+import io.cloudonix.service.errors.HangUpException;
 
 public class App {
 
@@ -15,7 +16,7 @@ public class App {
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 		App app = new App();
-		//Create the service of ARI
+		// Create the service of ARI
 		Service ari = null;
 		try {
 			ari = new Service(URI, "stasisApp", "userid", "secret");
@@ -23,10 +24,10 @@ public class App {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		ari.registerVoiceApp(app::voiceAPP);
-		
-		while(true) {
+
+		while (true) {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
@@ -34,25 +35,22 @@ public class App {
 			}
 		}
 	}
-	
+
 	/**
 	 * The method represent the continuity of a call scenario
+	 * 
 	 * @param c
+	 * @throws AnswerCallException
 	 */
 	public void voiceAPP(Call c) {
-		// answer the call
 		c.answer()
-				// then play
-				.thenCompose(v -> c.play(3)).thenCompose(pb -> {
+		/*//then play record (assuming there is "myRecording")
+		.thenCompose(recfin -> c.playRecording("myRecording"))
+		.thenAccept(rf -> logger.info("finished playing record"))*/
+				// then play sound
+				.thenCompose(v -> c.playSound(3, "hello-world")).thenCompose(pb -> {
 					logger.info("finished playback! id: " + pb.getId());
-					// hang up the call
-					try {
-						return c.hangUpCall();
-					} catch (HangUpException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					return null;
+					return c.hangUpCall();
 				}).thenAccept(h -> {
 					logger.info("hanged up call");
 				}).exceptionally(t -> {

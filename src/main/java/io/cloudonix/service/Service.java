@@ -1,4 +1,4 @@
-package io.cloudonix.ariAppService;
+package io.cloudonix.service;
 
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -15,7 +15,7 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.logicException.ConnectionFailedException;
+import io.cloudonix.service.errors.ConnectionFailedException;
 
 /**
  * The class represents the creation of ari and websocket service that handles
