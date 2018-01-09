@@ -19,13 +19,18 @@ public class App {
 		// Create the service of ARI
 		Service ari = null;
 		try {
-			ari = new Service(URI, "stasisApp", "userid", "secret");
+			// dial case
+			ari = new Service(URI, "stasisApp", "userid", "secret", "dial");
+			// call case
+			//ari = new Service(URI, "stasisApp", "userid", "secret", "call");
+			
 		} catch (Throwable e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
-		ari.registerVoiceApp(app::voiceAPP);
+		
+		ari.registerDialApp(app::dialApp);
+	//	ari.registerVoiceApp(app::voiceAPP);
 
 		while (true) {
 			try {
@@ -44,9 +49,11 @@ public class App {
 	 */
 	public void voiceAPP(Call c) {
 		c.answer()
-		/*//then play record (assuming there is "myRecording")
+		/*
+		 * //then play record (assuming there is "myRecording")
 		.thenCompose(recfin -> c.playRecording("myRecording"))
-		.thenAccept(rf -> logger.info("finished playing record"))*/
+		.thenAccept(rf -> logger.info("finished playing record"))
+		*/
 				// then play sound
 				.thenCompose(v -> c.playSound(3, "hello-world")).thenCompose(pb -> {
 					logger.info("finished playback! id: " + pb.getId());
@@ -58,5 +65,17 @@ public class App {
 					return null;
 				});
 
+	}
+	
+	public void dialApp (DialCall d) {
+		
+		d.DialSIP("sip:app2@172.25.0.6")
+		.thenAccept(v -> {
+			logger.info("the other side recieved the call");
+		}).exceptionally(t -> {
+			logger.severe(t.toString());
+			return null;
+		});		
+		
 	}
 }

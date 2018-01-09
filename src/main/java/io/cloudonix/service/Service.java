@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.Dial;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -33,19 +34,22 @@ public class Service implements AriCallback<Message> {
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
+	private Consumer<DialCall> dialApp;
+	// differ between cases/verbs
+	private String appCase = "";
 
-	public Service(String uri, String name, String login, String pass) throws ConnectionFailedException, URISyntaxException{
-		appName = name;	
-		
+	public Service(String uri, String name, String login, String pass, String appCase)
+			throws ConnectionFailedException, URISyntaxException {
+		appName = name;
+		this.appCase = appCase;
+
 		try {
-			ari =  AriFactory.nettyHttp(uri,login, pass, AriVersion.ARI_2_0_0);
+			ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
 			logger.info("ari created");
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("websocket is open");
-			
+
 		} catch (ARIException e) {
-			/*// TODO Auto-generated catch block
-			e.printStackTrace();*/
 			logger.severe("connection failed: " + e.getMessage());
 			throw new ConnectionFailedException(e);
 		}
@@ -64,9 +68,23 @@ public class Service implements AriCallback<Message> {
 	public void onSuccess(Message event) {
 		if (event instanceof StasisStart) {
 			// StasisStart case
-			Call call = new Call((StasisStart) event, ari, this);
-			logger.info("New call created! " + call);
-			voiceApp.accept(call);
+			switch (appCase) {
+			case "call":
+				// call case
+				Call call = new Call((StasisStart) event, ari, this);
+				logger.info("New call created! " + call);
+				voiceApp.accept(call);
+				break;
+				
+			case "dial" :
+				DialCall dial = new DialCall((StasisStart) event, ari, appName);
+				dialApp.accept(dial);
+				break;
+				
+			default:
+				logger.info("Invalid case");
+				
+			}
 		}
 
 		// look for a future event in the event list
@@ -94,8 +112,10 @@ public class Service implements AriCallback<Message> {
 	 * The method handles adding a future event from a specific class (event) to the
 	 * future event list
 	 * 
-	 * @param class1- class of the finished event (example: PlaybackFinished)
-	 * @param func- function to be executed
+	 * @param class1-
+	 *            class of the finished event (example: PlaybackFinished)
+	 * @param func-
+	 *            function to be executed
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
 
@@ -111,6 +131,15 @@ public class Service implements AriCallback<Message> {
 
 	public String getAppName() {
 		return appName;
+	}
+	
+	/**
+	 * The method register a new dial application to be executed
+	 * 
+	 * @param voiceApp
+	 */
+	public void registerDialApp(Consumer<DialCall> dial) {
+		dialApp = dial;
 	}
 
 }
