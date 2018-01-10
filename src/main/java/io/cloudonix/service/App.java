@@ -20,7 +20,7 @@ public class App {
 		Service ari = null;
 		try {
 			// dial case
-			ari = new Service(URI, "stasisApp", "userid", "secret", "dial");
+			ari = new Service(URI, "stasisApp", "userid", "secret");
 			// call case
 			//ari = new Service(URI, "stasisApp", "userid", "secret", "call");
 			
@@ -29,7 +29,7 @@ public class App {
 			e1.printStackTrace();
 		}
 		
-		ari.registerDialApp(app::dialApp);
+		ari.registerVoiceApp(app::voiceApp2);
 	//	ari.registerVoiceApp(app::voiceAPP);
 
 		while (true) {
@@ -67,9 +67,9 @@ public class App {
 
 	}
 	
-	public void dialApp (DialCall d) {
+	public void voiceApp2 (Call d) {
 		
-		d.DialSIP("sip:app2@172.25.0.6")
+		d.DialSIP("SIP/app2")
 		.thenAccept(v -> {
 			logger.info("the other side recieved the call");
 		}).exceptionally(t -> {

@@ -1,7 +1,9 @@
 package io.cloudonix.service;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -10,7 +12,6 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Dial;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -34,14 +35,10 @@ public class Service implements AriCallback<Message> {
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
-	private Consumer<DialCall> dialApp;
-	// differ between cases/verbs
-	private String appCase = "";
+	private List<String> ssIdLst = new ArrayList<>();
 
-	public Service(String uri, String name, String login, String pass, String appCase)
-			throws ConnectionFailedException, URISyntaxException {
+	public Service(String uri, String name, String login, String pass)throws ConnectionFailedException, URISyntaxException {
 		appName = name;
-		this.appCase = appCase;
 
 		try {
 			ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
@@ -56,7 +53,7 @@ public class Service implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method register a new call to be executed
+	 * The method register a new application to be executed
 	 * 
 	 * @param voiceApp
 	 */
@@ -66,25 +63,20 @@ public class Service implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
+		logger.info(event.toString());
+		
 		if (event instanceof StasisStart) {
 			// StasisStart case
-			switch (appCase) {
-			case "call":
-				// call case
-				Call call = new Call((StasisStart) event, ari, this);
-				logger.info("New call created! " + call);
-				voiceApp.accept(call);
-				break;
-				
-			case "dial" :
-				DialCall dial = new DialCall((StasisStart) event, ari, appName);
-				dialApp.accept(dial);
-				break;
-				
-			default:
-				logger.info("Invalid case");
-				
-			}
+			StasisStart ss = (StasisStart) event;
+			// if the list contains the stasis start event with this channel id, ignore it
+			if(ssIdLst.contains(ss.getChannel().getId()))
+				return;
+			logger.info("Channel id of new ss: "+ ss.getChannel().getId());
+			Call call = new Call((StasisStart) event, ari, this);
+			logger.info("New call created! " + call);
+			// save the the channel id of the first stasis
+			ssIdLst.add(ss.getChannel().getId());
+			voiceApp.accept(call);
 		}
 
 		// look for a future event in the event list
@@ -94,8 +86,8 @@ public class Service implements AriCallback<Message> {
 			Function<Message, Boolean> currEntry = itr.next();
 			if (currEntry.apply(event)) {
 				// remove from the list of future events
-				logger.info("future event was removed");
 				itr.remove();
+				logger.info("future event was removed");
 				break;
 			}
 		}
@@ -126,20 +118,12 @@ public class Service implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
+		
 		futureEvents.add(futureEvent);
 	}
 
 	public String getAppName() {
 		return appName;
-	}
-	
-	/**
-	 * The method register a new dial application to be executed
-	 * 
-	 * @param voiceApp
-	 */
-	public void registerDialApp(Consumer<DialCall> dial) {
-		dialApp = dial;
 	}
 
 }
