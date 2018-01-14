@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
@@ -30,6 +31,7 @@ public class Call {
 	private ARI ari;
 	private String channelID;
 	private Service service;
+	private String gatherAll = "";
 
 	private final static Logger logger = Logger.getLogger(Call.class.getName());
 
@@ -265,30 +267,6 @@ public class Call {
 			res.completeExceptionally(new DialException(e1));
 		}
 
-		/*
-		 * // create the peer (endpoint) channel ari.channels().originate(sipNumber,
-		 * null, null, 1, null, appName, "", channelID, -1, null, endPointChanId,
-		 * null,null, null, new AriCallback<Channel>() {
-		 * 
-		 * @Override public void onSuccess(Channel result) {
-		 * logger.info("channel created"); // add it to the bridge try {
-		 * ari.bridges().addChannel(bridgeID, endPointChanId, "peer"); } catch
-		 * (RestException e1) {
-		 * logger.info("failed adding the peer channel to the bridge");
-		 * res.completeExceptionally(new DialException(e1)); }
-		 * logger.info("endpoint channel was added to the bridge");
-		 * 
-		 * }
-		 * 
-		 * @Override public void onFailure(RestException e) {
-		 * logger.info("failed creating the end point channel");
-		 * res.completeExceptionally(new DialException(e));
-		 * 
-		 * }
-		 * 
-		 * });
-		 */
-
 		// add the end point channel to the bridge
 		try {
 			ari.bridges().addChannel(bridgeID, endPointChannelId, "peer");
@@ -322,9 +300,9 @@ public class Call {
 			// !(hangup.getChannel().getId().equals(channelID))) {
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
-				return false;				
+				return false;
 			}
-			
+
 			logger.info("end point channel hanged up");
 			res.complete(null);
 			return true;
@@ -335,4 +313,30 @@ public class Call {
 		return res;
 	}
 
+	public CompletableFuture<ChannelDtmfReceived> gatherInput(String terminatingKey) {
+
+		CompletableFuture<ChannelDtmfReceived> res = new CompletableFuture<>();
+
+		service.addFutureEvent(ChannelDtmfReceived.class, (dtmf) -> {
+			if (!(dtmf.getChannel().getId().equals(channelID))) {
+				logger.info("channel id of dtmf is not the same as the channel id");
+				return false;
+			}
+
+			logger.info("dtmf channel id is the same as the channel id");
+			// if the input is the terminating key "#" then stop
+			if (dtmf.getDigit().equals(terminatingKey)) {
+				logger.info("the input is: " + terminatingKey);
+				logger.info("all input: " + gatherAll);
+				res.complete(dtmf);
+			} else {
+				// the input is 0-9 or A-E or * - save it with the previous digits
+				gatherAll = gatherAll + dtmf.getDigit();
+			}
+
+			return true;
+		});
+
+		return res;
+	}
 }

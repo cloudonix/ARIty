@@ -25,8 +25,8 @@ public class App {
 			e1.printStackTrace();
 		}
 		
-		ari.registerVoiceApp(app::voiceApp2);
-	//	ari.registerVoiceApp(app::voiceAPP);
+		//ari.registerVoiceApp(app::voiceApp2);
+		ari.registerVoiceApp(app::voiceAPP);
 
 		while (true) {
 			try {
@@ -38,7 +38,7 @@ public class App {
 	}
 
 	/**
-	 * The method represent the continuity of a call scenario
+	 * The application represent the continuity of a call scenario
 	 * 
 	 * @param c
 	 * @throws AnswerCallException
@@ -51,10 +51,13 @@ public class App {
 		.thenAccept(rf -> logger.info("finished playing record"))
 		*/
 				// then play sound
-				.thenCompose(v -> c.playSound(4, "hello-world")).thenCompose(pb -> {
-					logger.info("finished playback! id: " + pb.getId());
+				.thenCompose(v -> c.playSound(4, "hello-world")).thenAccept(pb -> logger.info("finished playback! id: " + pb.getId()))
+				.thenCompose(g -> c.gatherInput("#"))
+				.thenCompose(d ->{
+					logger.info("gather is finished");
 					return c.hangUpCall();
-				}).thenAccept(h -> {
+				})			
+				.thenAccept(h -> {
 					logger.info("hanged up call");
 				}).exceptionally(t -> {
 					logger.severe(t.toString());
@@ -63,6 +66,7 @@ public class App {
 
 	}
 	
+	//dial application to sip
 	public void voiceApp2 (Call d) {
 		
 		d.DialSIP("SIP/app2")
