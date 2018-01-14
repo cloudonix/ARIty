@@ -2,6 +2,7 @@ package io.cloudonix.service;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -35,9 +36,10 @@ public class Service implements AriCallback<Message> {
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
-	private List<String> ssIdLst = new ArrayList<>();
+	public List<String> ssIdLst = Collections.synchronizedList(new ArrayList<String>());
 
-	public Service(String uri, String name, String login, String pass)throws ConnectionFailedException, URISyntaxException {
+	public Service(String uri, String name, String login, String pass)
+			throws ConnectionFailedException, URISyntaxException {
 		appName = name;
 
 		try {
@@ -64,14 +66,14 @@ public class Service implements AriCallback<Message> {
 	@Override
 	public void onSuccess(Message event) {
 		logger.info(event.toString());
-		
+
 		if (event instanceof StasisStart) {
 			// StasisStart case
 			StasisStart ss = (StasisStart) event;
 			// if the list contains the stasis start event with this channel id, ignore it
-			if(ssIdLst.contains(ss.getChannel().getId()))
+			if (ssIdLst.contains(ss.getChannel().getId()))
 				return;
-			logger.info("Channel id of new ss: "+ ss.getChannel().getId());
+			logger.info("Channel id of new ss: " + ss.getChannel().getId());
 			Call call = new Call((StasisStart) event, ari, this);
 			logger.info("New call created! " + call);
 			// save the the channel id of the first stasis
@@ -86,7 +88,8 @@ public class Service implements AriCallback<Message> {
 			Function<Message, Boolean> currEntry = itr.next();
 			if (currEntry.apply(event)) {
 				// remove from the list of future events
-				itr.remove();
+				 futureEvents.remove(currEntry);
+				//itr.remove();
 				logger.info("future event was removed");
 				break;
 			}
@@ -118,7 +121,7 @@ public class Service implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
-		
+
 		futureEvents.add(futureEvent);
 	}
 

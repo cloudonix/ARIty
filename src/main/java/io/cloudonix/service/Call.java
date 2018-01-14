@@ -224,7 +224,7 @@ public class Call {
 
 		CompletableFuture<Void> res = new CompletableFuture<>();
 
-		String endPointChanId = UUID.randomUUID().toString();
+		String endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
 		// create the bridge in order to connect between the calling and end point
@@ -254,9 +254,11 @@ public class Call {
 
 		// create the end point channel (that will answer the caller)
 		try {
-			Channel c = ari.channels().create(sipNumber, service.getAppName(), null, endPointChanId, null, channelID,
+			Channel c = ari.channels().create(sipNumber, service.getAppName(), null, endPointChannelId, null, channelID,
 					null);
 			logger.info("end point channel id: " + c.getId());
+			// add the new channel channel id to the stasis start list
+			service.ssIdLst.add(endPointChannelId);
 
 		} catch (RestException e1) {
 			logger.info("failed creating the end point channel");
@@ -289,7 +291,7 @@ public class Call {
 
 		// add the end point channel to the bridge
 		try {
-			ari.bridges().addChannel(bridgeID, endPointChanId, "peer");
+			ari.bridges().addChannel(bridgeID, endPointChannelId, "peer");
 		} catch (RestException e1) {
 			logger.info("failed adding the peer channel to the bridge");
 			res.completeExceptionally(new DialException(e1));
@@ -297,7 +299,7 @@ public class Call {
 		logger.info("endpoint channel was added to the bridge");
 
 		// the caller dials to the end point
-		ari.channels().dial(endPointChanId, channelID, 60000, new AriCallback<Void>() {
+		ari.channels().dial(endPointChannelId, channelID, 60000, new AriCallback<Void>() {
 
 			@Override
 			public void onSuccess(Void result) {
@@ -314,18 +316,20 @@ public class Call {
 		});
 		// add future event of ChannelHangupRequest
 		service.addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-			//if ((hangup.getChannel().getId().equals(endPointChanId)) || hangup.getChannel().getId().equals(channelID)) {
-			if (!(hangup.getChannel().getId().equals(endPointChanId))) {
+			// if ((hangup.getChannel().getId().equals(endPointChanId)) ||
+			// hangup.getChannel().getId().equals(channelID)) {
+			// if (!(hangup.getChannel().getId().equals(endPointChannelId)) ||
+			// !(hangup.getChannel().getId().equals(channelID))) {
+			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
-				return false;
-			
+				return false;				
 			}
-
-			logger.info("end point channel hangs up");
-			CompletableFuture.completedFuture(null);
+			
+			logger.info("end point channel hanged up");
+			res.complete(null);
 			return true;
 		});
-		
+
 		logger.info("future event of ChannelHangupRequest was added");
 
 		return res;
