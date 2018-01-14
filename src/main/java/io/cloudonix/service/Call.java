@@ -257,8 +257,8 @@ public class Call {
 			Channel c = ari.channels().create(sipNumber, service.getAppName(), null, endPointChannelId, null, channelID,
 					null);
 			logger.info("end point channel id: " + c.getId());
-			// add the new channel channel id to the stasis start list
-			service.ssIdLst.add(endPointChannelId);
+			// add the new channel channel id to the set of newCallsChannelId
+			service.setNewCallsChannelId(endPointChannelId);
 
 		} catch (RestException e1) {
 			logger.info("failed creating the end point channel");

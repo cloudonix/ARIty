@@ -1,11 +1,10 @@
 package io.cloudonix.service;
 
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -13,6 +12,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -31,12 +31,14 @@ public class Service implements AriCallback<Message> {
 
 	private final static Logger logger = Logger.getLogger(Service.class.getName());
 	// List of future events
-	private CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
-
+	//private CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
+	//private ConcurrentSkipListSet<Function<Message, Boolean>> futureEvents = new ConcurrentSkipListSet<>();
+	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
-	public List<String> ssIdLst = Collections.synchronizedList(new ArrayList<String>());
+	// save the channel id of new calls (for ignoring another stasis start event, if needed)
+	private ConcurrentSkipListSet<String> newCallsChannelId = new ConcurrentSkipListSet<>();
 
 	public Service(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
@@ -65,21 +67,24 @@ public class Service implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-		logger.info(event.toString());
+		//logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
 			// StasisStart case
 			StasisStart ss = (StasisStart) event;
-			// if the list contains the stasis start event with this channel id, ignore it
-			if (ssIdLst.contains(ss.getChannel().getId()))
+			// if the list contains the stasis start event with this channel id, remove it and continue
+			if (newCallsChannelId.remove(ss.getChannel().getId())) {
 				return;
+			}
 			logger.info("Channel id of new ss: " + ss.getChannel().getId());
 			Call call = new Call((StasisStart) event, ari, this);
 			logger.info("New call created! " + call);
 			// save the the channel id of the first stasis
-			ssIdLst.add(ss.getChannel().getId());
 			voiceApp.accept(call);
 		}
+		
+		if(event instanceof ChannelDtmfReceived)
+			logger.info(event.toString());
 
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
@@ -88,8 +93,7 @@ public class Service implements AriCallback<Message> {
 			Function<Message, Boolean> currEntry = itr.next();
 			if (currEntry.apply(event)) {
 				// remove from the list of future events
-				 futureEvents.remove(currEntry);
-				//itr.remove();
+				itr.remove();
 				logger.info("future event was removed");
 				break;
 			}
@@ -127,6 +131,14 @@ public class Service implements AriCallback<Message> {
 
 	public String getAppName() {
 		return appName;
+	}
+	
+	/**
+	 * Add a channel id to the newCallsChannelId set when a new channel (call) was created 
+	 * @param id
+	 */
+	public void setNewCallsChannelId (String id) {
+		newCallsChannelId.add(id);
 	}
 
 }

@@ -6,7 +6,6 @@ import java.util.logging.Logger;
 import io.cloudonix.service.Service;
 import io.cloudonix.service.errors.AnswerCallException;
 import io.cloudonix.service.errors.ConnectionFailedException;
-import io.cloudonix.service.errors.HangUpException;
 
 public class App {
 
@@ -19,10 +18,7 @@ public class App {
 		// Create the service of ARI
 		Service ari = null;
 		try {
-			// dial case
 			ari = new Service(URI, "stasisApp", "userid", "secret");
-			// call case
-			//ari = new Service(URI, "stasisApp", "userid", "secret", "call");
 			
 		} catch (Throwable e1) {
 			// TODO Auto-generated catch block
@@ -55,7 +51,7 @@ public class App {
 		.thenAccept(rf -> logger.info("finished playing record"))
 		*/
 				// then play sound
-				.thenCompose(v -> c.playSound(3, "hello-world")).thenCompose(pb -> {
+				.thenCompose(v -> c.playSound(4, "hello-world")).thenCompose(pb -> {
 					logger.info("finished playback! id: " + pb.getId());
 					return c.hangUpCall();
 				}).thenAccept(h -> {
