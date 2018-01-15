@@ -25,8 +25,8 @@ public class App {
 			e1.printStackTrace();
 		}
 
-		// ari.registerVoiceApp(app::voiceApp2);
-		ari.registerVoiceApp(app::voiceAPP);
+		// ari.registerVoiceApp(app::voiceApp3);
+		ari.registerVoiceApp(app::voiceApp2);
 
 		while (true) {
 			try {
@@ -42,7 +42,7 @@ public class App {
 	 * 
 	 * @param c
 	 * @throws AnswerCallException
-	 */
+	 *//*
 	public void voiceAPP(Call c) {
 		c.answer()
 				// then play sound
@@ -58,11 +58,11 @@ public class App {
 					return null;
 				});
 
-		/*
+		
 		 * //then play record (assuming there is "myRecording") .thenCompose(recfin ->
 		 * c.playRecording("myRecording")) .thenAccept(rf ->
 		 * logger.info("finished playing record"))
-		 */
+		 
 
 	}
 
@@ -76,5 +76,33 @@ public class App {
 			return null;
 		});
 
+	}*/
+	
+	public void voiceApp2(Call call) {
+		
+		new Dial(call).run("SIP/app2")
+		.thenAccept(v->{logger.info("the other side recieved the call");
+		}).exceptionally(t -> {
+			logger.severe(t.toString());
+			return null;
+		});
 	}
+	
+
+	public void voiceApp3 (Call call) {
+		new Answer(call).run()
+		.thenCompose(v-> new Play(call).runSound(2, "hello-world"))
+		.thenAccept(pb->logger.info("finished playback! id: " + pb.getId()))
+		.thenCompose(g-> new Gather(call).run("#"))
+		.thenCompose(d -> {
+			logger.info("gather is finished");
+			return new HangUp(call).run();
+		}).thenAccept(h -> {
+			logger.info("hanged up call");
+		}).exceptionally(t -> {
+			logger.severe(t.toString());
+			return null;
+		});
+	}
+	
 }
