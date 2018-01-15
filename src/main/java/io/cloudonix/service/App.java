@@ -19,13 +19,13 @@ public class App {
 		Service ari = null;
 		try {
 			ari = new Service(URI, "stasisApp", "userid", "secret");
-			
+
 		} catch (Throwable e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
-		//ari.registerVoiceApp(app::voiceApp2);
+
+		// ari.registerVoiceApp(app::voiceApp2);
 		ari.registerVoiceApp(app::voiceAPP);
 
 		while (true) {
@@ -45,37 +45,36 @@ public class App {
 	 */
 	public void voiceAPP(Call c) {
 		c.answer()
-		/*
-		 * //then play record (assuming there is "myRecording")
-		.thenCompose(recfin -> c.playRecording("myRecording"))
-		.thenAccept(rf -> logger.info("finished playing record"))
-		*/
 				// then play sound
-				.thenCompose(v -> c.playSound(4, "hello-world")).thenAccept(pb -> logger.info("finished playback! id: " + pb.getId()))
-				.thenCompose(g -> c.gatherInput("#"))
-				.thenCompose(d ->{
+				.thenCompose(v -> c.playSound(2, "hello-world"))
+				.thenAccept(pb -> logger.info("finished playback! id: " + pb.getId()))
+				.thenCompose(g -> c.gatherInput("#")).thenCompose(d -> {
 					logger.info("gather is finished");
 					return c.hangUpCall();
-				})			
-				.thenAccept(h -> {
+				}).thenAccept(h -> {
 					logger.info("hanged up call");
 				}).exceptionally(t -> {
 					logger.severe(t.toString());
 					return null;
 				});
 
+		/*
+		 * //then play record (assuming there is "myRecording") .thenCompose(recfin ->
+		 * c.playRecording("myRecording")) .thenAccept(rf ->
+		 * logger.info("finished playing record"))
+		 */
+
 	}
-	
-	//dial application to sip
-	public void voiceApp2 (Call d) {
-		
-		d.DialSIP("SIP/app2")
-		.thenAccept(v -> {
+
+	// dial application to sip
+	public void voiceApp2(Call d) {
+
+		d.DialSIP("SIP/app2").thenAccept(v -> {
 			logger.info("the other side recieved the call");
 		}).exceptionally(t -> {
 			logger.severe(t.toString());
 			return null;
-		});		
-		
+		});
+
 	}
 }

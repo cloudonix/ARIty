@@ -313,11 +313,11 @@ public class Call {
 		return res;
 	}
 
-	public CompletableFuture<ChannelDtmfReceived> gatherInput(String terminatingKey) {
+	public CompletableFuture<String> gatherInput(String terminatingKey) {
 
-		CompletableFuture<ChannelDtmfReceived> res = new CompletableFuture<>();
+		CompletableFuture<String> res = new CompletableFuture<>();
 
-		service.addFutureEvent(ChannelDtmfReceived.class, (dtmf) -> {
+		service.addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(channelID))) {
 				logger.info("channel id of dtmf is not the same as the channel id");
 				return false;
@@ -328,13 +328,14 @@ public class Call {
 			if (dtmf.getDigit().equals(terminatingKey)) {
 				logger.info("the input is: " + terminatingKey);
 				logger.info("all input: " + gatherAll);
-				res.complete(dtmf);
-			} else {
-				// the input is 0-9 or A-E or * - save it with the previous digits
-				gatherAll = gatherAll + dtmf.getDigit();
-			}
+				res.complete(gatherAll);
+				return true;
 
-			return true;
+			}
+			// the input is 0-9 or A-E or * - save it with the previous digits
+			gatherAll = gatherAll + dtmf.getDigit();
+			return false;
+
 		});
 
 		return res;
