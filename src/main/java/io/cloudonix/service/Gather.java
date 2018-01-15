@@ -5,27 +5,37 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 
-public class Gather extends Verb{
-	private CompletableFuture<String> cf;
+public class Gather extends Verb {
+	private CompletableFuture<String> compFuture;
 	private String gatherAll;
+	private Call call;
 	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
-	
+
 	/**
 	 * Constructor
+	 * 
 	 * @param call
 	 */
 	public Gather(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		cf = new CompletableFuture<>();
+		compFuture = new CompletableFuture<>();
 		gatherAll = "";
+		this.call = call;
 	}
-	
+
 	/**
 	 * The method gathers input from the user
-	 * @param terminatingKey - the digit that stops the gathering
+	 * 
+	 * @param terminatingKey
+	 *            - the digit that stops the gathering
 	 * @return
 	 */
-	public CompletableFuture<String> run (String terminatingKey) {
+	public CompletableFuture<String> run(String terminatingKey) {
+		
+	//	CompletablePlayback playback = new Play(call).runSound(times, soundLocation);
+		
+		// stops the playback
+		//getAri().playbacks().stop(playback.get().getId());
 
 		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {
@@ -38,7 +48,7 @@ public class Gather extends Verb{
 			if (dtmf.getDigit().equals(terminatingKey)) {
 				logger.info("the input is: " + terminatingKey);
 				logger.info("all input: " + gatherAll);
-				cf.complete(gatherAll);
+				compFuture.complete(gatherAll);
 				return true;
 
 			}
@@ -48,7 +58,7 @@ public class Gather extends Verb{
 
 		});
 
-		return cf;
+		return compFuture;
 	}
 
 }

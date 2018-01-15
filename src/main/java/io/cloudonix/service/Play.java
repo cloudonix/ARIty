@@ -13,7 +13,7 @@ import io.cloudonix.service.errors.PlaybackException;
 
 public class Play  extends Verb{
 	
-	private CompletableFuture<Playback> cf;
+	private CompletablePlayback compFuture;
 	private StasisStart callStasisStart;
 
 	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
@@ -24,7 +24,7 @@ public class Play  extends Verb{
 	 */
 	public Play(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		cf = new CompletableFuture<>();
+		compFuture = new CompletablePlayback (call.getAri());
 		callStasisStart = call.getCallStasisStart();
 	}
 	
@@ -35,13 +35,12 @@ public class Play  extends Verb{
 	 *            - the number of repetitions of the playback
 	 * @return
 	 */	
-	public CompletableFuture<Playback> run(int times, String uriScheme, String fileLocation) {
+	public CompletablePlayback run(int times, String uriScheme, String fileLocation) {
 
 		if (times == 1) {
 			return run(uriScheme, fileLocation);
 		}
-
-		return run(times - 1, uriScheme, fileLocation).thenCompose(x -> run(uriScheme, fileLocation));
+		return run(times - 1, uriScheme, fileLocation).thenComposePlayback(x -> run(uriScheme, fileLocation));
 	}
 	
 	/**
@@ -52,18 +51,17 @@ public class Play  extends Verb{
 	 * @param soundLocation
 	 * @return
 	 */
-	public CompletableFuture<Playback> runSound(int times, String soundLocation) {
+	public CompletablePlayback runSound(int times, String soundLocation) {
 		return run(times, "sound:", soundLocation);
 	}
 	
-
 	/**
 	 * The method plays the stored recored
 	 * 
 	 * @param recLocation
 	 * @return
 	 */
-	public CompletableFuture<Playback> playRecording(String recLocation) {
+	public CompletablePlayback playRecording(String recLocation) {
 		return run("recording:", recLocation);
 	}
 	
@@ -72,7 +70,7 @@ public class Play  extends Verb{
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Playback> run(String uriScheme, String fileLocation) {
+	public CompletablePlayback run(String uriScheme, String fileLocation) {
 
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
@@ -86,7 +84,7 @@ public class Play  extends Verb{
 					@Override
 					public void onFailure(RestException e) {
 						logger.warning("failed in playing playback " + e.getMessage());
-						cf.completeExceptionally(new PlaybackException(fullPath, e));
+						compFuture.completeExceptionally(new PlaybackException(fullPath, e));
 					}
 
 					@Override
@@ -104,7 +102,7 @@ public class Play  extends Verb{
 								return false;
 							logger.info("playbackFinished and same playback id. Id is: " + pbID);
 							// if it is play back finished with the same id, handle it here
-							cf.complete(playb.getPlayback());
+							compFuture.complete(playb.getPlayback());
 							return true;
 
 							/*
@@ -121,7 +119,7 @@ public class Play  extends Verb{
 
 				});
 
-		return cf;
+		return compFuture;
 	}
 
 }

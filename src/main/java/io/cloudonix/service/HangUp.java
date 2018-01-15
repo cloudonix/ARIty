@@ -7,7 +7,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.service.errors.HangUpException;
 
 public class HangUp  extends Verb{
-	private CompletableFuture<Void> cf;
+	private CompletableFuture<Void> compFuture;
 	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
 	
 	/**
@@ -16,7 +16,7 @@ public class HangUp  extends Verb{
 	 */
 	public HangUp(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		cf = new CompletableFuture<>();
+		compFuture = new CompletableFuture<>();
 	}
 	
 	/**
@@ -30,8 +30,8 @@ public class HangUp  extends Verb{
 			getAri().channels().hangup(getChanneLID(), "normal");
 		} catch (RestException e) {
 			logger.severe("failed hang up the call");
-			cf.completeExceptionally(new HangUpException(e));
-			return cf;
+			compFuture.completeExceptionally(new HangUpException(e));
+			return compFuture;
 		}
 		return CompletableFuture.completedFuture(null);
 		

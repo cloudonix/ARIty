@@ -12,7 +12,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.service.errors.DialException;
 
 public class Dial extends Verb {
-	CompletableFuture<Void> cf;
+	CompletableFuture<Void> compFuture;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -23,7 +23,7 @@ public class Dial extends Verb {
 	 */
 	public Dial(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		cf = new CompletableFuture<>();
+		compFuture = new CompletableFuture<>();
 	}
 
 	/**
@@ -49,7 +49,7 @@ public class Dial extends Verb {
 			@Override
 			public void onFailure(RestException e) {
 				logger.info("failed creating the bridge");
-				cf.completeExceptionally(new DialException(e));
+				compFuture.completeExceptionally(new DialException(e));
 			}
 
 		});
@@ -58,7 +58,7 @@ public class Dial extends Verb {
 			getAri().bridges().addChannel(bridgeID, getChanneLID(), "caller");
 		} catch (RestException e1) {
 			logger.info("failed adding the caller channel to the bridge");
-			cf.completeExceptionally(new DialException(e1));
+			compFuture.completeExceptionally(new DialException(e1));
 		}
 		logger.info("caller's channel was added to the bridge");
 
@@ -72,7 +72,7 @@ public class Dial extends Verb {
 
 		} catch (RestException e1) {
 			logger.info("failed creating the end point channel");
-			cf.completeExceptionally(new DialException(e1));
+			compFuture.completeExceptionally(new DialException(e1));
 		}
 
 		// add the end point channel to the bridge
@@ -80,7 +80,7 @@ public class Dial extends Verb {
 			getAri().bridges().addChannel(bridgeID, endPointChannelId, "peer");
 		} catch (RestException e1) {
 			logger.info("failed adding the peer channel to the bridge");
-			cf.completeExceptionally(new DialException(e1));
+			compFuture.completeExceptionally(new DialException(e1));
 		}
 		logger.info("endpoint channel was added to the bridge");
 
@@ -96,7 +96,7 @@ public class Dial extends Verb {
 			@Override
 			public void onFailure(RestException e) {
 				logger.warning("failed in dialing: " + e.getMessage());
-				cf.completeExceptionally(new DialException(e));
+				compFuture.completeExceptionally(new DialException(e));
 			}
 
 		});
@@ -112,13 +112,13 @@ public class Dial extends Verb {
 			}
 
 			logger.info("end point channel hanged up");
-			cf.complete(null);
+			compFuture.complete(null);
 			return true;
 		});
 
 		logger.info("future event of ChannelHangupRequest was added");
 
-		return cf;
+		return compFuture;
 	}
 
 }

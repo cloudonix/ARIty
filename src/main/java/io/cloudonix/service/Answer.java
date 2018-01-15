@@ -7,12 +7,12 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.service.errors.AnswerCallException;
 
 public class Answer extends Verb {
-	CompletableFuture<Void> cf;
+	CompletableFuture<Void> compFuture;
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
 	public Answer(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		cf = new CompletableFuture<>();
+		compFuture = new CompletableFuture<>();
 	}
 	
 	/**
@@ -29,8 +29,8 @@ public class Answer extends Verb {
 			getAri().channels().answer(getChanneLID());
 		} catch (RestException e) {
 			logger.severe("failed in answering the call: " + e);
-			cf.completeExceptionally(new AnswerCallException(e));
-			return cf;
+			compFuture.completeExceptionally(new AnswerCallException(e));
+			return compFuture;
 		}
 
 		logger.info("call answered");
