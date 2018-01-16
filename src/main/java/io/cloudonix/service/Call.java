@@ -14,14 +14,14 @@ public class Call {
 	private StasisStart callStasisStart;
 	private ARI ari;
 	private String channelID;
-	private Service service;
+	private ARIty aRIty;
 
-	public Call(StasisStart ss, ARI a, Service service) {
+	public Call(StasisStart ss, ARI a, ARIty aRIty) {
 
 		callStasisStart = ss;
 		channelID = ss.getChannel().getId();
 		ari = a;
-		this.service = service;
+		this.aRIty = aRIty;
 	}
 
 	/**
@@ -53,8 +53,8 @@ public class Call {
 	 * get the service from the call
 	 * @return
 	 */
-	public Service getService () {
-		return service;
+	public ARIty getService () {
+		return aRIty;
 	}
 	
 	/**

@@ -27,9 +27,9 @@ import io.cloudonix.service.errors.ConnectionFailedException;
  * @author naamag
  *
  */
-public class Service implements AriCallback<Message> {
+public class ARIty implements AriCallback<Message> {
 
-	private final static Logger logger = Logger.getLogger(Service.class.getName());
+	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	// List of future events
 	//private CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
 	//private ConcurrentSkipListSet<Function<Message, Boolean>> futureEvents = new ConcurrentSkipListSet<>();
@@ -40,7 +40,7 @@ public class Service implements AriCallback<Message> {
 	// save the channel id of new calls (for ignoring another stasis start event, if needed)
 	private ConcurrentSkipListSet<String> newCallsChannelId = new ConcurrentSkipListSet<>();
 
-	public Service(String uri, String name, String login, String pass)
+	public ARIty(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
 		appName = name;
 

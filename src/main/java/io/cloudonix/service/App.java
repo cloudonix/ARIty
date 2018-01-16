@@ -3,7 +3,7 @@ package io.cloudonix.service;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
-import io.cloudonix.service.Service;
+import io.cloudonix.service.ARIty;
 import io.cloudonix.service.errors.AnswerCallException;
 import io.cloudonix.service.errors.ConnectionFailedException;
 
@@ -16,9 +16,9 @@ public class App {
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 		App app = new App();
 		// Create the service of ARI
-		Service ari = null;
+		ARIty ari = null;
 		try {
-			ari = new Service(URI, "stasisApp", "userid", "secret");
+			ari = new ARIty(URI, "stasisApp", "userid", "secret");
 
 		} catch (Throwable e1) {
 			// TODO Auto-generated catch block

@@ -35,7 +35,7 @@ public class Gather extends Verb {
 	//	CompletablePlayback playback = new Play(call).runSound(times, soundLocation);
 		
 		// stops the playback
-		//getAri().playbacks().stop(playback.get().getId());
+		//getAri().playbacks().stop(playback.get().getId()); 
 
 		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {
