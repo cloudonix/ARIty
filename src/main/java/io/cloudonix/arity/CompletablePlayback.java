@@ -11,10 +11,12 @@ import ch.loway.oss.ari4java.ARI;
 public class CompletablePlayback extends CompletableFuture<Playback>{
 	
 	private ARI ari;
+//	private Executor execute;
 	
 	public CompletablePlayback (ARI ari) {
 		super();
 		this.ari = ari;
+		//execute = exec;
 	}
 	
 	@Override
@@ -31,8 +33,12 @@ public class CompletablePlayback extends CompletableFuture<Playback>{
 	
 	public CompletablePlayback thenComposePlayback(Function<Playback, CompletableFuture<Playback>> fn)
 	{
-		return (CompletablePlayback) super.thenCompose(fn);
+		CompletableFuture<Playback> playbackFuture = new CompletableFuture<>();
+		playbackFuture = super.thenCompose(fn);
+		CompletablePlayback compPlayback = (CompletablePlayback) playbackFuture;
+		return compPlayback;
+		//return (CompletablePlayback)super.thenCompose(fn);
 	}
 	
-
+	
 }

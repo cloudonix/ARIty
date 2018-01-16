@@ -1,7 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Playback;
@@ -11,12 +11,12 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
-public class Play  extends Verb{
+public class Play extends Verb{
 	
 	private CompletablePlayback compFuture;
 	private StasisStart callStasisStart;
 
-	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
+	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	
 	/**
 	 * constructor 
@@ -40,6 +40,8 @@ public class Play  extends Verb{
 		if (times == 1) {
 			return run(uriScheme, fileLocation);
 		}
+		
+		
 		return run(times - 1, uriScheme, fileLocation).thenComposePlayback(x -> run(uriScheme, fileLocation));
 	}
 	
