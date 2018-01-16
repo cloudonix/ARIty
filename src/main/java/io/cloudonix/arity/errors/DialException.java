@@ -1,4 +1,4 @@
-package io.cloudonix.service.errors;
+package io.cloudonix.arity.errors;
 
 public class DialException extends Exception {
 	

@@ -1,11 +1,11 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.service.errors.PlaybackException;
+import io.cloudonix.arity.errors.PlaybackException;
 import ch.loway.oss.ari4java.ARI;
 
 public class CompletablePlayback extends CompletableFuture<Playback>{

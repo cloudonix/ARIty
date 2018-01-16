@@ -1,4 +1,4 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -9,7 +9,7 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.service.errors.DialException;
+import io.cloudonix.arity.errors.DialException;
 
 public class Dial extends Verb {
 	CompletableFuture<Void> compFuture;

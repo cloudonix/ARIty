@@ -1,4 +1,4 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -9,7 +9,7 @@ import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.service.errors.PlaybackException;
+import io.cloudonix.arity.errors.PlaybackException;
 
 public class Play  extends Verb{
 	

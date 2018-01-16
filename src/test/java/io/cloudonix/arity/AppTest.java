@@ -1,4 +1,4 @@
-package io.cloudonix.myAriProject;
+package io.cloudonix.arity;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

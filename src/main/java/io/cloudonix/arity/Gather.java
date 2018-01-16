@@ -1,4 +1,4 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
