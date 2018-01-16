@@ -20,7 +20,7 @@ deploy:
   stage: deploy
   script: 
     - 'mvn -DaltDeploymentRepository=repo::default::file:./target/staging deploy'
-    - cp target/arity-*-fat.jar target/staging/tech/greenfield/ARIty/*/
+    - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
   artifacts: 
     paths:
       - target/staging

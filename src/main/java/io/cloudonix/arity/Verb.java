@@ -1,4 +1,4 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import ch.loway.oss.ari4java.ARI;
 

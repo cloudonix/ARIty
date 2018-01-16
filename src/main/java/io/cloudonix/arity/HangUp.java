@@ -1,10 +1,10 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.service.errors.HangUpException;
+import io.cloudonix.arity.errors.HangUpException;
 
 public class HangUp  extends Verb{
 	private CompletableFuture<Void> compFuture;

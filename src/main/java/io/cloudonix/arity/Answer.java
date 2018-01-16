@@ -1,10 +1,10 @@
-package io.cloudonix.service;
+package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.service.errors.AnswerCallException;
+import io.cloudonix.arity.errors.AnswerCallException;
 
 public class Answer extends Verb {
 	CompletableFuture<Void> compFuture;
