@@ -3,22 +3,25 @@ ARIty is a library that gives you services of a call, using ari4java. You will b
 execute them.
 
 ## Installation
-In your pom.xml file, add the repository for ARIty (we are currently not hosted in the public Maven repository) as an element under <project>:
-
+In your `pom.xml` file, add the repository for ARIty (we are currently not hosted in the public Maven repository) as an element under`<project>`:
+```
 <repositories>
   <repository>
     <id>cloudonix-dist</id>
     <url>http://cloudonix-dist.s3-website-us-west-1.amazonaws.com/maven2/releases</url>
   </repository>
 </repositories>
+```
 
 Then add ARIty as a dependency:
 
+```
 <dependency>
-	<groupId>io.cloudonix</groupId>
+	<groupId>tech.greenfield</groupId>
 	<artifactId>arity</artifactId>
 	<version>[0,)</version>
 </dependency>
+```
 
 ## Usage
 Under ARIty we use the concept of "Application"- a class whose fields and methods are used as handlers for incoming/outgoing calls.
