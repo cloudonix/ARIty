@@ -35,7 +35,7 @@ To handle a call scenario, create your voice application and define the actions 
 
 ### A sample of voice application
 An example of a voice application that answers the call, then play a sound file "hello-world", and then hang up the call.
-
+```
 Class Application {
 
 	public void voiceApp (Call call) {
@@ -53,7 +53,7 @@ Class Application {
 		});
 	}
 }
-
+```
 
 ##Initializing 
 In order to create the ARIty service, you need to create a main method in the Application class. In the main method, you need to do the following:
@@ -65,6 +65,7 @@ In order to create the ARIty service, you need to create a main method in the Ap
 
 ### Simple example
 
+```
 public class Application {
 
 	private static String URI = "http://127.0.0.1:8088/";
@@ -91,4 +92,5 @@ public class Application {
 			}
 		}
 	}
-
+}
+```
