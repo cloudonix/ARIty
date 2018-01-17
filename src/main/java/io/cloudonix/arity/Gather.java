@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -18,12 +19,14 @@ public class Gather extends Verb {
 	 * Constructor
 	 * @param call
 	 */
-	public Gather(Call call) {
+	public Gather(Call call, String termKey) {
 		
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		gatherAll = "";
 		this.call = call;
+		terminatingKey = termKey;
+		nestedVerbs = new ArrayList<>();
 	}
 	
 
@@ -33,7 +36,7 @@ public class Gather extends Verb {
 	 * @param call
 	 * @param terminating key
 	 * @param verbs (list of nested verbs to be executed)
-	 */
+	 *//*
 	
 	public Gather(Call call, String terminatingKey, List<Verb> verbs) {
 
@@ -43,7 +46,7 @@ public class Gather extends Verb {
 		this.call = call;
 		nestedVerbs = verbs;
 		this.terminatingKey = terminatingKey;
-	}
+	}*/
 	
 
 	/**
@@ -53,7 +56,7 @@ public class Gather extends Verb {
 	 *            - the digit that stops the gathering
 	 * @return
 	 */
-	public CompletableFuture<String> run(String terminatingKey) {
+	public CompletableFuture<String> run() {
 
 		// CompletablePlayback playback = new Play(call).runSound(times, soundLocation);
 
@@ -82,6 +85,18 @@ public class Gather extends Verb {
 		});
 
 		return compFuture;
+	}
+	
+	/**
+	 * add new verb to list of nested verbs that run method will execute one by one
+	 * @param verb
+	 * @return
+	 */
+	
+	public Gather and (Verb verb) {
+		nestedVerbs.add(verb);
+		return this;
+		
 	}
 
 }

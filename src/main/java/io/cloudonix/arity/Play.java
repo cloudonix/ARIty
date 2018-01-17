@@ -15,10 +15,11 @@ public class Play extends Verb{
 	
 	private StasisStart callStasisStart;
 	private String fileLocation;
-	private int timesToPlay;
+	private int timesToPlay = 1;
+	private String uriScheme = "sound:";
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
-	private CompletableFuture<Playback> compFuturePlaybcak;;
+	private CompletableFuture<Playback> compFuturePlaybcak;
 
 	/**
 	 * constructor 
@@ -37,12 +38,11 @@ public class Play extends Verb{
 	 * @param fileLocation
 	 * @param times
 	 */
-	public Play(Call call, String fileLocation, int times) {
+	public Play(Call call, String fileLocation) {
 		
 		super(call.getChannelID(), call.getService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
 		this.fileLocation = fileLocation;
-		timesToPlay = times;	
 		compFuturePlaybcak = new CompletableFuture<>();
 	}
 	
@@ -53,35 +53,24 @@ public class Play extends Verb{
 	 *            - the number of repetitions of the playback
 	 * @return
 	 */	
-	public CompletableFuture<Playback> run(String uriScheme, String fileLocation, int times) {
+	public CompletableFuture<Playback> run(int times) {
 
 		if (times == 1) {
-			return run(uriScheme, fileLocation);
+			return run();
 		}
 
-		return run(uriScheme, fileLocation, times - 1).thenCompose(x -> run(uriScheme, fileLocation));
+		return run(times - 1).thenCompose(x -> run());
 	}
 	
 	/**
-	 * play the relevant sound few times
-	 * 
-	 * @param times-
-	 *            how many times to play the sound
-	 * @param soundLocation
-	 * @return
-	 */
-	public CompletableFuture<Playback> runSound(String soundLocation, int times) {
-		return run("sound:", soundLocation, times);
-	}
-	
-	/**
-	 * The method plays the stored recored
+	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
 	 * @param recLocation
 	 * @return
 	 */
-	public CompletableFuture<Playback> playRecording(String recLocation) {
-		return run("recording:", recLocation);
+	public CompletableFuture<Playback> playRecording() {
+		uriScheme = "recording:";	
+		return run();
 	}
 	
 	/**
@@ -89,8 +78,13 @@ public class Play extends Verb{
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Playback> run(String uriScheme, String fileLocation) {
-
+	public CompletableFuture<Playback> run() {
+		
+		if(timesToPlay > 1) {
+			timesToPlay = timesToPlay -1 ;
+			return run().thenCompose(x -> run());
+		}
+		
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
 		logger.info("UUID: " + pbID);
@@ -139,6 +133,16 @@ public class Play extends Verb{
 				});
 
 		return compFuturePlaybcak;
+	}
+	
+	/**
+	 * set how many times to play the playback
+	 * @param times
+	 * @return
+	 */
+	public Play loop (int times) {
+		this.timesToPlay = times;
+		return this;		
 	}
 
 }
