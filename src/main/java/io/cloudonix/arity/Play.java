@@ -1,7 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.UUID;
-import java.util.concurrent.Executor;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Playback;
@@ -13,21 +13,21 @@ import io.cloudonix.arity.errors.PlaybackException;
 
 public class Play extends Verb{
 	
-	private CompletablePlayback compFuture;
 	private StasisStart callStasisStart;
-	private String fileToPlay;
+	private String fileLocation;
 	private int timesToPlay;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
-	
+	private CompletableFuture<Playback> compFuturePlaybcak;;
+
 	/**
 	 * constructor 
 	 * @param call
 	 */
 	public Play(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
-		compFuture = new CompletablePlayback (call.getAri());
 		callStasisStart = call.getCallStasisStart();
+		compFuturePlaybcak = new CompletableFuture<>();
 	}
 	
 	/**
@@ -40,10 +40,10 @@ public class Play extends Verb{
 	public Play(Call call, String fileLocation, int times) {
 		
 		super(call.getChannelID(), call.getService(), call.getAri());
-		compFuture = new CompletablePlayback (call.getAri());
 		callStasisStart = call.getCallStasisStart();
-		fileToPlay = fileLocation;
-		timesToPlay = times;		
+		this.fileLocation = fileLocation;
+		timesToPlay = times;	
+		compFuturePlaybcak = new CompletableFuture<>();
 	}
 	
 	/**
@@ -53,13 +53,13 @@ public class Play extends Verb{
 	 *            - the number of repetitions of the playback
 	 * @return
 	 */	
-	public CompletablePlayback run(String uriScheme, String fileLocation, int times) {
+	public CompletableFuture<Playback> run(String uriScheme, String fileLocation, int times) {
 
 		if (times == 1) {
 			return run(uriScheme, fileLocation);
 		}
-		
-		return run(uriScheme, fileLocation, times - 1).thenComposePlayback(x -> run(uriScheme, fileLocation));
+
+		return run(uriScheme, fileLocation, times - 1).thenCompose(x -> run(uriScheme, fileLocation));
 	}
 	
 	/**
@@ -70,7 +70,7 @@ public class Play extends Verb{
 	 * @param soundLocation
 	 * @return
 	 */
-	public CompletablePlayback runSound(String soundLocation, int times) {
+	public CompletableFuture<Playback> runSound(String soundLocation, int times) {
 		return run("sound:", soundLocation, times);
 	}
 	
@@ -80,7 +80,7 @@ public class Play extends Verb{
 	 * @param recLocation
 	 * @return
 	 */
-	public CompletablePlayback playRecording(String recLocation) {
+	public CompletableFuture<Playback> playRecording(String recLocation) {
 		return run("recording:", recLocation);
 	}
 	
@@ -89,7 +89,7 @@ public class Play extends Verb{
 	 * 
 	 * @return
 	 */
-	public CompletablePlayback run(String uriScheme, String fileLocation) {
+	public CompletableFuture<Playback> run(String uriScheme, String fileLocation) {
 
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
@@ -103,7 +103,7 @@ public class Play extends Verb{
 					@Override
 					public void onFailure(RestException e) {
 						logger.warning("failed in playing playback " + e.getMessage());
-						compFuture.completeExceptionally(new PlaybackException(fullPath, e));
+						compFuturePlaybcak.completeExceptionally(new PlaybackException(fullPath, e));
 					}
 
 					@Override
@@ -121,7 +121,7 @@ public class Play extends Verb{
 								return false;
 							logger.info("playbackFinished and same playback id. Id is: " + pbID);
 							// if it is play back finished with the same id, handle it here
-							compFuture.complete(playb.getPlayback());
+							compFuturePlaybcak.complete(playb.getPlayback());
 							return true;
 
 							/*
@@ -138,7 +138,7 @@ public class Play extends Verb{
 
 				});
 
-		return compFuture;
+		return compFuturePlaybcak;
 	}
 
 }

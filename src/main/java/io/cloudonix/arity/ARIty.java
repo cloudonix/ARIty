@@ -30,9 +30,6 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
 public class ARIty implements AriCallback<Message> {
 
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	// List of future events
-	//private CopyOnWriteArrayList<Function<Message, Boolean>> futureEvents = new CopyOnWriteArrayList<>();
-	//private ConcurrentSkipListSet<Function<Message, Boolean>> futureEvents = new ConcurrentSkipListSet<>();
 	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
