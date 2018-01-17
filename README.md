@@ -36,7 +36,7 @@ To handle a call scenario, create your voice application and define the actions 
 ### A sample of voice application
 An example of a voice application that answers the call, then play a sound file "hello-world", and then hang up the call.
 ```
-Class Application {
+public Class Application {
 
 	public void voiceApp (Call call) {
 		
