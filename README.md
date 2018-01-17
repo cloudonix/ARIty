@@ -52,7 +52,6 @@ Class Application {
 }
 
 
-
 ##Initializing 
 In order to create the ARIty service, you need to create a main method in the Application class. In the main method, you need to do the following:
 
