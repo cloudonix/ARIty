@@ -58,9 +58,12 @@ public Class Application {
 ##Initializing 
 In order to create the ARIty service, you need to create a main method in the Application class. In the main method, you need to do the following:
 
-1.Create a new instance of the Application class.
+1.Create a new instance of the Application class. 
+
 2.Create and initialize with the following parameters: URI, the name of the stasis application, user name and password.
+
 3.Register your voice application, using the library method "registerVoiceApp" and give it the name of your voice application as argument.
+
 4.Add a loop to avoid exiting from the application.
 
 ### Simple example
