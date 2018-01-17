@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -10,18 +11,40 @@ public class Gather extends Verb {
 	private String gatherAll;
 	private Call call;
 	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
+	private List<Verb> nestedVerbs;
+	private String terminatingKey;
 
 	/**
 	 * Constructor
-	 * 
 	 * @param call
 	 */
 	public Gather(Call call) {
+		
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		gatherAll = "";
 		this.call = call;
 	}
+	
+
+	/**
+	 * Constructor that will be used to support nested verbs
+	 * 
+	 * @param call
+	 * @param terminating key
+	 * @param verbs (list of nested verbs to be executed)
+	 */
+	
+	public Gather(Call call, String terminatingKey, List<Verb> verbs) {
+
+		super(call.getChannelID(), call.getService(), call.getAri());
+		compFuture = new CompletableFuture<>();
+		gatherAll = "";
+		this.call = call;
+		nestedVerbs = verbs;
+		this.terminatingKey = terminatingKey;
+	}
+	
 
 	/**
 	 * The method gathers input from the user
@@ -31,11 +54,11 @@ public class Gather extends Verb {
 	 * @return
 	 */
 	public CompletableFuture<String> run(String terminatingKey) {
-		
-	//	CompletablePlayback playback = new Play(call).runSound(times, soundLocation);
-		
+
+		// CompletablePlayback playback = new Play(call).runSound(times, soundLocation);
+
 		// stops the playback
-		//getAri().playbacks().stop(playback.get().getId()); 
+		// getAri().playbacks().stop(playback.get().getId());
 
 		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {

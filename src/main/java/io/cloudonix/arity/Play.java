@@ -15,6 +15,8 @@ public class Play extends Verb{
 	
 	private CompletablePlayback compFuture;
 	private StasisStart callStasisStart;
+	private String fileToPlay;
+	private int timesToPlay;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	
@@ -29,20 +31,35 @@ public class Play extends Verb{
 	}
 	
 	/**
+	 * second constructor- will be used when we cancel the use of runSound and runRecording to general "run" and use enums to differ between
+	 * the types of uri scheme
+	 * @param call
+	 * @param fileLocation
+	 * @param times
+	 */
+	public Play(Call call, String fileLocation, int times) {
+		
+		super(call.getChannelID(), call.getService(), call.getAri());
+		compFuture = new CompletablePlayback (call.getAri());
+		callStasisStart = call.getCallStasisStart();
+		fileToPlay = fileLocation;
+		timesToPlay = times;		
+	}
+	
+	/**
 	 * Plays a sound playback a few times
 	 * 
 	 * @param times
 	 *            - the number of repetitions of the playback
 	 * @return
 	 */	
-	public CompletablePlayback run(int times, String uriScheme, String fileLocation) {
+	public CompletablePlayback run(String uriScheme, String fileLocation, int times) {
 
 		if (times == 1) {
 			return run(uriScheme, fileLocation);
 		}
 		
-		
-		return run(times - 1, uriScheme, fileLocation).thenComposePlayback(x -> run(uriScheme, fileLocation));
+		return run(uriScheme, fileLocation, times - 1).thenComposePlayback(x -> run(uriScheme, fileLocation));
 	}
 	
 	/**
@@ -53,8 +70,8 @@ public class Play extends Verb{
 	 * @param soundLocation
 	 * @return
 	 */
-	public CompletablePlayback runSound(int times, String soundLocation) {
-		return run(times, "sound:", soundLocation);
+	public CompletablePlayback runSound(String soundLocation, int times) {
+		return run("sound:", soundLocation, times);
 	}
 	
 	/**
