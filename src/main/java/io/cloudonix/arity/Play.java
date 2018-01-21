@@ -53,14 +53,14 @@ public class Play extends Verb{
 	 *            - the number of repetitions of the playback
 	 * @return
 	 */	
-	public CompletableFuture<Playback> run(int times) {
+	/*public CompletableFuture<Playback> run() {
 
-		if (times == 1) {
+		if (timesToPlay == 1) {
 			return run();
 		}
-
-		return run(times - 1).thenCompose(x -> run());
-	}
+		timesToPlay--;
+		return run(timesToPlay).thenCompose(x -> run());
+	}*/
 	
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
@@ -80,11 +80,10 @@ public class Play extends Verb{
 	 */
 	public CompletableFuture<Playback> run() {
 		
-		if(timesToPlay > 1) {
-			timesToPlay = timesToPlay -1 ;
-			return run().thenCompose(x -> run());
-		}
-		
+		logger.info("Run started. Times to play = " + timesToPlay);
+		logger.info("check if future is completed: " + compFuturePlaybcak.isDone());
+
+		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback> ();
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
 		logger.info("UUID: " + pbID);
@@ -115,7 +114,7 @@ public class Play extends Verb{
 								return false;
 							logger.info("playbackFinished and same playback id. Id is: " + pbID);
 							// if it is play back finished with the same id, handle it here
-							compFuturePlaybcak.complete(playb.getPlayback());
+							compPlaybackItr.complete(playb.getPlayback());
 							return true;
 
 							/*
@@ -131,8 +130,17 @@ public class Play extends Verb{
 					}
 
 				});
+		
+		if(timesToPlay > 1) {
+			logger.info("if case loop. Times to play = " + timesToPlay);
+			timesToPlay = timesToPlay -1 ;
+			return compPlaybackItr.thenCompose(x -> run());
+		}
 
-		return compFuturePlaybcak;
+		return compPlaybackItr.thenCompose(pb->{ 
+			compFuturePlaybcak.complete(pb);
+			return compFuturePlaybcak;
+		});
 	}
 	
 	/**
