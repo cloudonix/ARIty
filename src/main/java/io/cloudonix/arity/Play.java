@@ -11,15 +11,16 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
-public class Play extends Verb{
+public class Play extends CancelableOperations{
 	
 	private StasisStart callStasisStart;
 	private String fileLocation;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
+	private Playback playback;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
-	private CompletableFuture<Playback> compFuturePlaybcak;
+	private CompletableFuture<Play> compFuturePlayback;
 
 	/**
 	 * constructor 
@@ -28,7 +29,7 @@ public class Play extends Verb{
 	public Play(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
-		compFuturePlaybcak = new CompletableFuture<>();
+		compFuturePlayback = new CompletableFuture<>();
 	}
 	
 	/**
@@ -43,24 +44,8 @@ public class Play extends Verb{
 		super(call.getChannelID(), call.getService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
 		this.fileLocation = fileLocation;
-		compFuturePlaybcak = new CompletableFuture<>();
+		compFuturePlayback = new CompletableFuture<>();
 	}
-	
-	/**
-	 * Plays a sound playback a few times
-	 * 
-	 * @param times
-	 *            - the number of repetitions of the playback
-	 * @return
-	 */	
-	/*public CompletableFuture<Playback> run() {
-
-		if (timesToPlay == 1) {
-			return run();
-		}
-		timesToPlay--;
-		return run(timesToPlay).thenCompose(x -> run());
-	}*/
 	
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
@@ -68,7 +53,7 @@ public class Play extends Verb{
 	 * @param recLocation
 	 * @return
 	 */
-	public CompletableFuture<Playback> playRecording() {
+	public CompletableFuture<Play> playRecording() {
 		uriScheme = "recording:";	
 		return run();
 	}
@@ -78,11 +63,9 @@ public class Play extends Verb{
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Playback> run() {
+	public CompletableFuture<Play> run() {
 		
-		logger.info("Run started. Times to play = " + timesToPlay);
-		logger.info("check if future is completed: " + compFuturePlaybcak.isDone());
-
+		// create a "local" completable future in order to connect it to the global completable future. we want the local to end before starting a new one
 		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback> ();
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
@@ -96,7 +79,7 @@ public class Play extends Verb{
 					@Override
 					public void onFailure(RestException e) {
 						logger.warning("failed in playing playback " + e.getMessage());
-						compFuturePlaybcak.completeExceptionally(new PlaybackException(fullPath, e));
+						compFuturePlayback.completeExceptionally(new PlaybackException(fullPath, e));
 					}
 
 					@Override
@@ -107,6 +90,8 @@ public class Play extends Verb{
 
 						logger.info("playback started! playback id: " + resultM.getId() + " type of playback: "
 								+ uriScheme);
+						// save the playback
+						playback = resultM;
 
 						// add a playback finished future event to the futureEvent list
 						getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
@@ -132,14 +117,13 @@ public class Play extends Verb{
 				});
 		
 		if(timesToPlay > 1) {
-			logger.info("if case loop. Times to play = " + timesToPlay);
 			timesToPlay = timesToPlay -1 ;
 			return compPlaybackItr.thenCompose(x -> run());
 		}
-
+		
 		return compPlaybackItr.thenCompose(pb->{ 
-			compFuturePlaybcak.complete(pb);
-			return compFuturePlaybcak;
+			compFuturePlayback.complete(this);
+			return compFuturePlayback;
 		});
 	}
 	
@@ -152,5 +136,21 @@ public class Play extends Verb{
 		this.timesToPlay = times;
 		return this;		
 	}
+	
+	public Playback getPlayback () {
+		return playback;
+	}
+
+	@Override
+	void cancel() {
+		try {
+			getAri().playbacks().stop(playback.getId());
+		} catch (RestException e) {
+			logger.info("failed in stopping the playback. Playback id is : " + playback.getId());
+			new PlaybackException (playback.getId(),e);
+		}
+		logger.info("playback canceled. Playback id: " + playback.getId());
+	}
+	
 
 }

@@ -102,5 +102,13 @@ public class Call {
 	public Gather gather (String terminatingKey) {
 		return new Gather(this,terminatingKey );
 	}
+	
+	/**
+	 * the method creates a new Gather object 
+	 * @return Gather
+	 */
+	public Gather gather () {
+		return new Gather(this);
+	}
 
 }

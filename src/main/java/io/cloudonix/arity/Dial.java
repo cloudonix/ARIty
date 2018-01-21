@@ -11,8 +11,9 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 
-public class Dial extends Verb {
-	CompletableFuture<Void> compFuture;
+public class Dial extends CancelableOperations {
+	CompletableFuture<Dial> compFuture;
+	String number;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -21,9 +22,10 @@ public class Dial extends Verb {
 	 * 
 	 * @param call
 	 */
-	public Dial(Call call) {
+	public Dial(Call call, String number) {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
+		this.number = number;
 	}
 
 	/**
@@ -32,7 +34,7 @@ public class Dial extends Verb {
 	 * @param number
 	 * @return
 	 */
-	public CompletableFuture<Void> run(String number) {
+	public CompletableFuture<Dial> run() {
 
 		String endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
@@ -102,23 +104,30 @@ public class Dial extends Verb {
 		});
 		// add future event of ChannelHangupRequest
 		getService().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-			// if ((hangup.getChannel().getId().equals(endPointChanId)) ||
-			// hangup.getChannel().getId().equals(channelID)) {
-			// if (!(hangup.getChannel().getId().equals(endPointChannelId)) ||
-			// !(hangup.getChannel().getId().equals(channelID))) {
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
 				return false;
 			}
 
 			logger.info("end point channel hanged up");
-			compFuture.complete(null);
+			compFuture.complete(this);
 			return true;
 		});
 
 		logger.info("future event of ChannelHangupRequest was added");
 
 		return compFuture;
+	}
+
+	/**
+	 * the method cancels dialing
+	 * @param id - the number you are calling to
+ 	 */
+	@Override
+	void cancel() {
+		// TODO Auto-generated method stub
+		// need to complete!!!!!!!!!!!!!!!!!
+		
 	}
 
 }

@@ -6,8 +6,8 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
 
-public class Answer extends Verb {
-	CompletableFuture<Void> compFuture;
+public class Answer extends Operation {
+	CompletableFuture<Answer> compFuture;
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
 	public Answer(Call call) {
@@ -23,7 +23,7 @@ public class Answer extends Verb {
 	 * @return
 	 * @throws AnswerCallException
 	 */
-	public CompletableFuture<Void> run () {
+	public CompletableFuture<Answer> run () {
 		try {
 			// answer the call
 			getAri().channels().answer(getChanneLID());
@@ -35,7 +35,7 @@ public class Answer extends Verb {
 
 		logger.info("call answered");
 
-		return CompletableFuture.completedFuture(null);
+		return CompletableFuture.completedFuture(this);
 	}
 
 }
