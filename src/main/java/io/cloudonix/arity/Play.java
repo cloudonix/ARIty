@@ -69,7 +69,6 @@ public class Play extends CancelableOperations{
 		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback> ();
 		// create a unique UUID for the playback
 		String pbID = UUID.randomUUID().toString();
-		logger.info("UUID: " + pbID);
 		// "sound:hello-world";
 		String fullPath = uriScheme + fileLocation;
 

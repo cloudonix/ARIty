@@ -90,8 +90,6 @@ public class Gather extends Operation {
 				}
 			}
 
-			logger.info("all verbs were finished");
-
 		}
 
 		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
@@ -128,7 +126,7 @@ public class Gather extends Operation {
 	 * @return
 	 */
 	private CompletableFuture<? extends Operation> loopVerbs(CompletableFuture<? extends Operation> future, Operation operation) {
-		logger.info("The current verb is: " + operation.toString());
+		logger.info("The current nested operation is: " + currOpertation.toString());
 		return future.thenCompose(pb -> {
 			if (Objects.nonNull(pb))
 				// if the previous future (previous playback) is not null, run it
