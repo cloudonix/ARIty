@@ -13,7 +13,6 @@ import io.cloudonix.arity.errors.PlaybackException;
 public class Gather extends Operation {
 	private CompletableFuture<Gather> compFuture;
 	private String gatherAll;
-	private Call call;
 	private final static Logger logger = Logger.getLogger(Gather.class.getName());
 	private List<CancelableOperations> nestedOperations;
 	private String terminatingKey;
@@ -29,7 +28,6 @@ public class Gather extends Operation {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		gatherAll = "";
-		this.call = call;
 		terminatingKey = termKey;
 		nestedOperations = new ArrayList<>();
 	}
@@ -44,7 +42,6 @@ public class Gather extends Operation {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		gatherAll = "";
-		this.call = call;
 		terminatingKey = "#";
 		nestedOperations = new ArrayList<>();
 	}
@@ -81,12 +78,13 @@ public class Gather extends Operation {
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
 
-			CompletableFuture<? extends Operation> future = nestedOperations.get(0).run();
 			currOpertation = nestedOperations.get(0);
+			CompletableFuture<? extends Operation> future = nestedOperations.get(0).run();
 
 			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
 				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
-					future = loopVerbs(future, nestedOperations.get(i));
+					currOpertation = nestedOperations.get(i);
+					future = loopOperations(future, nestedOperations.get(i));
 				}
 			}
 
@@ -94,11 +92,9 @@ public class Gather extends Operation {
 
 		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {
-				logger.info("channel id of dtmf is not the same as the channel id");
 				return false;
 			}
 
-			logger.info("dtmf channel id is the same as the channel id");
 			// if the input is the terminating key "#" then stop
 			if (dtmf.getDigit().equals(terminatingKey)) {
 				logger.info("all input: " + gatherAll);
@@ -125,7 +121,7 @@ public class Gather extends Operation {
 	 * @param operation
 	 * @return
 	 */
-	private CompletableFuture<? extends Operation> loopVerbs(CompletableFuture<? extends Operation> future, Operation operation) {
+	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future, Operation operation) {
 		logger.info("The current nested operation is: " + currOpertation.toString());
 		return future.thenCompose(pb -> {
 			if (Objects.nonNull(pb))
@@ -159,7 +155,7 @@ public class Gather extends Operation {
 	}
 
 	/**
-	 * return all entire input that was gathered
+	 * return the entire input that was gathered
 	 * 
 	 * @return
 	 */

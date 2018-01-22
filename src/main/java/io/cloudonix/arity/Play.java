@@ -11,19 +11,21 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
-public class Play extends CancelableOperations{
-	
+public class Play extends CancelableOperations {
+
 	private StasisStart callStasisStart;
 	private String fileLocation;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
+	// private String playbackId;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	private CompletableFuture<Play> compFuturePlayback;
 
 	/**
-	 * constructor 
+	 * constructor
+	 * 
 	 * @param call
 	 */
 	public Play(Call call) {
@@ -31,22 +33,24 @@ public class Play extends CancelableOperations{
 		callStasisStart = call.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
-	
+
 	/**
-	 * second constructor- will be used when we cancel the use of runSound and runRecording to general "run" and use enums to differ between
-	 * the types of uri scheme
+	 * second constructor- will be used when we cancel the use of runSound and
+	 * runRecording to general "run" and use enums to differ between the types of
+	 * uri scheme
+	 * 
 	 * @param call
 	 * @param fileLocation
 	 * @param times
 	 */
 	public Play(Call call, String fileLocation) {
-		
+
 		super(call.getChannelID(), call.getService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();
 	}
-	
+
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
@@ -54,102 +58,98 @@ public class Play extends CancelableOperations{
 	 * @return
 	 */
 	public CompletableFuture<Play> playRecording() {
-		uriScheme = "recording:";	
+		uriScheme = "recording:";
 		return run();
 	}
-	
+
 	/**
 	 * The method plays a playback of a specific ARI channel
 	 * 
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		
-		// create a "local" completable future in order to connect it to the global completable future. we want the local to end before starting a new one
-		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback> ();
-		// create a unique UUID for the playback
-		String pbID = UUID.randomUUID().toString();
-		// "sound:hello-world";
-		String fullPath = uriScheme + fileLocation;
+		// create a "local" completable future in order to connect it to the global
+		// completable future. we want the local to end before starting a new one
+		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
-		getAri().channels().play(getChanneLID(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0, pbID,
-				new AriCallback<Playback>() {
+		if (timesToPlay != 0) {
 
-					@Override
-					public void onFailure(RestException e) {
-						logger.warning("failed in playing playback " + e.getMessage());
-						compFuturePlayback.completeExceptionally(new PlaybackException(fullPath, e));
-					}
+			// create a unique UUID for the playback
+			String playbackId = UUID.randomUUID().toString();
+			String fullPath = uriScheme + fileLocation;
 
-					@Override
-					public void onSuccess(Playback resultM) {
+			getAri().channels().play(getChanneLID(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
+					playbackId, new AriCallback<Playback>() {
 
-						if (!(resultM instanceof Playback))
-							return;
+						@Override
+						public void onFailure(RestException e) {
+							logger.warning("failed in playing playback " + e.getMessage());
+							compFuturePlayback.completeExceptionally(new PlaybackException(fullPath, e));
+						}
 
-						logger.info("playback started! playback id: " + resultM.getId() + " type of playback: "
-								+ uriScheme);
-						// save the playback
-						playback = resultM;
+						@Override
+						public void onSuccess(Playback resultM) {
 
-						// add a playback finished future event to the futureEvent list
-						getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
-							if (!(playb.getPlayback().getId().equals(pbID)))
-								return false;
-							logger.info("playbackFinished and same playback id. Id is: " + pbID);
-							// if it is play back finished with the same id, handle it here
-							compPlaybackItr.complete(playb.getPlayback());
-							return true;
+							if (!(resultM instanceof Playback))
+								return;
 
-							/*
-							 * //add record finished service.addFutureEvent(RecordingFinished.class, (rec)
-							 * -> { if(!(rec.getRecording().getName().equals(fileLocation))) return false;
-							 * logger.info("record with name:" + rec.getRecording().getName() +
-							 * " was finished"); });
-							 */
+							// save the playback
+							playback = resultM;
+							logger.info("playback started! playback id: " + playback.getId());
 
-						});
-						logger.info("future event of playbackFinished was added");
+							// add a playback finished future event to the futureEvent list
+							getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
+								if (!(playb.getPlayback().getId().equals(playbackId)))
+									return false;
+								logger.info("playbackFinished id is the same as playback id.  ID is: " + playbackId);
+								// if it is play back finished with the same id, handle it here
+								compPlaybackItr.complete(playb.getPlayback());
+								return true;
 
-					}
+							});
 
-				});
-		
-		if(timesToPlay > 1) {
-			timesToPlay = timesToPlay -1 ;
-			return compPlaybackItr.thenCompose(x -> run());
+							logger.info("future event of playbackFinished was added");
+
+						}
+
+					});
+
+			if (timesToPlay > 1) {
+				timesToPlay = timesToPlay - 1;
+				return compPlaybackItr.thenCompose(x -> run());
+			}
 		}
-		
-		return compPlaybackItr.thenCompose(pb->{ 
+		return compPlaybackItr.thenCompose(pb -> {
 			compFuturePlayback.complete(this);
 			return compFuturePlayback;
 		});
 	}
-	
+
 	/**
 	 * set how many times to play the playback
+	 * 
 	 * @param times
 	 * @return
 	 */
-	public Play loop (int times) {
+	public Play loop(int times) {
 		this.timesToPlay = times;
-		return this;		
+		return this;
 	}
-	
-	public Playback getPlayback () {
+
+	public Playback getPlayback() {
 		return playback;
 	}
 
 	@Override
 	void cancel() {
 		try {
+			logger.info("trying to cancel a playback. Playback id: " + playback.getId());
 			getAri().playbacks().stop(playback.getId());
+			timesToPlay = 0;
+			logger.info("playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
-			logger.info("failed in stopping the playback. Playback id is : " + playback.getId());
-			new PlaybackException (playback.getId(),e);
+			logger.warning("playback is not playing at the moment");
 		}
-		logger.info("playback canceled. Playback id: " + playback.getId());
 	}
-	
 
 }

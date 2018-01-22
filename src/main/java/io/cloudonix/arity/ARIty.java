@@ -80,8 +80,8 @@ public class ARIty implements AriCallback<Message> {
 			voiceApp.accept(call);
 		}
 		
-		if(event instanceof ChannelDtmfReceived)
-			logger.info(event.toString());
+		/*if(event instanceof ChannelDtmfReceived)
+			logger.info(event.toString());*/
 
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
