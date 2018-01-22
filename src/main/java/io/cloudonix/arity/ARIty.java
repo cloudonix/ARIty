@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.Message;
+import ch.loway.oss.ari4java.generated.StasisEnd;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -95,6 +96,16 @@ public class ARIty implements AriCallback<Message> {
 				break;
 			}
 		}
+		
+		/*if(event instanceof StasisEnd) {
+			try {
+				ari.closeAction(ari);
+				logger.info("closing the web socket");
+			} catch (ARIException e) {
+				logger.info("failed closing the web socket");
+				e.printStackTrace();
+			}
+		}*/
 		
 	}
 

@@ -7,13 +7,17 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
+import io.cloudonix.arity.errors.HangUpException;
 
 public class Dial extends CancelableOperations {
-	CompletableFuture<Dial> compFuture;
-	String number;
+	private CompletableFuture<Dial> compFuture;
+	private String number;
+	private Channel endpointChannel;
+	private Call call;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -26,6 +30,7 @@ public class Dial extends CancelableOperations {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		this.number = number;
+		this.call = call;
 	}
 
 	/**
@@ -66,9 +71,9 @@ public class Dial extends CancelableOperations {
 
 		// create the end point channel (that will answer the caller)
 		try {
-			Channel c = getAri().channels().create(number, getService().getAppName(), null, endPointChannelId, null,
+			endpointChannel = getAri().channels().create(number, getService().getAppName(), null, endPointChannelId, null,
 					getChanneLID(), null);
-			logger.info("end point channel id: " + c.getId());
+			logger.info("end point channel id: " + endpointChannel.getId());
 			// add the new channel channel id to the set of newCallsChannelId
 			getService().setNewCallsChannelId(endPointChannelId);
 
@@ -92,7 +97,6 @@ public class Dial extends CancelableOperations {
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("dialed succeded!");
-
 			}
 
 			@Override
@@ -108,7 +112,11 @@ public class Dial extends CancelableOperations {
 				logger.info("end point channel did not asked to hang up");
 				return false;
 			}
-
+			
+			if(hangup.getChannel().getId().equals(getChanneLID())) {
+				// the caller cancel 
+			}
+			
 			logger.info("end point channel hanged up");
 			compFuture.complete(this);
 			return true;
@@ -121,13 +129,19 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * the method cancels dialing
-	 * @param id - the number you are calling to
  	 */
 	@Override
 	void cancel() {
-		// TODO Auto-generated method stub
-		// need to complete!!!!!!!!!!!!!!!!!
 		
+		try {
+			// hang up the call
+			getAri().channels().hangup(endpointChannel.getId(), "normal");
+			logger.info("dial canceled. hang up the endpoint call");
+			
+		} catch (RestException e) {
+			logger.severe("failed hang up the endpoint call");
+			compFuture.completeExceptionally(new HangUpException(e));
+		}
 	}
 
 }
