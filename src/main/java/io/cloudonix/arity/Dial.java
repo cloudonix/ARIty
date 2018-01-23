@@ -16,6 +16,9 @@ public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
 	private Channel endpointChannel;
+	// if you want to hang up the callers call after the end point hangs up - true, otherwise false
+	private boolean needToHangup = false;
+	private Call call;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -24,12 +27,27 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @param call
 	 * @param number
-
 	 */
 	public Dial(Call call, String number) {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
+		this.call = call;
+	}
+	
+	/**
+	 * Constructor that allows to set up the hang up of the caller after the end point channel hanged up
+	 * 
+	 * @param call
+	 * @param number
+	 * @param callerHangUp - true if need to hang up the call, false otherwise
+	 */
+	public Dial(Call call, String number, boolean callerHangUp) {
+		super(call.getChannelID(), call.getService(), call.getAri());
+		compFuture = new CompletableFuture<>();
+		endPointNumber = number;
+		this.call = call;
+		needToHangup = callerHangUp;
 	}
 
 	/**
@@ -113,6 +131,13 @@ public class Dial extends CancelableOperations {
 			}
 			
 			logger.info("end point channel hanged up");
+			
+			// check if we need to hangup the caller as well
+			if(needToHangup) {
+				new HangUp(call).run();	
+				logger.info("caller's channel was hanged up too");
+			}
+		
 			compFuture.complete(this);
 			return true;
 		});
@@ -139,5 +164,5 @@ public class Dial extends CancelableOperations {
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}
-
+	
 }
