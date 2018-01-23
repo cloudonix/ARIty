@@ -18,7 +18,7 @@ public class Application {
 		    call.play("hello").run()
 				.thenCompose(p -> call.gather().and(call.play("dir-pls-enter").loop(10)).run())
 				.thenCompose(g -> {
-					logger.info("User entered: " + g.allInputGathered());
+					logger.info("User entered: " + g.getInput());
 					return call.hangUp().run();
 				}).exceptionally(t -> {
 					logger.severe(t.toString());
