@@ -13,7 +13,6 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Message;
-import ch.loway.oss.ari4java.generated.StasisEnd;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -82,22 +81,6 @@ public class ARIty implements AriCallback<Message> {
 			voiceApp.accept(call);
 		}
 
-		if (event instanceof StasisEnd) {
-			// close the websocket
-
-			try {
-				ari.closeAction(ari.events());
-				logger.info("closing the web socket");
-			} catch (ARIException e) {
-				logger.info("failed closing the web socket");
-				e.printStackTrace();
-			}
-
-		}
-
-		/*
-		 * if(event instanceof ChannelDtmfReceived) logger.info(event.toString());
-		 */
 
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
@@ -111,12 +94,6 @@ public class ARIty implements AriCallback<Message> {
 				break;
 			}
 		}
-
-		/*
-		 * if(event instanceof StasisEnd) { try { ari.closeAction(appName);
-		 * logger.info("closing the web socket"); } catch (ARIException e) {
-		 * logger.info("failed closing the web socket"); e.printStackTrace(); } }
-		 */
 
 	}
 

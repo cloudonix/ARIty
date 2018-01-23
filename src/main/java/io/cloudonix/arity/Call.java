@@ -1,7 +1,10 @@
 package io.cloudonix.arity;
 
+import java.util.logging.Logger;
+
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.tools.ARIException;
 
 /**
  * The class represents an incoming call
@@ -15,8 +18,9 @@ public class Call {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-
 	
+	private final static Logger logger = Logger.getLogger(Call.class.getName());
+
 	public Call(StasisStart ss, ARI a, ARIty aRIty) {
 
 		callStasisStart = ss;
@@ -82,6 +86,7 @@ public class Call {
 
 	/**
 	 * the method creates a new Answer object to answer the call
+	 * 
 	 * @return Answer
 	 */
 	public Answer answer() {
@@ -90,26 +95,44 @@ public class Call {
 
 	/**
 	 * the method creates a new HangUp object to hang up the call
+	 * 
 	 * @return HangUp
 	 */
-	public HangUp hangUp() {
-		return new HangUp(this);
+	public Hangup hangup() {
+		return new Hangup(this);
+	}
+
+	/**
+	 * the method creates a new Gather object
+	 * 
+	 * @return Gather
+	 */
+	public ReceivedDTMF receivedDTMF(String terminatingKey) {
+		return new ReceivedDTMF(this, terminatingKey);
+	}
+
+	/**
+	 * the method creates a new Gather object
+	 * 
+	 * @return Gather
+	 */
+	public ReceivedDTMF receivedDTMF() {
+		return new ReceivedDTMF(this);
 	}
 	
 	/**
-	 * the method creates a new Gather object 
-	 * @return Gather
+	 * close the service (user's choice if to call it or not)
 	 */
-	public Gather gather (String terminatingKey) {
-		return new Gather(this,terminatingKey );
-	}
-	
-	/**
-	 * the method creates a new Gather object 
-	 * @return Gather
-	 */
-	public Gather gather () {
-		return new Gather(this);
+	public void close() {
+
+		try {
+			ari.closeAction(ari.events());
+			logger.info("closing the web socket");
+		} catch (ARIException e) {
+			logger.info("failed closing the web socket");
+			e.printStackTrace();
+		}
+
 	}
 
 }

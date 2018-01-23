@@ -134,7 +134,7 @@ public class Dial extends CancelableOperations {
 			
 			// check if we need to hangup the caller as well
 			if(needToHangup) {
-				new HangUp(call).run();	
+				new Hangup(call).run();	
 				logger.info("caller's channel was hanged up too");
 			}
 		

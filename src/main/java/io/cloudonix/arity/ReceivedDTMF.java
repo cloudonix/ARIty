@@ -8,10 +8,11 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 
-public class Gather extends Operation {
-	private CompletableFuture<Gather> compFuture;
-	private String gatherAll;
-	private final static Logger logger = Logger.getLogger(Gather.class.getName());
+public class ReceivedDTMF extends Operation {
+	
+	private CompletableFuture<ReceivedDTMF> compFuture;
+	private String userInput;
+	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
 	private List<CancelableOperations> nestedOperations;
 	private String terminatingKey;
 	private CancelableOperations currOpertation = null;
@@ -20,12 +21,13 @@ public class Gather extends Operation {
 	 * Constructor
 	 * 
 	 * @param call
+	 * @param termKey - define terminating key (otherwise '#' is the default)
 	 */
-	public Gather(Call call, String termKey) {
+	public ReceivedDTMF(Call call, String termKey) {
 
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
-		gatherAll = "";
+		userInput = "";
 		terminatingKey = termKey;
 		nestedOperations = new ArrayList<>();
 	}
@@ -35,31 +37,14 @@ public class Gather extends Operation {
 	 * 
 	 * @param call
 	 */
-	public Gather(Call call) {
+	public ReceivedDTMF(Call call) {
 
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
-		gatherAll = "";
+		userInput = "";
 		terminatingKey = "#";
 		nestedOperations = new ArrayList<>();
 	}
-
-	/**
-	 * Constructor that will be used to support nested verbs
-	 * 
-	 * @param call
-	 * @param terminating
-	 *            key
-	 * @param verbs
-	 *            (list of nested verbs to be executed)
-	 *//*
-		 * 
-		 * public Gather(Call call, String terminatingKey, List<Verb> verbs) {
-		 * 
-		 * super(call.getChannelID(), call.getService(), call.getAri()); compFuture =
-		 * new CompletableFuture<>(); gatherAll = ""; this.call = call; nestedVerbs =
-		 * verbs; this.terminatingKey = terminatingKey; }
-		 */
 
 	/**
 	 * The method gathers input from the user
@@ -95,7 +80,7 @@ public class Gather extends Operation {
 
 			// if the input is the terminating key "#" then stop
 			if (dtmf.getDigit().equals(terminatingKey)) {
-				logger.info("all input: " + gatherAll);
+				logger.info("all input: " + userInput);
 				
 				// cancel the current operation because the gather is finished
 				currOpertation.cancel();
@@ -104,7 +89,7 @@ public class Gather extends Operation {
 
 			}
 			// the input is 0-9 or A-E or * - save it with the previous digits
-			gatherAll = gatherAll + dtmf.getDigit();
+			userInput = userInput + dtmf.getDigit();
 			return false;
 
 		});
@@ -136,7 +121,7 @@ public class Gather extends Operation {
 	 * @return
 	 */
 
-	public Gather and(CancelableOperations operation) {
+	public ReceivedDTMF and(CancelableOperations operation) {
 		nestedOperations.add(operation);
 		return this;
 	}
@@ -147,7 +132,7 @@ public class Gather extends Operation {
 	 * @param termKey
 	 * @return
 	 */
-	public Gather termKey(String termKey) {
+	public ReceivedDTMF termKey(String termKey) {
 		terminatingKey = termKey;
 		return this;
 	}
@@ -157,8 +142,8 @@ public class Gather extends Operation {
 	 * 
 	 * @return
 	 */
-	public String allInputGathered() {
-		return gatherAll;
+	public String getInput() {
+		return userInput;
 	}
 
 }

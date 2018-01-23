@@ -6,15 +6,15 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.HangUpException;
 
-public class HangUp extends Operation{
-	private CompletableFuture<HangUp> compFuture;
-	private final static Logger logger = Logger.getLogger(HangUp.class.getName());
+public class Hangup extends Operation{
+	private CompletableFuture<Hangup> compFuture;
+	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
 	
 	/**
 	 * Constructor
 	 * @param call
 	 */
-	public HangUp(Call call) {
+	public Hangup(Call call) {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 	}
@@ -24,7 +24,7 @@ public class HangUp extends Operation{
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<HangUp> run (){
+	public CompletableFuture<Hangup> run (){
 		try {
 			// hang up the call
 			getAri().channels().hangup(getChanneLID(), "normal");
