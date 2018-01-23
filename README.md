@@ -34,28 +34,6 @@ https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture
 ### Simple Voice Application
 To handle a call scenario, create your voice application and define the actions that you want them to happen. You can create one or more voice application, each when that will have a different scenario.
 
-### A sample of voice application
-An example of a voice application that answers the call, then play a sound file 3 times, then gathers the input from the user until he presses the terminating key (for example: #) and then hang up the call.
-
-```
-public Class Application {
-
-	public void voiceApp(Call call) {
-		call.answer().run().thenCompose(v -> call.play("hello-world").loop(3).run())
-				.thenAccept(pb -> logger.info("finished playback! id: " + pb.getId()))
-				.thenCompose(g -> call.gather("#").run()).thenCompose(d -> {
-					logger.info("gather is finished");
-					return call.hangUp().run();
-				}).thenAccept(h -> {
-					logger.info("hanged up call");
-				}).exceptionally(t -> {
-					logger.severe(t.toString());
-					return null;
-				});
-	}
-}
-```
-
 ## Initializing 
 In order to create the ARIty service, you need to create a main method in the Application class. In the main method, you need to do the following:
 
@@ -69,22 +47,23 @@ In order to create the ARIty service, you need to create a main method in the Ap
 ```
 public class Application {
 
-	private static String URI = "http://127.0.0.1:8088/";
-
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 		Application app = new Application();
-		// Create the service of ARI
-		ARIty ari = null;
-		try {
-			ari = new ARIty(URI, "stasisApp", "userid", "secret");
+		// Connect to ARI and register a stasis application
+		new ARIty("http://127.0.0.1:8088/", "myStasisApp", "user", "pass").registerVoiceApp(call -> {
+	        // main application flow
+		    call.play("hello").run()
+				.thenCompose(p -> call.gather().and(call.play("dir-pls-enter").loop(10)).run())
+				.thenCompose(g -> {
+					logger.info("User entered: " + g.allInputGathered());
+					return call.hangUp().run();
+				}).exceptionally(t -> {
+					logger.severe(t.toString());
+					return null;
+				});
+		});
 
-		} catch (Throwable e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		ari.registerVoiceApp(app::voiceApp);
-
+        // after registering, just stay running to get and handle calls
 		while (true) {
 			try {
 				Thread.sleep(100);
