@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisEnd;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -35,7 +34,8 @@ public class ARIty implements AriCallback<Message> {
 	private ARI ari;
 	private String appName;
 	private Consumer<Call> voiceApp;
-	// save the channel id of new calls (for ignoring another stasis start event, if needed)
+	// save the channel id of new calls (for ignoring another stasis start event, if
+	// needed)
 	private ConcurrentSkipListSet<String> newCallsChannelId = new ConcurrentSkipListSet<>();
 
 	public ARIty(String uri, String name, String login, String pass)
@@ -65,24 +65,39 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-		//logger.info(event.toString());
+		// logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
 			// StasisStart case
 			StasisStart ss = (StasisStart) event;
-			// if the list contains the stasis start event with this channel id, remove it and continue
+			// if the list contains the stasis start event with this channel id, remove it
+			// and continue
 			if (newCallsChannelId.remove(ss.getChannel().getId())) {
 				return;
 			}
-			logger.info("Channel id of new ss: " + ss.getChannel().getId());
+			logger.info("Channel id of the caller: " + ss.getChannel().getId());
 			Call call = new Call((StasisStart) event, ari, this);
 			logger.info("New call created! " + call);
 			// save the the channel id of the first stasis
 			voiceApp.accept(call);
 		}
-		
-		/*if(event instanceof ChannelDtmfReceived)
-			logger.info(event.toString());*/
+
+		if (event instanceof StasisEnd) {
+			// close the websocket
+
+			try {
+				ari.closeAction(ari.events());
+				logger.info("closing the web socket");
+			} catch (ARIException e) {
+				logger.info("failed closing the web socket");
+				e.printStackTrace();
+			}
+
+		}
+
+		/*
+		 * if(event instanceof ChannelDtmfReceived) logger.info(event.toString());
+		 */
 
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
@@ -96,17 +111,13 @@ public class ARIty implements AriCallback<Message> {
 				break;
 			}
 		}
-		
-		/*if(event instanceof StasisEnd) {
-			try {
-				ari.closeAction(ari);
-				logger.info("closing the web socket");
-			} catch (ARIException e) {
-				logger.info("failed closing the web socket");
-				e.printStackTrace();
-			}
-		}*/
-		
+
+		/*
+		 * if(event instanceof StasisEnd) { try { ari.closeAction(appName);
+		 * logger.info("closing the web socket"); } catch (ARIException e) {
+		 * logger.info("failed closing the web socket"); e.printStackTrace(); } }
+		 */
+
 	}
 
 	@Override
@@ -140,12 +151,14 @@ public class ARIty implements AriCallback<Message> {
 	public String getAppName() {
 		return appName;
 	}
-	
+
 	/**
-	 * Add a channel id to the newCallsChannelId set when a new channel (call) was created 
+	 * Add a channel id to the newCallsChannelId set when a new channel (call) was
+	 * created
+	 * 
 	 * @param id
 	 */
-	public void setNewCallsChannelId (String id) {
+	public void setNewCallsChannelId(String id) {
 		newCallsChannelId.add(id);
 	}
 

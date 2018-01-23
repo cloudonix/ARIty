@@ -7,8 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.PlaybackException;
 
 public class Gather extends Operation {
 	private CompletableFuture<Gather> compFuture;

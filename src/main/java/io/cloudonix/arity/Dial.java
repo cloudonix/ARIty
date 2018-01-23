@@ -7,7 +7,6 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
-import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
@@ -15,9 +14,8 @@ import io.cloudonix.arity.errors.HangUpException;
 
 public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture;
-	private String number;
+	private String endPointNumber;
 	private Channel endpointChannel;
-	private Call call;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -25,12 +23,13 @@ public class Dial extends CancelableOperations {
 	 * Constructor
 	 * 
 	 * @param call
+	 * @param number
+
 	 */
 	public Dial(Call call, String number) {
 		super(call.getChannelID(), call.getService(), call.getAri());
 		compFuture = new CompletableFuture<>();
-		this.number = number;
-		this.call = call;
+		endPointNumber = number;
 	}
 
 	/**
@@ -44,7 +43,7 @@ public class Dial extends CancelableOperations {
 		String endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
-		// create the bridge in order to connect between the calling and end point
+		// create the bridge in order to connect between the caller and end point
 		// channels
 		getAri().bridges().create("", bridgeID, "bridge", new AriCallback<Bridge>() {
 
@@ -71,7 +70,7 @@ public class Dial extends CancelableOperations {
 
 		// create the end point channel (that will answer the caller)
 		try {
-			endpointChannel = getAri().channels().create(number, getService().getAppName(), null, endPointChannelId, null,
+			endpointChannel = getAri().channels().create(endPointNumber, getService().getAppName(), null, endPointChannelId, null,
 					getChanneLID(), null);
 			logger.info("end point channel id: " + endpointChannel.getId());
 			// add the new channel channel id to the set of newCallsChannelId
@@ -96,7 +95,7 @@ public class Dial extends CancelableOperations {
 
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("dialed succeded!");
+				logger.info("dial succeded!");
 			}
 
 			@Override
@@ -111,10 +110,6 @@ public class Dial extends CancelableOperations {
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
 				return false;
-			}
-			
-			if(hangup.getChannel().getId().equals(getChanneLID())) {
-				// the caller cancel 
 			}
 			
 			logger.info("end point channel hanged up");
@@ -134,9 +129,10 @@ public class Dial extends CancelableOperations {
 	void cancel() {
 		
 		try {
-			// hang up the call
+			// hang up the call of the endpoint
 			getAri().channels().hangup(endpointChannel.getId(), "normal");
 			logger.info("dial canceled. hang up the endpoint call");
+			compFuture.complete(this);
 			
 		} catch (RestException e) {
 			logger.severe("failed hang up the endpoint call");

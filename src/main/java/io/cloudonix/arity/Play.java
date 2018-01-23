@@ -18,7 +18,6 @@ public class Play extends CancelableOperations {
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
-	// private String playbackId;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	private CompletableFuture<Play> compFuturePlayback;
@@ -73,7 +72,6 @@ public class Play extends CancelableOperations {
 		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
 		if (timesToPlay != 0) {
-
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme + fileLocation;
@@ -95,7 +93,7 @@ public class Play extends CancelableOperations {
 
 							// save the playback
 							playback = resultM;
-							logger.info("playback started! playback id: " + playback.getId());
+							logger.info("playback started! Playing: " + fileLocation + " and playback id is: " + playback.getId());
 
 							// add a playback finished future event to the futureEvent list
 							getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
