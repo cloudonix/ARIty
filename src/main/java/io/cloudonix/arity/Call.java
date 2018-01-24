@@ -120,6 +120,15 @@ public class Call {
 		return new ReceivedDTMF(this);
 	}
 	
+	public Dial dial (String number) {
+		return new Dial(this, number);
+	}
+	
+	public Dial dial (String number, boolean needToHangup) {
+		return new Dial(this, number,needToHangup);
+
+	}
+	
 	/**
 	 * close the service (user's choice if to call it or not)
 	 */
