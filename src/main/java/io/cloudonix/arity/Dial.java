@@ -1,5 +1,7 @@
 package io.cloudonix.arity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -16,9 +18,8 @@ public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
 	private Channel endpointChannel;
-	// if you want to hang up the callers call after the end point hangs up - true, otherwise false
-	private boolean needToHangup = false;
 	private Call call;
+	private Duration callDuration = null;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -35,21 +36,6 @@ public class Dial extends CancelableOperations {
 		this.call = call;
 	}
 	
-	/**
-	 * Constructor that allows to set up the hang up of the caller after the end point channel hanged up
-	 * 
-	 * @param call
-	 * @param number
-	 * @param callerHangUp - true if need to hang up the call, false otherwise
-	 */
-	public Dial(Call call, String number, boolean callerHangUp) {
-		super(call.getChannelID(), call.getService(), call.getAri());
-		compFuture = new CompletableFuture<>();
-		endPointNumber = number;
-		this.call = call;
-		needToHangup = callerHangUp;
-	}
-
 	/**
 	 * The method dials to a number (a sip number for now)
 	 * 
@@ -123,21 +109,21 @@ public class Dial extends CancelableOperations {
 			}
 
 		});
+		
+		// start timer for the call
+		Instant start = Instant.now();
+		
 		// add future event of ChannelHangupRequest
 		getService().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
 				return false;
 			}
-			
+			// end call timer
+			Instant end = Instant.now();
+			callDuration = Duration.between(start, end);
+					
 			logger.info("end point channel hanged up");
-			
-			// check if we need to hangup the caller as well
-			if(needToHangup) {
-				new Hangup(call).run();	
-				logger.info("caller's channel was hanged up too");
-			}
-		
 			compFuture.complete(this);
 			return true;
 		});

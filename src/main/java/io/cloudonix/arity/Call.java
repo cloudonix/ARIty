@@ -15,7 +15,7 @@ public class Call {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-	
+
 	public Call(StasisStart ss, ARI a, ARIty aRIty) {
 
 		callStasisStart = ss;
@@ -114,32 +114,16 @@ public class Call {
 	public ReceivedDTMF receivedDTMF() {
 		return new ReceivedDTMF(this);
 	}
-	
+
 	/**
 	 * the method created new Dial operation
-	 * @param number - the number of the endpoint (who are we calling to)
+	 * 
+	 * @param number
+	 *            - the number of the endpoint (who are we calling to)
 	 * @return
 	 */
-	public Dial dial (String number) {
+	public Dial dial(String number) {
 		return new Dial(this, number);
 	}
-	
-	/**
-	 * the method created new Dial operation
-	 * @param number - the number of the endpoint (who are we calling to)
-	 * @param needToHangup - set if we want to hangup the call after the endpoint hanged up
-	 * @return
-	 */
-	
-	public Dial dial (String number, boolean needToHangup) {
-		return new Dial(this, number,needToHangup);
-
-	}
-	
-/*	
-	public <V> CompletableFuture<V> endCall (V value , Throwable th) {
-		// hangup the call before
-		return value;
-	}*/
 
 }
