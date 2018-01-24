@@ -103,7 +103,7 @@ public class Call {
 	}
 
 	/**
-	 * the method creates a new Gather object
+	 * the method creates a new receivedDTMF object
 	 * 
 	 * @return Gather
 	 */
@@ -112,7 +112,7 @@ public class Call {
 	}
 
 	/**
-	 * the method creates a new Gather operation
+	 * the method creates a new receivedDTMF operation
 	 * 
 	 * @return Gather
 	 */
