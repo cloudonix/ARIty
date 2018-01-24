@@ -1,5 +1,9 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
+
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
 
@@ -15,6 +19,9 @@ public class Call {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
+	
+	private final static Logger logger = Logger.getLogger(Call.class.getName());
+
 
 	public Call(StasisStart ss, ARI a, ARIty aRIty) {
 
@@ -122,8 +129,23 @@ public class Call {
 	 *            - the number of the endpoint (who are we calling to)
 	 * @return
 	 */
-	public Dial dial(String number) {
+	public Operation dial(String number) {
 		return new Dial(this, number);
+	}
+	
+		
+	public <V> CompletableFuture<V> endCall (V value , Throwable th) {
+		// hangup the call before
+		return hangup().run()
+				.handle((hangup, th2)-> null)
+				.thenCompose(v-> Objects.nonNull(th)?
+						Operation.completedExceptionally(th)
+						:
+						CompletableFuture.completedFuture(value));
+
+		// if the call is already hanged up
+		
+		 
 	}
 
 }
