@@ -75,7 +75,7 @@ public class Call {
 	}
 
 	/**
-	 * The method creates a new Play object with the file to be played
+	 * The method creates a new Play operation with the file to be played
 	 * 
 	 * @param file
 	 * @return Play
@@ -85,7 +85,7 @@ public class Call {
 	}
 
 	/**
-	 * the method creates a new Answer object to answer the call
+	 * the method creates a new Answer operation to answer the call
 	 * 
 	 * @return Answer
 	 */
@@ -94,7 +94,7 @@ public class Call {
 	}
 
 	/**
-	 * the method creates a new HangUp object to hang up the call
+	 * the method creates a new HangUp operation to hang up the call
 	 * 
 	 * @return HangUp
 	 */
@@ -112,7 +112,7 @@ public class Call {
 	}
 
 	/**
-	 * the method creates a new Gather object
+	 * the method creates a new Gather operation
 	 * 
 	 * @return Gather
 	 */
@@ -120,9 +120,21 @@ public class Call {
 		return new ReceivedDTMF(this);
 	}
 	
+	/**
+	 * the method created new Dial operation
+	 * @param number - the number of the endpoint (who are we calling to)
+	 * @return
+	 */
 	public Dial dial (String number) {
 		return new Dial(this, number);
 	}
+	
+	/**
+	 * the method created new Dial operation
+	 * @param number - the number of the endpoint (who are we calling to)
+	 * @param needToHangup - set if we want to hangup the call after the endpoint hanged up
+	 * @return
+	 */
 	
 	public Dial dial (String number, boolean needToHangup) {
 		return new Dial(this, number,needToHangup);
