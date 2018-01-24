@@ -1,10 +1,7 @@
 package io.cloudonix.arity;
 
-import java.util.logging.Logger;
-
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.tools.ARIException;
 
 /**
  * The class represents an incoming call
@@ -19,8 +16,6 @@ public class Call {
 	private String channelID;
 	private ARIty arity;
 	
-	private final static Logger logger = Logger.getLogger(Call.class.getName());
-
 	public Call(StasisStart ss, ARI a, ARIty aRIty) {
 
 		callStasisStart = ss;
@@ -141,19 +136,10 @@ public class Call {
 
 	}
 	
-	/**
-	 * close the service (user's choice if to call it or not)
-	 */
-	public void close() {
-
-		try {
-			ari.closeAction(ari.events());
-			logger.info("closing the web socket");
-		} catch (ARIException e) {
-			logger.info("failed closing the web socket");
-			e.printStackTrace();
-		}
-
-	}
+/*	
+	public <V> CompletableFuture<V> endCall (V value , Throwable th) {
+		// hangup the call before
+		return value;
+	}*/
 
 }

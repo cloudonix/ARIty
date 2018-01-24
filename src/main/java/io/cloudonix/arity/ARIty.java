@@ -138,5 +138,20 @@ public class ARIty implements AriCallback<Message> {
 	public void setNewCallsChannelId(String id) {
 		newCallsChannelId.add(id);
 	}
+	
+	/**
+	 * disconnect from the websocket (user's choice if to call it or not)
+	 */
+	public void disconnect() {
+
+		try {
+			ari.closeAction(ari.events());
+			logger.info("closing the web socket");
+		} catch (ARIException e) {
+			logger.info("failed closing the web socket");
+			e.printStackTrace();
+		}
+
+	}
 
 }
