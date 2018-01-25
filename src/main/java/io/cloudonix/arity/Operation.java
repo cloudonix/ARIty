@@ -10,12 +10,12 @@ import ch.loway.oss.ari4java.tools.RestException;
 public abstract class Operation {
 
 	private String channelID;
-	private ARIty aRIty;
+	private ARIty arity;
 	private ARI ari;
 
 	public Operation(String chanId, ARIty s, ARI a) {
 		channelID = chanId;
-		aRIty = s;
+		arity = s;
 		ari = a;
 	}
 
@@ -28,11 +28,17 @@ public abstract class Operation {
 	}
 
 	public ARIty getService() {
-		return aRIty;
+		return arity;
 	}
 
-	abstract CompletableFuture<? extends Operation> run();
-
+	public abstract CompletableFuture<? extends Operation> run();
+	
+	/**
+	 * the method receives an operation , creates a CompletableFuture and an AriCallback,
+	 * and execute the operation on AriCallback
+	 * @param op the operation that we want to execute
+	 * @return
+	 */
 	protected <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
 		CompletableFuture<V> cf = new CompletableFuture<V>();
 		AriCallback<V> ariCallback = new AriCallback<V>() {
@@ -53,6 +59,11 @@ public abstract class Operation {
 		
 	}
 
+	/**
+	 * the method create a CompletableFuture that is ended exceptionally with the given error (throwable) and return it
+	 * @param th the error that occurred
+	 * @return
+	 */
 	public static <V> CompletableFuture<V> completedExceptionally(Throwable th) {
 		
 		CompletableFuture<V> compExceptionaly = new CompletableFuture<V>();
