@@ -7,7 +7,6 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.HangUpException;
 
 public class Hangup extends Operation{
-	private CompletableFuture<Hangup> compFuture;
 	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
 	
 	/**
@@ -15,8 +14,7 @@ public class Hangup extends Operation{
 	 * @param call
 	 */
 	public Hangup(Call call) {
-		super(call.getChannelID(), call.getService(), call.getAri());
-		compFuture = new CompletableFuture<>();
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 	}
 	
 	/**
@@ -30,8 +28,7 @@ public class Hangup extends Operation{
 			getAri().channels().hangup(getChanneLID(), "normal");
 		} catch (RestException e) {
 			logger.severe("failed hang up the call");
-			compFuture.completeExceptionally(new HangUpException(e));
-			return compFuture;
+			return completedExceptionally(new HangUpException(e));
 		}
 		return CompletableFuture.completedFuture(this);
 		
