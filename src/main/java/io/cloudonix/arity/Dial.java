@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -9,7 +8,6 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
-import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
@@ -33,7 +31,6 @@ public class Dial extends CancelableOperations {
 		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-		// Instant.now().toEpochMilli();
 
 	}
 
