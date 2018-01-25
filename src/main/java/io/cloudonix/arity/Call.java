@@ -2,7 +2,6 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -19,22 +18,25 @@ public class Call {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-	
-	private final static Logger logger = Logger.getLogger(Call.class.getName());
 
-
-	public Call(StasisStart ss, ARI a, ARIty aRIty) {
+	/**
+	 * constructor 
+	 * @param ss Stasis start event
+	 * @param a ARI instant
+	 * @param ARIty the ARIty service
+	 */
+	public Call(StasisStart ss, ARI a, ARIty ARIty) {
 
 		callStasisStart = ss;
 		channelID = ss.getChannel().getId();
 		ari = a;
-		this.arity = aRIty;
+		this.arity = ARIty;
 	}
 
 	/**
-	 * The method executes the application
+	 * The method executes the voice application
 	 * 
-	 * @param voiceApp
+	 * @param voiceApp the voice application
 	 */
 	public void executeVoiceApp(Runnable voiceApp) {
 		voiceApp.run();
@@ -63,12 +65,12 @@ public class Call {
 	 * 
 	 * @return
 	 */
-	public ARIty getService() {
+	public ARIty getARItyService() {
 		return arity;
 	}
 
 	/**
-	 * get the channel id from the call
+	 * get the channel id of the call
 	 * 
 	 * @return
 	 */
@@ -79,7 +81,7 @@ public class Call {
 	/**
 	 * The method creates a new Play operation with the file to be played
 	 * 
-	 * @param file
+	 * @param file file to be played
 	 * @return Play
 	 */
 	public Play play(String file) {
@@ -107,7 +109,7 @@ public class Call {
 	/**
 	 * the method creates a new receivedDTMF object
 	 * 
-	 * @return Gather
+	 * @return ReceivedDTMF
 	 */
 	public ReceivedDTMF receivedDTMF(String terminatingKey) {
 		return new ReceivedDTMF(this, terminatingKey);
@@ -125,27 +127,26 @@ public class Call {
 	/**
 	 * the method created new Dial operation
 	 * 
-	 * @param number
-	 *            - the number of the endpoint (who are we calling to)
+	 * @param number the number of the endpoint (who are we calling to)
 	 * @return
 	 */
 	public Operation dial(String number) {
 		return new Dial(this, number);
 	}
-	
-		
-	public <V> CompletableFuture<V> endCall (V value , Throwable th) {
-		// hangup the call before
-		return hangup().run()
-				.handle((hangup, th2)-> null)
-				.thenCompose(v-> Objects.nonNull(th)?
-						Operation.completedExceptionally(th)
-						:
-						CompletableFuture.completedFuture(value));
 
-		// if the call is already hanged up
-		
-		 
+	/**
+	 * the method verifies that the call is always hangs up, even if an error occurred
+	 * during any operation
+	 * 
+	 * @param value if no error occurred
+	 * @param th if an error occurred it will contain the error
+	 * @return
+	 */
+	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
+		return hangup().run()
+				.handle((hangup, th2) -> null)
+				.thenCompose(v -> Objects.nonNull(th) ? Operation.completedExceptionally(th)
+						: CompletableFuture.completedFuture(value));
 	}
 
 }
