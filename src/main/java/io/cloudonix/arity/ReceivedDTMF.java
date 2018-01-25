@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 
 public class ReceivedDTMF extends Operation {
-	
+
 	private CompletableFuture<ReceivedDTMF> compFuture;
 	private String userInput;
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
@@ -21,7 +21,8 @@ public class ReceivedDTMF extends Operation {
 	 * Constructor
 	 * 
 	 * @param call
-	 * @param termKey - define terminating key (otherwise '#' is the default)
+	 * @param termKey
+	 *            - define terminating key (otherwise '#' is the default)
 	 */
 	public ReceivedDTMF(Call call, String termKey) {
 
@@ -54,7 +55,7 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<? extends Operation> run() {
-		
+
 		// if the list of verbs is not empty, execute them one by one
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
@@ -79,8 +80,10 @@ public class ReceivedDTMF extends Operation {
 			if (dtmf.getDigit().equals(terminatingKey)) {
 				logger.info("the terminating key is: " + terminatingKey);
 				logger.info("all input: " + userInput);
-				// cancel the current operation because the gather is finished
-				currOpertation.cancel();
+				if (Objects.nonNull(currOpertation))
+					// cancel the current operation because the gather is finished
+					currOpertation.cancel();
+
 				compFuture.complete(this);
 				return true;
 
@@ -93,14 +96,16 @@ public class ReceivedDTMF extends Operation {
 		return compFuture;
 	}
 
-
 	/**
-	 * compose the previous future (of the previous verb) to the result of the new future
+	 * compose the previous future (of the previous verb) to the result of the new
+	 * future
+	 * 
 	 * @param future
 	 * @param operation
 	 * @return
 	 */
-	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future, Operation operation) {
+	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future,
+			Operation operation) {
 		logger.info("The current nested operation is: " + currOpertation.toString());
 		return future.thenCompose(pb -> {
 			if (Objects.nonNull(pb))
@@ -111,7 +116,8 @@ public class ReceivedDTMF extends Operation {
 	}
 
 	/**
-	 * add new operation to list of nested operation that run method will execute one by one
+	 * add new operation to list of nested operation that run method will execute
+	 * one by one
 	 * 
 	 * @param operation
 	 * @return

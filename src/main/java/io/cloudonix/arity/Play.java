@@ -146,7 +146,7 @@ public class Play extends CancelableOperations {
 			timesToPlay = 0;
 			logger.info("playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
-			logger.warning("playback is not playing at the moment : " + e);
+			logger.info("playback is not playing at the moment : " + e);
 		}
 	}
 
