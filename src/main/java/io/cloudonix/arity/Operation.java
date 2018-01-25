@@ -27,7 +27,7 @@ public abstract class Operation {
 		return channelID;
 	}
 
-	public ARIty getService() {
+	public ARIty getArity() {
 		return arity;
 	}
 

@@ -71,7 +71,7 @@ public class ReceivedDTMF extends Operation {
 
 		}
 
-		getService().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
+		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {
 				return false;
 			}

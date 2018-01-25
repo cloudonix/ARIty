@@ -28,7 +28,7 @@ public class Play extends CancelableOperations {
 	 * @param call
 	 */
 	public Play(Call call) {
-		super(call.getChannelID(), call.getService(), call.getAri());
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
@@ -44,7 +44,7 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(Call call, String fileLocation) {
 
-		super(call.getChannelID(), call.getService(), call.getAri());
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		callStasisStart = call.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();
@@ -96,7 +96,7 @@ public class Play extends CancelableOperations {
 							logger.info("playback started! Playing: " + fileLocation + " and playback id is: " + playback.getId());
 
 							// add a playback finished future event to the futureEvent list
-							getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
+							getArity().addFutureEvent(PlaybackFinished.class, (playb) -> {
 								if (!(playb.getPlayback().getId().equals(playbackId)))
 									return false;
 								logger.info("playbackFinished id is the same as playback id.  ID is: " + playbackId);
@@ -146,7 +146,7 @@ public class Play extends CancelableOperations {
 			timesToPlay = 0;
 			logger.info("playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
-			logger.warning("playback is not playing at the moment");
+			logger.warning("playback is not playing at the moment : " + e);
 		}
 	}
 
