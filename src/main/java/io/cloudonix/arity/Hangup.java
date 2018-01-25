@@ -30,6 +30,8 @@ public class Hangup extends Operation{
 			logger.severe("failed hang up the call");
 			return completedExceptionally(new HangUpException(e));
 		}
+		logger.info("hanged up call");
+
 		return CompletableFuture.completedFuture(this);
 		
 	}
