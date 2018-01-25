@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
@@ -17,8 +18,11 @@ public class Dial extends CancelableOperations {
 	private String endPointNumber;
 	private Channel endpointChannel;
 	private long callDuration = 0;
-	private long start = 0;
-
+	private long dialStart = 0;
+	private long mediaLenght = 0;
+	private long mediaLenStart = 0;
+	private boolean isCanceled = false;
+	
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
 	/**
@@ -49,24 +53,52 @@ public class Dial extends CancelableOperations {
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
 
-		// add future event of ChannelHangupRequest
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
-				logger.info("end point channel did not asked to hang up");
+			
+			if(hangup.getChannel().getId().equals(getChanneLID()) && !isCanceled) {
+				logger.info("cancel dial");
+				isCanceled = true;
+				cancel();
 				return false;
 			}
+			
+			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
+				return false;
+			}
+			
+			if(!isCanceled) {
 			// end call timer
 			long end = Instant.now().toEpochMilli();
 
-			callDuration = Math.abs(end-start);
-			logger.info("duration of the call: "+ callDuration + "ms");
+			callDuration = Math.abs(end-dialStart);
+			logger.info("duration of the call: "+ callDuration + " ms");
+			
+			mediaLenght =  Math.abs(end-mediaLenStart);
+			logger.info("media lenght of the call: "+ mediaLenght + " ms");
 
 			logger.info("end point channel hanged up");
+			}
+			
 			compFuture.complete(this);
 			return true;
 		});
-
+		
 		logger.info("future event of ChannelHangupRequest was added");
+		
+		
+		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
+			String dialStatus = dial.getDialstatus();
+			logger.info("dial status is: " + dialStatus);
+			if(!dialStatus.equals("ANSWER")) 
+				return false;
+			
+			mediaLenStart = Instant.now().toEpochMilli();	
+			//compFuture.complete(this);
+			return true;
+		});
+		
+		logger.info("future event of Dial_impl_ari_2_0_0 was added");
+
 
 		// create the bridge in order to connect between the caller and end point
 		// channels
@@ -84,15 +116,17 @@ public class Dial extends CancelableOperations {
 						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 						logger.info("end point channel was added to the bridge");
 
-						return this.<Void>toFuture(dial -> getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial));
-
+						return this.<Void>toFuture(dial -> {
+							getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial);
+							});
+						
 					} catch (RestException e2) {
 						logger.info("failed dailing " + e2);
 						return completedExceptionally(new DialException(e2));
 					}
 				}).thenAccept(v -> {
 					logger.info("dial succeded!");
-					start = Instant.now().toEpochMilli();
+					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
 
 	}
@@ -106,11 +140,11 @@ public class Dial extends CancelableOperations {
 		try {
 			// hang up the call of the endpoint
 			getAri().channels().hangup(endpointChannel.getId(), "normal");
-			logger.info("dial canceled. hang up the endpoint call");
+			logger.info("hang up the endpoint call");
 			compFuture.complete(this);
 
 		} catch (RestException e) {
-			logger.severe("failed hang up the endpoint call");
+			logger.warning("failed hang up the endpoint call");
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}

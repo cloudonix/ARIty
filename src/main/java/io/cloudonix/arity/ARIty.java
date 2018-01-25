@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -64,6 +65,7 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
+		//logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
@@ -77,8 +79,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("New call created! " + call);
 			voiceApp.accept(call);
 		}
-
-
+		
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
 
