@@ -14,18 +14,17 @@ public class Application {
 		// Connect to ARI and register a stasis application
 		new ARIty("http://127.0.0.1:8088/", "myStasisApp", "user", "pass").registerVoiceApp(call -> {
 		
-	        // main application flow
-		    call.play("hello").run()
-				.thenCompose(p -> call.gather().and(call.play("dir-pls-enter").loop(10)).run())
-				.thenCompose(g -> {
-					logger.info("User entered: " + g.getInput());
-					return call.hangUp().run();
-				}).exceptionally(t -> {
-					logger.severe(t.toString());
+	      // main application flow
+		   call.answer().run()
+				.thenCompose(v -> call.play("hello-world").loop(2).run())
+				.thenAccept(pb -> {
+					logger.info("finished playback! id: " + pb.getPlayback().getId());
+				}).handle(call::endCall)
+				.exceptionally(t -> {
+					logger.severe("Unexpected error happened");
 					return null;
-				});
-		});
-
+			});
+			
         // after registering, just stay running to get and handle calls
 		while (true) {
 			try {
@@ -115,3 +114,11 @@ completes. Multiple operation can be scheduled in order, using `CompletableFutur
 	}
 
 ```
+## Features
+
+### endCall feature
+In order to end the voice application, you can use the `endCall` method that will guarantee that the call will be hanged up (you 
+can see an example in "Sample Voice Application" section above). This method hang up the call anyway, even if an error occurred 
+during the execution.
+Therefore, you can use the `endCall` method to hang up the call and/or use `call.hangup().run();` like in the "Handling call" example.
+ 
