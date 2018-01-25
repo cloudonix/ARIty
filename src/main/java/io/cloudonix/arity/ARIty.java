@@ -35,7 +35,7 @@ public class ARIty implements AriCallback<Message> {
 	private Consumer<Call> voiceApp;
 	// save the channel id of new calls (for ignoring another stasis start event, if
 	// needed)
-	private ConcurrentSkipListSet<String> newCallsChannelId = new ConcurrentSkipListSet<>();
+	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 
 	public ARIty(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
@@ -64,20 +64,17 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-		// logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
-			// StasisStart case
 			StasisStart ss = (StasisStart) event;
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
-			if (newCallsChannelId.remove(ss.getChannel().getId())) {
+			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
 			logger.info("Channel id of the caller: " + ss.getChannel().getId());
 			Call call = new Call((StasisStart) event, ari, this);
 			logger.info("New call created! " + call);
-			// save the the channel id of the first stasis
 			voiceApp.accept(call);
 		}
 
@@ -107,10 +104,8 @@ public class ARIty implements AriCallback<Message> {
 	 * The method handles adding a future event from a specific class (event) to the
 	 * future event list
 	 * 
-	 * @param class1-
-	 *            class of the finished event (example: PlaybackFinished)
-	 * @param func-
-	 *            function to be executed
+	 * @param class1 class of the finished event (example: PlaybackFinished)
+	 * @param func function to be executed
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
 
@@ -130,13 +125,12 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * Add a channel id to the newCallsChannelId set when a new channel (call) was
-	 * created
+	 * ignore Stasis start from this channel
 	 * 
-	 * @param id
+	 * @param id channel id to ignore
 	 */
-	public void setNewCallsChannelId(String id) {
-		newCallsChannelId.add(id);
+	public void ignoreChannel(String id) {
+		ignoredChannelIds.add(id);
 	}
 	
 	/**
