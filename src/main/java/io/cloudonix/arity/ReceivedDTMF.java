@@ -25,7 +25,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(Call call, String termKey) {
 
-		super(call.getChannelID(), call.getService(), call.getAri());
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = termKey;
@@ -39,7 +39,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(Call call) {
 
-		super(call.getChannelID(), call.getService(), call.getAri());
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = "#";
@@ -55,9 +55,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public CompletableFuture<? extends Operation> run() {
 		
-		// if the list of verbs is not empty, execute them one by one- wait until the
-		// current verb is finished before continuing to the next on (the completable
-		// future is completed )
+		// if the list of verbs is not empty, execute them one by one
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
 
@@ -78,17 +76,15 @@ public class ReceivedDTMF extends Operation {
 				return false;
 			}
 
-			// if the input is the terminating key "#" then stop
 			if (dtmf.getDigit().equals(terminatingKey)) {
+				logger.info("the terminating key is: " + terminatingKey);
 				logger.info("all input: " + userInput);
-				
 				// cancel the current operation because the gather is finished
 				currOpertation.cancel();
 				compFuture.complete(this);
 				return true;
 
 			}
-			// the input is 0-9 or A-E or * - save it with the previous digits
 			userInput = userInput + dtmf.getDigit();
 			return false;
 
@@ -115,7 +111,7 @@ public class ReceivedDTMF extends Operation {
 	}
 
 	/**
-	 * add new verb to list of nested verbs that run method will execute one by one
+	 * add new operation to list of nested operation that run method will execute one by one
 	 * 
 	 * @param operation
 	 * @return
