@@ -18,8 +18,8 @@ public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
 	private Channel endpointChannel;
-	private Call call;
-	private Duration callDuration = null;
+	private long callDuration = 0;
+	private long start = 0;
 
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -30,99 +30,40 @@ public class Dial extends CancelableOperations {
 	 * @param number
 	 */
 	public Dial(Call call, String number) {
-		super(call.getChannelID(), call.getService(), call.getAri());
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-		this.call = call;
+		// Instant.now().toEpochMilli();
+
 	}
-	
+
 	/**
 	 * The method dials to a number (a sip number for now)
 	 * 
 	 * @param number
 	 * @return
 	 */
+
 	public CompletableFuture<Dial> run() {
 
 		String endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
-		// create the bridge in order to connect between the caller and end point
-		// channels
-		getAri().bridges().create("", bridgeID, "bridge", new AriCallback<Bridge>() {
+		// add the new channel channel id to the set of ignored Channels
+		getArity().ignoreChannel(endPointChannelId);
 
-			@Override
-			public void onSuccess(Bridge result) {
-				logger.info("bridge was created");
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("failed creating the bridge");
-				compFuture.completeExceptionally(new DialException(e));
-			}
-
-		});
-		// add the caller to the channel
-		try {
-			getAri().bridges().addChannel(bridgeID, getChanneLID(), "caller");
-		} catch (RestException e1) {
-			logger.info("failed adding the caller channel to the bridge");
-			compFuture.completeExceptionally(new DialException(e1));
-		}
-		logger.info("caller's channel was added to the bridge");
-
-		// create the end point channel (that will answer the caller)
-		try {
-			endpointChannel = getAri().channels().create(endPointNumber, getService().getAppName(), null, endPointChannelId, null,
-					getChanneLID(), null);
-			logger.info("end point channel id: " + endpointChannel.getId());
-			// add the new channel channel id to the set of newCallsChannelId
-			getService().setNewCallsChannelId(endPointChannelId);
-
-		} catch (RestException e1) {
-			logger.info("failed creating the end point channel");
-			compFuture.completeExceptionally(new DialException(e1));
-		}
-
-		// add the end point channel to the bridge
-		try {
-			getAri().bridges().addChannel(bridgeID, endPointChannelId, "peer");
-		} catch (RestException e1) {
-			logger.info("failed adding the peer channel to the bridge");
-			compFuture.completeExceptionally(new DialException(e1));
-		}
-		logger.info("endpoint channel was added to the bridge");
-
-		// the caller dials to the end point
-		getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, new AriCallback<Void>() {
-
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("dial succeded!");
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("failed in dialing: " + e.getMessage());
-				compFuture.completeExceptionally(new DialException(e));
-			}
-
-		});
-		
-		// start timer for the call
-		Instant start = Instant.now();
-		
 		// add future event of ChannelHangupRequest
-		getService().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
+		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				logger.info("end point channel did not asked to hang up");
 				return false;
 			}
 			// end call timer
-			Instant end = Instant.now();
-			callDuration = Duration.between(start, end);
-					
+			long end = Instant.now().toEpochMilli();
+
+			callDuration = Math.abs(end-start);
+			logger.info("duration of the call: "+ callDuration + "ms");
+
 			logger.info("end point channel hanged up");
 			compFuture.complete(this);
 			return true;
@@ -130,25 +71,51 @@ public class Dial extends CancelableOperations {
 
 		logger.info("future event of ChannelHangupRequest was added");
 
-		return compFuture;
+		// create the bridge in order to connect between the caller and end point
+		// channels
+		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, "bridge", cf))
+				.thenCompose(bridge -> {
+					try {
+						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
+						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:"
+								+ getChanneLID());
+
+						endpointChannel = getAri().channels().create(endPointNumber, getArity().getAppName(), null,
+								endPointChannelId, null, getChanneLID(), null);
+						logger.info("end point channel was created. Channel id: " + endpointChannel.getId());
+
+						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
+						logger.info("end point channel was added to the bridge");
+
+						return this.<Void>toFuture(dial -> getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial));
+
+					} catch (RestException e2) {
+						logger.info("failed dailing " + e2);
+						return completedExceptionally(new DialException(e2));
+					}
+				}).thenAccept(v -> {
+					logger.info("dial succeded!");
+					start = Instant.now().toEpochMilli();
+				}).thenCompose(v -> compFuture);
+
 	}
 
 	/**
 	 * the method cancels dialing
- 	 */
+	 */
 	@Override
 	void cancel() {
-		
+
 		try {
 			// hang up the call of the endpoint
 			getAri().channels().hangup(endpointChannel.getId(), "normal");
 			logger.info("dial canceled. hang up the endpoint call");
 			compFuture.complete(this);
-			
+
 		} catch (RestException e) {
 			logger.severe("failed hang up the endpoint call");
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}
-	
+
 }
