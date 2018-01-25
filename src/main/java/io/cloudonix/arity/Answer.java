@@ -5,14 +5,13 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
+import io.cloudonix.arity.errors.HangUpException;
 
 public class Answer extends Operation {
-	CompletableFuture<Answer> compFuture;
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
 	public Answer(Call call) {
-		super(call.getChannelID(), call.getService(), call.getAri());
-		compFuture = new CompletableFuture<>();
+		super(call.getChannelID(), call.getARItyService(), call.getAri());
 	}
 	
 	/**
@@ -29,10 +28,8 @@ public class Answer extends Operation {
 			getAri().channels().answer(getChanneLID());
 		} catch (RestException e) {
 			logger.severe("failed in answering the call: " + e);
-			compFuture.completeExceptionally(new AnswerCallException(e));
-			return compFuture;
+			return completedExceptionally(new HangUpException(e));
 		}
-
 		logger.info("call answered");
 
 		return CompletableFuture.completedFuture(this);
