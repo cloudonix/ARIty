@@ -83,12 +83,21 @@ public class Dial extends CancelableOperations {
 			return true;
 		});
 		
+		
 		logger.info("future event of ChannelHangupRequest was added");
 		
 		
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
 			String dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
+			
+		/*	try {
+				logger.info(getAri().channels().get(endPointChannelId).getState());
+			} catch (RestException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+			
 			if(!dialStatus.equals("ANSWER")) 
 				return false;
 			
