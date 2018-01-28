@@ -32,11 +32,11 @@ public class Dial extends CancelableOperations {
 	/**
 	 * Constructor
 	 * 
-	 * @param call
-	 * @param number
+	 * @param callController
+	 * @param number the number we are calling to (the endpoint)
 	 */
-	public Dial(Call call, String number) {
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
+	public Dial(CallController callController, String number) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		sipHeadersVariables = new HashMap<String, String>();

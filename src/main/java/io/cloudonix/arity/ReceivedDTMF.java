@@ -20,13 +20,13 @@ public class ReceivedDTMF extends Operation {
 	/**
 	 * Constructor
 	 * 
-	 * @param call
+	 * @param callController
 	 * @param termKey
 	 *            - define terminating key (otherwise '#' is the default)
 	 */
-	public ReceivedDTMF(Call call, String termKey) {
+	public ReceivedDTMF(CallController callController, String termKey) {
 
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = termKey;
@@ -36,11 +36,11 @@ public class ReceivedDTMF extends Operation {
 	/**
 	 * Constructor
 	 * 
-	 * @param call
+	 * @param callController
 	 */
-	public ReceivedDTMF(Call call) {
+	public ReceivedDTMF(CallController callController) {
 
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = "#";

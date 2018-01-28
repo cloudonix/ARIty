@@ -32,7 +32,7 @@ public class ARIty implements AriCallback<Message> {
 	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
-	private Consumer<Call> voiceApp;
+//	private Consumer<Call> voiceApp;
 	// save the channel id of new calls (for ignoring another stasis start event, if
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
@@ -58,13 +58,12 @@ public class ARIty implements AriCallback<Message> {
 	 * 
 	 * @param voiceApp
 	 */
-	public void registerVoiceApp(Consumer<Call> voiceApp) {
+	/*public void registerVoiceApp(Consumer<Call> voiceApp) {
 		this.voiceApp = voiceApp;
-	}
+	}*/
 
 	@Override
 	public void onSuccess(Message event) {
-		//logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
@@ -74,9 +73,9 @@ public class ARIty implements AriCallback<Message> {
 				return;
 			}
 			logger.info("Channel id of the caller: " + ss.getChannel().getId());
-			Call call = new Call((StasisStart) event, ari, this);
-			logger.info("New call created! " + call);
-			voiceApp.accept(call);
+		//	Call call = new Call((StasisStart) event, ari, this);
+		//	logger.info("New call created! " + call);
+			//voiceApp.accept(call);
 		}
 		
 		// look for a future event in the event list

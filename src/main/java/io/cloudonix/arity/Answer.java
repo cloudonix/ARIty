@@ -10,8 +10,8 @@ import io.cloudonix.arity.errors.HangUpException;
 public class Answer extends Operation {
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
-	public Answer(Call call) {
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
+	public Answer(CallController callController) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 	}
 	
 	/**

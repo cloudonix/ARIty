@@ -27,9 +27,9 @@ public class Play extends CancelableOperations {
 	 * 
 	 * @param call
 	 */
-	public Play(Call call) {
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
-		callStasisStart = call.getCallStasisStart();
+	public Play(CallController callController) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		callStasisStart = callController.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
 
@@ -38,14 +38,14 @@ public class Play extends CancelableOperations {
 	 * runRecording to general "run" and use enums to differ between the types of
 	 * uri scheme
 	 * 
-	 * @param call
+	 * @param callController
 	 * @param fileLocation
 	 * @param times
 	 */
-	public Play(Call call, String fileLocation) {
+	public Play(CallController callController, String fileLocation) {
 
-		super(call.getChannelID(), call.getARItyService(), call.getAri());
-		callStasisStart = call.getCallStasisStart();
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		callStasisStart = callController.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();
 	}
