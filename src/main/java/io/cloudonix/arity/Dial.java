@@ -1,6 +1,9 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -16,12 +19,13 @@ import io.cloudonix.arity.errors.HangUpException;
 public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
-	private Channel endpointChannel;
+	private String endPointChannelId;
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLenght = 0;
 	private long mediaLenStart = 0;
 	private boolean isCanceled = false;
+	private Map<String,String> sipHeadersVariables = null;
 	
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -35,7 +39,7 @@ public class Dial extends CancelableOperations {
 		super(call.getChannelID(), call.getARItyService(), call.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-
+		sipHeadersVariables = new HashMap<String, String>();
 	}
 
 	/**
@@ -47,7 +51,7 @@ public class Dial extends CancelableOperations {
 
 	public CompletableFuture<Dial> run() {
 
-		String endPointChannelId = UUID.randomUUID().toString();
+		endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
 		// add the new channel channel id to the set of ignored Channels
@@ -91,13 +95,6 @@ public class Dial extends CancelableOperations {
 			String dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 			
-		/*	try {
-				logger.info(getAri().channels().get(endPointChannelId).getState());
-			} catch (RestException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}*/
-			
 			if(!dialStatus.equals("ANSWER")) 
 				return false;
 			
@@ -115,13 +112,12 @@ public class Dial extends CancelableOperations {
 				.thenCompose(bridge -> {
 					try {
 						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
-						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:"
-								+ getChanneLID());
-
-						endpointChannel = getAri().channels().create(endPointNumber, getArity().getAppName(), null,
+						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChanneLID());
+					
+						 getAri().channels().create(endPointNumber, getArity().getAppName(), null,
 								endPointChannelId, null, getChanneLID(), null);
-						logger.info("end point channel was created. Channel id: " + endpointChannel.getId());
-
+						logger.info("end point channel was created. Channel id: " + endPointChannelId);
+						
 						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 						logger.info("end point channel was added to the bridge");
 
@@ -148,7 +144,7 @@ public class Dial extends CancelableOperations {
 
 		try {
 			// hang up the call of the endpoint
-			getAri().channels().hangup(endpointChannel.getId(), "normal");
+			getAri().channels().hangup(endPointChannelId, "normal");
 			logger.info("hang up the endpoint call");
 			compFuture.complete(this);
 
@@ -156,6 +152,34 @@ public class Dial extends CancelableOperations {
 			logger.warning("failed hang up the endpoint call");
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
+	}
+	
+	/**
+	 * set sip headers
+	 * @param headers
+	 */
+	public void setSipHeaders(Map<String,String> headers) {
+		
+		if(Objects.isNull(sipHeadersVariables))
+			sipHeadersVariables = new HashMap<String, String>();
+		
+		for (Map.Entry<String, String> currHeader : sipHeadersVariables.entrySet()) {
+			sipHeadersVariables.put(currHeader.getKey(), currHeader.getValue());
+		}
+		
+	}
+	
+	/**
+	 * Add one sip header
+	 * @param header
+	 */
+	public void addHeader(Map.Entry<String, String> header) {
+		
+		if(Objects.isNull(sipHeadersVariables))
+			sipHeadersVariables = new HashMap<String, String>();
+
+		sipHeadersVariables.put(header.getKey(), header.getValue());
+		
 	}
 
 }
