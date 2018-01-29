@@ -28,7 +28,7 @@ public class Play extends CancelableOperations {
 	 * @param call
 	 */
 	public Play(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
@@ -44,7 +44,7 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileLocation) {
 
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();
@@ -142,8 +142,8 @@ public class Play extends CancelableOperations {
 	void cancel() {
 		try {
 			logger.info("trying to cancel a playback. Playback id: " + playback.getId());
-			getAri().playbacks().stop(playback.getId());
 			timesToPlay = 0;
+			getAri().playbacks().stop(playback.getId());
 			logger.info("playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
 			logger.info("playback is not playing at the moment : " + e);

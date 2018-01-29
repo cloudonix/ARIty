@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -36,7 +35,7 @@ public class Dial extends CancelableOperations {
 	 * @param number the number we are calling to (the endpoint)
 	 */
 	public Dial(CallController callController, String number) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		sipHeadersVariables = new HashMap<String, String>();

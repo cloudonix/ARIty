@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
@@ -17,7 +18,7 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.cloudonix.arity.errors.*;
 
 /**
  * The class represents the creation of ari and websocket service that handles
@@ -32,7 +33,7 @@ public class ARIty implements AriCallback<Message> {
 	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
-//	private Consumer<Call> voiceApp;
+	private Supplier<CallController> callSupplier = null;
 	// save the channel id of new calls (for ignoring another stasis start event, if
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
@@ -58,9 +59,49 @@ public class ARIty implements AriCallback<Message> {
 	 * 
 	 * @param voiceApp
 	 */
-	/*public void registerVoiceApp(Consumer<Call> voiceApp) {
-		this.voiceApp = voiceApp;
-	}*/
+	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
+		callSupplier = new Supplier<CallController>() {
+
+			@Override
+			public CallController get() {
+				try {
+					return controllerClass.newInstance();
+
+				} catch (InstantiationException | IllegalAccessException e) {
+					logger.warning("Unexpected error during creating a new controller " + ErrorStream.fromThrowable(e));
+					hangupErr();
+					return null;
+				}
+			}
+		};
+	}
+
+	protected void hangupErr() {
+		new CallController() {
+
+			@Override
+			public void run() {
+				this.hangup().run();
+			}
+		};
+	}
+
+	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
+		callSupplier = controllorSupplier;
+	}
+
+	public void registerVoiceApp(Consumer<CallController> cc) {
+		callSupplier = () -> {
+			return new CallController() {
+
+				@Override
+				public void run() {
+					cc.accept(this);
+
+				}
+			};
+		};
+	}
 
 	@Override
 	public void onSuccess(Message event) {
@@ -73,11 +114,16 @@ public class ARIty implements AriCallback<Message> {
 				return;
 			}
 			logger.info("Channel id of the caller: " + ss.getChannel().getId());
-		//	Call call = new Call((StasisStart) event, ari, this);
-		//	logger.info("New call created! " + call);
-			//voiceApp.accept(call);
+
+			CallController cc = callSupplier.get();
+			cc.init(ss, ari, this);
+			cc.run();
+
+			// Call call = new Call((StasisStart) event, ari, this);
+			// logger.info("New call created! " + call);
+			// voiceApp.accept(call);
 		}
-		
+
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
 
@@ -103,8 +149,10 @@ public class ARIty implements AriCallback<Message> {
 	 * The method handles adding a future event from a specific class (event) to the
 	 * future event list
 	 * 
-	 * @param class1 class of the finished event (example: PlaybackFinished)
-	 * @param func function to be executed
+	 * @param class1
+	 *            class of the finished event (example: PlaybackFinished)
+	 * @param func
+	 *            function to be executed
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
 
@@ -126,12 +174,13 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * ignore Stasis start from this channel
 	 * 
-	 * @param id channel id to ignore
+	 * @param id
+	 *            channel id to ignore
 	 */
 	public void ignoreChannel(String id) {
 		ignoredChannelIds.add(id);
 	}
-	
+
 	/**
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */

@@ -14,12 +14,12 @@ public abstract class CallController {
 	private ARIty arity;
 
 	/**
-	 * constructor 
-	 * @param ss Stasis start event
-	 * @param a ARI instant
-	 * @param ARIty the ARIty service
+	 * Initialize the callController with the needed fields 
+	 * @param ss StasisStart
+	 * @param a ARI 
+	 * @param ARIty ARITY
 	 */
-	public CallController(StasisStart ss, ARI a, ARIty ARIty) {
+	public void init(StasisStart ss, ARI a, ARIty ARIty) {
 
 		callStasisStart = ss;
 		channelID = ss.getChannel().getId();
@@ -27,19 +27,6 @@ public abstract class CallController {
 		this.arity = ARIty;
 	}
 	
-	public CallController() {
-		
-	}
-	
-	/**
-	 * The method executes the voice application
-	 * 
-	 * @param voiceApp the voice application
-	 */
-	public void executeVoiceApp(Runnable voiceApp) {
-		voiceApp.run();
-	}
-
 	/**
 	 * get the StasisStart from the call
 	 * 
@@ -63,7 +50,7 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public ARIty getARItyService() {
+	public ARIty getARItyServirce() {
 		return arity;
 	}
 
@@ -128,7 +115,7 @@ public abstract class CallController {
 	 * @param number the number of the endpoint (who are we calling to)
 	 * @return
 	 */
-	public Operation dial(String number) {
+	public Dial dial(String number) {
 		return new Dial(this, number);
 	}
 
@@ -150,6 +137,6 @@ public abstract class CallController {
 	public abstract void run();
 	
 	
-
+	
 
 }

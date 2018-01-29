@@ -14,7 +14,7 @@ public class Hangup extends Operation{
 	 * @param callController
 	 */
 	public Hangup(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
 	}
 	
 	/**
