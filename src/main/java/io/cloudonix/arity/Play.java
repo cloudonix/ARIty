@@ -11,6 +11,11 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
+/**
+ * The class represents a Play operation (plays a playback and cancels the playback if needed)
+ * @author naamag
+ *
+ */
 public class Play extends CancelableOperations {
 
 	private StasisStart callStasisStart;
@@ -134,6 +139,10 @@ public class Play extends CancelableOperations {
 		return this;
 	}
 
+	/**
+	 * Get the playback
+	 * @return
+	 */
 	public Playback getPlayback() {
 		return playback;
 	}

@@ -6,7 +6,13 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.HangUpException;
 
+/**
+ * The class represents the Hang up operation (hangs up a call)
+ * @author naamag
+ *
+ */
 public class Hangup extends Operation{
+	
 	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
 	
 	/**

@@ -8,6 +8,11 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 
+/**
+ * The class represents the RecivedDTMF operation (collects/gather the input from the user)
+ * @author naamag
+ *
+ */
 public class ReceivedDTMF extends Operation {
 
 	private CompletableFuture<ReceivedDTMF> compFuture;

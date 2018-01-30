@@ -6,6 +6,11 @@ import java.util.concurrent.CompletableFuture;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
 
+/**
+ * The class represents a call controller, including all the call operation and needed information for a call
+ * @author naamag
+ *
+ */
 public abstract class CallController {
 	
 	private StasisStart callStasisStart;
@@ -135,8 +140,5 @@ public abstract class CallController {
 	}
 	
 	public abstract void run();
-	
-	
-	
 
 }

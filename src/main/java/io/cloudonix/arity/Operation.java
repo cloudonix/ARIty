@@ -7,6 +7,11 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 
+/**
+ * A general class that represents an operation
+ * @author naamag
+ *
+ */
 public abstract class Operation {
 
 	private String channelID;

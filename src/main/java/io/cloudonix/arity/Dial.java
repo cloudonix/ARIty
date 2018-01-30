@@ -15,7 +15,13 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
 
+/**
+ * The class represents the Dial operation
+ * @author naamag
+ *
+ */
 public class Dial extends CancelableOperations {
+	
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
 	private String endPointChannelId;

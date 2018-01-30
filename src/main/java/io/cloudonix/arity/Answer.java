@@ -7,7 +7,13 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
 import io.cloudonix.arity.errors.HangUpException;
 
+/**
+ * The class represents the Answer operation (handel answering a call) 
+ * @author naamag
+ *
+ */
 public class Answer extends Operation {
+	
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
 	public Answer(CallController callController) {
