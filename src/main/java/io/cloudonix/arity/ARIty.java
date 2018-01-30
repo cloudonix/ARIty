@@ -38,6 +38,17 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 
+	/**
+	 * Constructor
+	 * 
+	 * @param uri URI
+	 * @param name name of the stasis application
+	 * @param login user name
+	 * @param pass password
+	 * 
+	 * @throws ConnectionFailedException
+	 * @throws URISyntaxException
+	 */
 	public ARIty(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
 		appName = name;
@@ -55,9 +66,9 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method register a new application to be executed
+	 * The method register a new application to be executed according to the class of the voice application
 	 * 
-	 * @param voiceApp
+	 * @param class instance of the class that contains the voice application (extends from callController) 
 	 */
 	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
 		callSupplier = new Supplier<CallController>() {
@@ -76,20 +87,19 @@ public class ARIty implements AriCallback<Message> {
 		};
 	}
 
-	protected void hangupErr() {
-		new CallController() {
 
-			@Override
-			public void run() {
-				this.hangup().run();
-			}
-		};
-	}
-
+	/**
+	 * The method register the voice application (the supplier that has a CallController, meaning the application)
+	 * @param controllorSupplier the supplier that has the CallController (the voice application)
+	 */
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
 		callSupplier = controllorSupplier;
 	}
 
+	/**
+	 * The method register the voice application and execute it
+	 * @param cc
+	 */
 	public void registerVoiceApp(Consumer<CallController> cc) {
 		callSupplier = () -> {
 			return new CallController() {
@@ -103,6 +113,20 @@ public class ARIty implements AriCallback<Message> {
 		};
 	}
 
+	/**
+	 * The method hangs up the call if we can't create an instance of the class that contains the voice application 
+	 */
+	protected void hangupErr() {
+		new CallController() {
+			
+			@Override
+			public void run() {
+				this.hangup().run();
+			}
+		};
+	}
+
+	
 	@Override
 	public void onSuccess(Message event) {
 

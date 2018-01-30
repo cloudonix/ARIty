@@ -7,23 +7,41 @@ Arity exposes the ARI API using a set of asynchronous operations, using java
 ## Sample Voice Application
 
 ```
-public class Application {
+public class Application extends CallController {
+
+	// Application class extends CallController, which includes an abstract method 'run()', and therefore need to implements
+	// it
+	
+	@Override
+	public void run() {
+	}
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 		
 		// Connect to ARI and register a stasis application
-		new ARIty("http://127.0.0.1:8088/", "myStasisApp", "user", "pass").registerVoiceApp(call -> {
+		ARIty arity = null;
+		try {
+			arity = new ARIty("http://127.0.0.1:8088/", "myStasisApp", "user", "pass");
+
+		} catch (Throwable e1) {
+			logger.info("Error When creating the ARIty: " + e1.getMessage());
+		}
 		
-	      // main application flow
-		   call.answer().run()
-				.thenCompose(v -> call.play("hello-world").loop(2).run())
-				.thenAccept(pb -> {
-					logger.info("finished playback! id: " + pb.getPlayback().getId());
-				}).handle(call::endCall)
-				.exceptionally(t -> {
-					logger.severe("Unexpected error happened");
-					return null;
+		
+	     arity.registerVoiceApp(call -> {
+			// main application flow
+			
+			call.answer().run()
+			.thenCompose(v -> call.play("hello-world").loop(2).run())
+			.thenCompose(pb -> {
+				logger.info("finished playback! id: " + pb.getPlayback().getId());
+				return call.hangup().run();
+			}).handle(call::endCall).exceptionally(t -> {
+				logger.severe(t.toString());
+				return null;
 			});
+			
+		});
 			
         // after registering, just stay running to get and handle calls
 		while (true) {
@@ -34,6 +52,7 @@ public class Application {
 			}
 		}
 	}
+	
 }
 ```
 
@@ -63,8 +82,8 @@ Then add ARIty as a dependency:
 ## Usage
 
 To use ARIty, we start by creating a connection to Asterisk's ARI URL and registering our Stasis application.
-ARIty will trigger the application entry point for each incoming call providing a `Call` API using which the application can manipulate
-the call state and perform channel-specific operation, such as playback and record.
+ARIty will trigger the application entry point for each incoming call providing a `CallController` API using which the application 
+can manipulate the call state and perform channel-specific operation, such as playback and record.
 
 ### Connecting 
 
@@ -74,31 +93,73 @@ ARIty ari = new ARIty(url, "myStasisApp", "user", "pass");
 ```
 ### Registering to receive incoming calls
 
+The `registerVoiceApp()` method receives a "callable" value (functional interface) that accepts a `CallController` object and executes
+the implementation for each call sent to the Stasis application by Asterisk. 
+
+Please note that currently only one voice application may be registered. 
+
+In order to register your voice application, you have the following options:
+
+#### Give a lambda during registration:
+
 ```
-	public void voiceApp(Call call) {
+
+public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
+
+	...
+		arity.registerVoiceApp(call -> {
+				// handle call
+				call.dial("SIP/app2").run().handle(call::endCall)
+				.exceptionally(t -> {
+					logger.severe(t.toString());
+					return null;
+				});
+			
+		});
+
+```
+
+#### Give a `Supplier` of `CallController`:  
+
+```
+	public void voiceApp(CallController call) {
 		// handle call 
 		...
 	}
 	
+	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
+	    Application app = new Application();
 	...
 		ari.registerVoiceApp(app::voiceApp);
 	...
+	}
 ```
+#### Give an instance of your class (for example: `Application.class`):
 
-The `registerVoiceApp()` method receives a "callable" value (functional interface) that accepts a `Call` object and executes the 
-implementation for each call sent to the Stasis application by Asterisk. 
-
-Please note that currently only one voice application may be registered. 
+```
+	@Override
+	public void run() {
+		// handle call 
+		...
+	}
+	
+	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
+	...
+		arity.registerVoiceApp(Application.class);
+	...
+	
+	}
+```
 
 ### Handling a call
-To handle a call scenario, create a method that takes a `Call` argument. When the method is called, use the `Call` API to execute
-operations on the channel connected to the application. Each API call creates an `Operation` instance that will start the specified 
-operation when it's `run()` method is called. `run()` returns a `CompletableFuture` that will be completed when the ARI operation 
-completes. Multiple operation can be scheduled in order, using `CompletableFuture`'s completion methods, such as `thenCompose()`,
-`thenAccept()`, etc.
+To handle a call scenario, create a method that takes a `CallController` argument. When the method is called, use the `CallController`
+API to execute operations on the channel connected to the application. Each API call creates an `Operation` instance that will start 
+the specified operation when it's `run()` method is called. `run()` returns a `CompletableFuture` that will be completed when the ARI
+operation completes. Multiple operation can be scheduled in order, using `CompletableFuture`'s completion methods, such as
+`thenCompose()`, `thenAccept()`, etc.
 
 ```
-	public void voiceApp(Call call) {
+	public void voiceApp(CallController call) {
 
 		call.answer().run()
 		.thenCompose(ans -> call.play("hello-world").loop(2).run())
