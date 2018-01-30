@@ -7,19 +7,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.Message;
-import ch.loway.oss.ari4java.generated.StasisEnd;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.cloudonix.arity.errors.*;
 
 /**
  * The class represents the creation of ari and websocket service that handles
@@ -34,10 +33,22 @@ public class ARIty implements AriCallback<Message> {
 	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
-	private Consumer<Call> voiceApp;
-	// save the channel id of new calls (for ignoring another stasis start event, if needed)
-	private ConcurrentSkipListSet<String> newCallsChannelId = new ConcurrentSkipListSet<>();
+	private Supplier<CallController> callSupplier = null;
+	// save the channel id of new calls (for ignoring another stasis start event, if
+	// needed)
+	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 
+	/**
+	 * Constructor
+	 * 
+	 * @param uri URI
+	 * @param name name of the stasis application
+	 * @param login user name
+	 * @param pass password
+	 * 
+	 * @throws ConnectionFailedException
+	 * @throws URISyntaxException
+	 */
 	public ARIty(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
 		appName = name;
@@ -55,34 +66,87 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method register a new application to be executed
+	 * The method register a new application to be executed according to the class of the voice application
 	 * 
-	 * @param voiceApp
+	 * @param class instance of the class that contains the voice application (extends from callController) 
 	 */
-	public void registerVoiceApp(Consumer<Call> voiceApp) {
-		this.voiceApp = voiceApp;
+	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
+		callSupplier = new Supplier<CallController>() {
+
+			@Override
+			public CallController get() {
+				try {
+					return controllerClass.newInstance();
+
+				} catch (InstantiationException | IllegalAccessException e) {
+					logger.warning("Unexpected error during creating a new controller " + ErrorStream.fromThrowable(e));
+					hangupErr();
+					return null;
+				}
+			}
+		};
 	}
 
+
+	/**
+	 * The method register the voice application (the supplier that has a CallController, meaning the application)
+	 * @param controllorSupplier the supplier that has the CallController (the voice application)
+	 */
+	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
+		callSupplier = controllorSupplier;
+	}
+
+	/**
+	 * The method register the voice application and execute it
+	 * @param cc
+	 */
+	public void registerVoiceApp(Consumer<CallController> cc) {
+		callSupplier = () -> {
+			return new CallController() {
+
+				@Override
+				public void run() {
+					cc.accept(this);
+
+				}
+			};
+		};
+	}
+
+	/**
+	 * The method hangs up the call if we can't create an instance of the class that contains the voice application 
+	 */
+	protected void hangupErr() {
+		new CallController() {
+			
+			@Override
+			public void run() {
+				this.hangup().run();
+			}
+		};
+	}
+
+	
 	@Override
 	public void onSuccess(Message event) {
-		//logger.info(event.toString());
 
 		if (event instanceof StasisStart) {
-			// StasisStart case
 			StasisStart ss = (StasisStart) event;
-			// if the list contains the stasis start event with this channel id, remove it and continue
-			if (newCallsChannelId.remove(ss.getChannel().getId())) {
+			// if the list contains the stasis start event with this channel id, remove it
+			// and continue
+			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
-			logger.info("Channel id of new ss: " + ss.getChannel().getId());
-			Call call = new Call((StasisStart) event, ari, this);
-			logger.info("New call created! " + call);
-			// save the the channel id of the first stasis
-			voiceApp.accept(call);
+			logger.info("Channel id of the caller: " + ss.getChannel().getId());
+
+			CallController cc = callSupplier.get();
+			cc.init(ss, ari, this);
+			cc.run();
+
+			// Call call = new Call((StasisStart) event, ari, this);
+			// logger.info("New call created! " + call);
+			// voiceApp.accept(call);
 		}
-		
-		/*if(event instanceof ChannelDtmfReceived)
-			logger.info(event.toString());*/
 
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
@@ -96,17 +160,7 @@ public class ARIty implements AriCallback<Message> {
 				break;
 			}
 		}
-		
-		/*if(event instanceof StasisEnd) {
-			try {
-				ari.closeAction(ari);
-				logger.info("closing the web socket");
-			} catch (ARIException e) {
-				logger.info("failed closing the web socket");
-				e.printStackTrace();
-			}
-		}*/
-		
+
 	}
 
 	@Override
@@ -119,9 +173,9 @@ public class ARIty implements AriCallback<Message> {
 	 * The method handles adding a future event from a specific class (event) to the
 	 * future event list
 	 * 
-	 * @param class1-
+	 * @param class1
 	 *            class of the finished event (example: PlaybackFinished)
-	 * @param func-
+	 * @param func
 	 *            function to be executed
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
@@ -140,13 +194,30 @@ public class ARIty implements AriCallback<Message> {
 	public String getAppName() {
 		return appName;
 	}
-	
+
 	/**
-	 * Add a channel id to the newCallsChannelId set when a new channel (call) was created 
+	 * ignore Stasis start from this channel
+	 * 
 	 * @param id
+	 *            channel id to ignore
 	 */
-	public void setNewCallsChannelId (String id) {
-		newCallsChannelId.add(id);
+	public void ignoreChannel(String id) {
+		ignoredChannelIds.add(id);
+	}
+
+	/**
+	 * disconnect from the websocket (user's choice if to call it or not)
+	 */
+	public void disconnect() {
+
+		try {
+			ari.closeAction(ari.events());
+			logger.info("closing the web socket");
+		} catch (ARIException e) {
+			logger.info("failed closing the web socket");
+			e.printStackTrace();
+		}
+
 	}
 
 }

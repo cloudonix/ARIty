@@ -11,6 +11,11 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
+/**
+ * The class represents a Play operation (plays a playback and cancels the playback if needed)
+ * @author naamag
+ *
+ */
 public class Play extends CancelableOperations {
 
 	private StasisStart callStasisStart;
@@ -18,7 +23,6 @@ public class Play extends CancelableOperations {
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
-	// private String playbackId;
 
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	private CompletableFuture<Play> compFuturePlayback;
@@ -28,9 +32,9 @@ public class Play extends CancelableOperations {
 	 * 
 	 * @param call
 	 */
-	public Play(Call call) {
-		super(call.getChannelID(), call.getService(), call.getAri());
-		callStasisStart = call.getCallStasisStart();
+	public Play(CallController callController) {
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		callStasisStart = callController.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
 
@@ -39,14 +43,14 @@ public class Play extends CancelableOperations {
 	 * runRecording to general "run" and use enums to differ between the types of
 	 * uri scheme
 	 * 
-	 * @param call
+	 * @param callController
 	 * @param fileLocation
 	 * @param times
 	 */
-	public Play(Call call, String fileLocation) {
+	public Play(CallController callController, String fileLocation) {
 
-		super(call.getChannelID(), call.getService(), call.getAri());
-		callStasisStart = call.getCallStasisStart();
+		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		callStasisStart = callController.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();
 	}
@@ -73,7 +77,6 @@ public class Play extends CancelableOperations {
 		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
 		if (timesToPlay != 0) {
-
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme + fileLocation;
@@ -95,10 +98,10 @@ public class Play extends CancelableOperations {
 
 							// save the playback
 							playback = resultM;
-							logger.info("playback started! playback id: " + playback.getId());
+							logger.info("playback started! Playing: " + fileLocation + " and playback id is: " + playback.getId());
 
 							// add a playback finished future event to the futureEvent list
-							getService().addFutureEvent(PlaybackFinished.class, (playb) -> {
+							getArity().addFutureEvent(PlaybackFinished.class, (playb) -> {
 								if (!(playb.getPlayback().getId().equals(playbackId)))
 									return false;
 								logger.info("playbackFinished id is the same as playback id.  ID is: " + playbackId);
@@ -136,6 +139,10 @@ public class Play extends CancelableOperations {
 		return this;
 	}
 
+	/**
+	 * Get the playback
+	 * @return
+	 */
 	public Playback getPlayback() {
 		return playback;
 	}
@@ -144,11 +151,11 @@ public class Play extends CancelableOperations {
 	void cancel() {
 		try {
 			logger.info("trying to cancel a playback. Playback id: " + playback.getId());
-			getAri().playbacks().stop(playback.getId());
 			timesToPlay = 0;
+			getAri().playbacks().stop(playback.getId());
 			logger.info("playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
-			logger.warning("playback is not playing at the moment");
+			logger.info("playback is not playing at the moment : " + e);
 		}
 	}
 
