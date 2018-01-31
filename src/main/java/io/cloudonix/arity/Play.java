@@ -33,7 +33,7 @@ public class Play extends CancelableOperations {
 	 * @param call
 	 */
 	public Play(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		compFuturePlayback = new CompletableFuture<>();
 	}
@@ -49,7 +49,7 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileLocation) {
 
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		this.fileLocation = fileLocation;
 		compFuturePlayback = new CompletableFuture<>();

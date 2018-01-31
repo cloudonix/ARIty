@@ -17,7 +17,7 @@ public class Answer extends Operation {
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	
 	public Answer(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 	}
 	
 	/**

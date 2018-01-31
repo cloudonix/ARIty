@@ -11,7 +11,7 @@ import ch.loway.oss.ari4java.generated.StasisStart;
  * @author naamag
  *
  */
-public abstract class CallController {
+public abstract class CallController implements Runnable {
 	
 	private StasisStart callStasisStart;
 	private ARI ari;
@@ -55,7 +55,7 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public ARIty getARItyServirce() {
+	public ARIty getARItyService() {
 		return arity;
 	}
 
@@ -139,6 +139,5 @@ public abstract class CallController {
 						: CompletableFuture.completedFuture(value));
 	}
 	
-	public abstract void run();
 
 }

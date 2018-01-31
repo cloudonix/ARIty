@@ -27,7 +27,7 @@ public class Dial extends CancelableOperations {
 	private String endPointChannelId;
 	private long callDuration = 0;
 	private long dialStart = 0;
-	private long mediaLenght = 0;
+	private long mediaLength = 0;
 	private long mediaLenStart = 0;
 	private boolean isCanceled = false;
 	private Map<String,String> sipHeadersVariables = null;
@@ -41,7 +41,7 @@ public class Dial extends CancelableOperations {
 	 * @param number the number we are calling to (the endpoint)
 	 */
 	public Dial(CallController callController, String number) {
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		sipHeadersVariables = new HashMap<String, String>();
@@ -82,8 +82,8 @@ public class Dial extends CancelableOperations {
 			callDuration = Math.abs(end-dialStart);
 			logger.info("duration of the call: "+ callDuration + " ms");
 			
-			mediaLenght =  Math.abs(end-mediaLenStart);
-			logger.info("media lenght of the call: "+ mediaLenght + " ms");
+			mediaLength =  Math.abs(end-mediaLenStart);
+			logger.info("media lenght of the call: "+ mediaLength + " ms");
 
 			logger.info("end point channel hanged up");
 			}

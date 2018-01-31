@@ -31,7 +31,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(CallController callController, String termKey) {
 
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = termKey;
@@ -45,7 +45,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(CallController callController) {
 
-		super(callController.getChannelID(), callController.getARItyServirce(), callController.getAri());
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
 		terminatingKey = "#";
