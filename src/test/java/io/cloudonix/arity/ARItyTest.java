@@ -1,80 +1,85 @@
 package io.cloudonix.arity;
 
+import static org.junit.Assert.fail;
+
 import java.net.URISyntaxException;
-import java.text.ParseException;
-import java.util.TooManyListenersException;
 import java.util.logging.Logger;
 
-import javax.sdp.SdpException;
-import javax.sip.InvalidArgumentException;
-import javax.sip.SipException;
-
 import org.junit.ClassRule;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import io.cloudonix.ARItySipInitiator;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
-class ARItyTest {
+public class ARItyTest {
 
 	public class Application extends CallController {
-
+		public boolean isSucceeded = false;
+		
 		@Override
 		public void run() {
+			isSucceeded = false;
 			// call scenario - voice application
 			answer().run().thenCompose(v -> play("hello-world").loop(2).run()).thenCompose(pb -> {
 				logger.info("finished playback! id: " + pb.getPlayback().getId());
 				return hangup().run();
-			}).handle(this::endCall).exceptionally(t -> {
+			}).handle(this::endCall).thenRun(() ->{
+				isSucceeded = true;
+			}).exceptionally(t -> {
 				logger.severe(t.toString());
 				return null;
 			});
+			
 		}
 
 		public void voiceApp(CallController call) {
+			logger.info("voice application started");
+			isSucceeded=false;
 			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
 				logger.info("finished playback! id: " + pb.getPlayback().getId());
 				return call.hangup().run();
-			}).handle(call::endCall).exceptionally(t -> {
+			}).handle(call::endCall)
+			.thenRun(() ->{
+				isSucceeded = true;
+			}).exceptionally(t -> {
 				logger.severe(t.toString());
 				return null;
 			});
+			
 		}
 
 	}
 
 	abstract class BrokenApp extends CallController {
 	}
+	
 	@ClassRule
-	static AsteriskContainer asterisk = new AsteriskContainer();
-
+	public static AsteriskContainer asterisk = new AsteriskContainer();
+	
 	private final static Logger logger = Logger.getLogger(ARItyTest.class.getName());
 	
 	@Test
-	void testARIty() throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty(asterisk.getAriIP(), "stasisApp", "testuser", "123");
+	public void testARIty() throws ConnectionFailedException, URISyntaxException {
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.disconnect();
 	}
 
 	@Test
-	void testRegisterSupplier() throws ConnectionFailedException, URISyntaxException, InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
+	public void testRegisterSupplier() throws Exception{
 		Application app = new Application();
-		ARIty arity = new ARIty(asterisk.getAriIP(), "stasisApp", "testuser", "123");
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(app::voiceApp);
-		ARItySipInitiator.call(asterisk.getSipServerIP(), asterisk.getContainerIpAddress() ,"1234");
-		/*while (true) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				System.out.println("Thread is not sleeping");
-			}
-		}*/
+		ARItySipInitiator.call(asterisk.getSipServerURL(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
+		if(app.isSucceeded)
+			logger.info("test succeeded! ");
+		else
+			fail();
 	}
 
 	@Test
-	void testReristerLambda() throws ConnectionFailedException, URISyntaxException, InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "testuser", "123");
+	public void testReristerLambda() throws Exception {
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(call -> {
 			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
 				logger.info("finished playback! id: " + pb.getPlayback().getId());
@@ -84,43 +89,43 @@ class ARItyTest {
 				return null;
 			});
 		});
-		ARItySipInitiator.call(asterisk.getSipServerIP(), asterisk.getContainerIpAddress() ,"1234");
+		ARItySipInitiator.call(asterisk.getSipServerURL(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 	}
 
 	@Test
-	void testRegisterClass() throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "testuser", "123");
+	public void testRegisterClass() throws Exception {
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(Application.class);
 		arity.disconnect();
 	}
 
 	@Test
 	// class problem
-	void testErrAbstractClass() throws ConnectionFailedException, URISyntaxException, InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "userid", "secret");
+	public void testErrAbstractClass() throws Exception {
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(BrokenApp.class);
-		ARItySipInitiator.call(asterisk.getSipServerIP(), asterisk.getContainerIpAddress() ,"1234");
+		ARItySipInitiator.call(asterisk.getSipServerURL(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 	}
 	
 	@Test
 	// error while running an application
-	void testErrRun() throws ConnectionFailedException, URISyntaxException, InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "userid", "secret");
+	public void testErrRun() throws Exception {
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(call->{
 			call.play("hello-world").loop(2).run();
 		});
-		ARItySipInitiator.call(asterisk.getSipServerIP(), asterisk.getContainerIpAddress() ,"1234");
+		ARItySipInitiator.call(asterisk.getSipServerURL(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 	}
 	@Test
 	//application is not registered
-	void testNotRegisteredApp() throws ConnectionFailedException, URISyntaxException, InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
+	public void testNotRegisteredApp() throws Exception {
 		Application app = new Application();
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "testuser", "123");
+		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		app.run();
-		ARItySipInitiator.call(asterisk.getSipServerIP(), asterisk.getContainerIpAddress() ,"1234");
+		ARItySipInitiator.call(asterisk.getSipServerURL(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 	}
 

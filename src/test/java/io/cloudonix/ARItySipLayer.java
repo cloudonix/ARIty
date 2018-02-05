@@ -1,11 +1,15 @@
 package io.cloudonix;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
@@ -44,32 +48,35 @@ public class ARItySipLayer implements SipListener {
 	private String ip;
 	private ListeningPoint listeningPoint;
 	private boolean active = true;
-
 	private int remoteRtpAudioPort;
 	private int remoteRtcpAudioPort;
 	private int localRtpAudioPort;
 	private int localRtcpAudioPort;
 	private String remoteRtpAudioIp;
+	private CompletableFuture<Void> waitForBye = new CompletableFuture<Void>();
 
 	private final static Logger logger = Logger.getLogger(ARItySipInitiator.class.getName());
 
 	public ARItySipLayer(String username, String ip, int port) throws PeerUnavailableException,
-			TransportNotSupportedException, InvalidArgumentException, TooManyListenersException, ObjectInUseException {
+			TransportNotSupportedException, InvalidArgumentException, TooManyListenersException, ObjectInUseException, FileNotFoundException {
 		setUsername(username);
 		this.port = port;
 		this.ip = ip;
 		sipFactory = SipFactory.getInstance();
 		sipFactory.setPathName("gov.nist");
-	//	Properties properties = new Properties();
+		Properties properties = new Properties();
 		logger.info("Starting stack: SipInitiator_" + Instant.now());
-		//properties.setProperty("javax.sip.STACK_NAME", "SipInitiator_" + Instant.now() + " with port: " + port);
+		properties.setProperty("javax.sip.STACK_NAME", "SipInitiator_" + Instant.now() + " with port: " + port);
 
-	//	sipStack = sipFactory.createSipStack(properties);
+		sipStack = sipFactory.createSipStack(properties);
 		headerFactory = sipFactory.createHeaderFactory();
 		addressFactory = sipFactory.createAddressFactory();
 		messageFactory = sipFactory.createMessageFactory();
 
 		createRamdomPort();
+
+		logger.info("port is:" + port);
+		logger.info("ip is:" + ip);
 
 		listeningPoint = sipStack.createListeningPoint(ip, port, ListeningPoint.UDP);
 		sipProvider = sipStack.createSipProvider(listeningPoint);
@@ -78,8 +85,10 @@ public class ARItySipLayer implements SipListener {
 
 	}
 
-	private void setProperties() {
-		InputStream in = getClass().getClassLoader().getResourceAsStream("properties.txt");
+	private void setProperties() throws FileNotFoundException {
+		
+		InputStream in = new FileInputStream(new File("src/test/java/io/cloudonix/properties.txt"));
+				
 		Properties p = new Properties(System.getProperties());
 		try {
 			p.load(in);
@@ -91,15 +100,17 @@ public class ARItySipLayer implements SipListener {
 
 	}
 
-	public void sendMessage(String username, String address, String token)
-			throws ParseException, InvalidArgumentException, SipException, SdpException {
-
+	public CompletableFuture<Void> sendInvite(String username, String address, String token)
+			throws ParseException, InvalidArgumentException, SipException, SdpException, MalformedURLException {
+		String host = new URL(address).getHost();
+		if(host.equals("localhost"))
+			host = "127.0.0.1";
 		createRamdomPort();
-		SipURI requestURI = addressFactory.createSipURI(username, address);
+		SipURI requestURI = addressFactory.createSipURI(username, host);
 		requestURI.setTransportParam("udp");
 
 		Request request = messageFactory.createRequest(requestURI, Request.INVITE, sipProvider.getNewCallId(),
-				headerFactory.createCSeqHeader(1L, Request.INVITE), configureFrom(), configureTo(username, address),
+				headerFactory.createCSeqHeader(1L, Request.INVITE), configureFrom(), configureTo(username, host),
 				new ArrayList<ViaHeader>(), headerFactory.createMaxForwardsHeader(70));
 
 		SipURI contactURI = addressFactory.createSipURI(getUsername(), this.ip);
@@ -110,7 +121,7 @@ public class ARItySipLayer implements SipListener {
 
 		if (Objects.nonNull(token))
 			request.addHeader(headerFactory.createHeader("X-Cloudonix-Session", token));
-		request.addHeader(headerFactory.createHeader("X-Cloudonix-IP", address));
+		request.addHeader(headerFactory.createHeader("X-Cloudonix-IP", host));
 		request.addHeader(headerFactory.createHeader("X-Cloudonix-Port", String.valueOf(port)));
 
 		SdpFactory sdp = SdpFactory.getInstance();
@@ -130,6 +141,7 @@ public class ARItySipLayer implements SipListener {
 		inviteTid = sipProvider.getNewClientTransaction(request);
 		inviteTid.sendRequest();
 		dialog = inviteTid.getDialog();
+		return waitForBye;
 
 	}
 
@@ -300,8 +312,11 @@ public class ARItySipLayer implements SipListener {
 		logger.info("\n\nRequest " + request.getMethod() + " received at " + sipStack.getStackName()
 				+ " with server transaction id " + serverTransactionId);
 
-		if (request.getMethod().equals(Request.BYE))
+		if (request.getMethod().equals(Request.BYE)) {
 			processBye(request, serverTransactionId);
+			waitForBye.complete(null);
+		}
+	
 		else {
 			try {
 				serverTransactionId.sendResponse(messageFactory.createResponse(202, request));

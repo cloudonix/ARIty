@@ -1,12 +1,11 @@
 package io.cloudonix.arity;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.logging.Logger;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 class DialTest {
 	
@@ -29,7 +28,7 @@ class DialTest {
 
 	private final static Logger logger = Logger.getLogger(DialTest.class.getName());
 
-	@BeforeAll
+	@BeforeClass
 	static void beforeTesting() {
 		asterisk.start();
 	}
@@ -40,7 +39,7 @@ class DialTest {
 	}
 	
 	
-	@AfterAll
+	@AfterClass
 	static void afterTesting() {
 		asterisk.stop();
 	}

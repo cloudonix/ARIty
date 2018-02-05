@@ -8,16 +8,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
 import java.util.LinkedList;
-import java.util.TooManyListenersException;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import javax.sdp.SdpException;
-import javax.sip.InvalidArgumentException;
-import javax.sip.SipException;
 
 public class ARItySipInitiator {
 
@@ -70,12 +65,13 @@ public class ARItySipInitiator {
 		return ports;
 	}
 
-	public static void call( String ipTo,String ipFrom, String dnid) throws InvalidArgumentException, TooManyListenersException, ParseException, SipException, SdpException {
+	public static CompletableFuture<Void> call(String ipTo,String ipFrom, String dnid) throws Exception {
 		logger.setLevel(Level.FINER);
 		logger.info("Started SipInitiator");
 
 		ARItySipLayer newSipLayer = new ARItySipLayer("cloudonix", ipFrom, 5061);
-		newSipLayer.sendMessage(dnid, ipTo, "token1234");
+		return newSipLayer.sendInvite(dnid, ipTo, "token1234");
+		// to shutdown the stack- ask Tal!
 
 	}
 }
