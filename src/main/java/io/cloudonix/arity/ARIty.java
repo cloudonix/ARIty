@@ -19,7 +19,8 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.*;
+import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents the creation of ari and websocket service that handles
@@ -60,11 +61,11 @@ public class ARIty implements AriCallback<Message> {
 		appName = name;
 
 		try {
-			ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
+			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
+			//ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
 			logger.info("ari created");
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("websocket is open");
-
 		} catch (ARIException e) {
 			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
@@ -152,7 +153,7 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-
+		
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
 			// if the list contains the stasis start event with this channel id, remove it
@@ -247,6 +248,10 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("failed closing the web socket");
 		}
 
+	}
+	
+	public String getConnetion () {
+		return ari.getUrl();
 	}
 
 }
