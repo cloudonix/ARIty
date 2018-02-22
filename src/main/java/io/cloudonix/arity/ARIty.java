@@ -68,9 +68,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("ari created");
 			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
-			AsteriskInfo ai = ari.asterisk().getInfo("");
-		   logger.info(("Hey! We're connected! Asterisk info: " + ai.getSystem()));
-			//logger.info("websocket is open");
+			logger.info("websocket is open");
 		} catch (ARIException e) {
 			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
