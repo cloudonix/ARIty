@@ -61,7 +61,7 @@ public class ARIty implements AriCallback<Message> {
 		appName = name;
 
 		try {
-			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
+			ari = ARI.build(uri, appName, login, pass,  AriVersion.IM_FEELING_LUCKY);
 			//ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
 			logger.info("ari created");
 			ari.events().eventWebsocket(appName, true, this);
