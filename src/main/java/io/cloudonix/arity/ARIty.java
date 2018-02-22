@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.AsteriskInfo;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -66,7 +67,9 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("ari created");
 			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
-			logger.info("websocket is open");
+			AsteriskInfo ai = ari.asterisk().getInfo("");
+		     System.out.println("Hey! We're connected! Asterisk info: " + ai.getSystem().toString());
+			//logger.info("websocket is open");
 		} catch (ARIException e) {
 			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
