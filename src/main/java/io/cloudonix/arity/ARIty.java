@@ -64,11 +64,12 @@ public class ARIty implements AriCallback<Message> {
 		try {
 			ari = ARI.build(uri, appName, login, pass,  AriVersion.IM_FEELING_LUCKY);
 			//ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
+			//ari = ARI.build(uri, appName, login, pass,  AriVersion.ARI_2_0_0);
 			logger.info("ari created");
 			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
 			AsteriskInfo ai = ari.asterisk().getInfo("");
-		     System.out.println("Hey! We're connected! Asterisk info: " + ai.getSystem().toString());
+		   logger.info(("Hey! We're connected! Asterisk info: " + ai.getSystem()));
 			//logger.info("websocket is open");
 		} catch (ARIException e) {
 			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
