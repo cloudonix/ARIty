@@ -30,7 +30,6 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private long mediaLenStart = 0;
 	private boolean isCanceled = false;
-	private Map<String,String> sipHeadersVariables = null;
 	
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -44,7 +43,6 @@ public class Dial extends CancelableOperations {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-		sipHeadersVariables = new HashMap<String, String>();
 	}
 
 	/**
@@ -108,7 +106,7 @@ public class Dial extends CancelableOperations {
 			return true;
 		});
 		
-		logger.info("future event of Dial_impl_ari_2_0_0 was added");
+		logger.info("future event of Dial_impl_"+ getAri().getVersion()+ " was added");
 
 
 		// create the bridge in order to connect between the caller and end point
@@ -118,8 +116,10 @@ public class Dial extends CancelableOperations {
 					try {
 						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
 						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChanneLID());
-					
-						 getAri().channels().create(endPointNumber, getArity().getAppName(), null,
+						
+					//	getAri().channels().originateWithId(channelId, endpoint, extension, context, priority, app, appArgs, callerId, timeout, variables, otherChannelId)
+						// getAri().channels().create(endpoint, app, appArgs, channelId, otherChannelId, originator, formats)
+						getAri().channels().create(endPointNumber, getArity().getAppName(), null,
 								endPointChannelId, null, getChanneLID(), null);
 						logger.info("end point channel was created. Channel id: " + endPointChannelId);
 						

@@ -1,5 +1,7 @@
 package io.cloudonix.arity;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -17,6 +19,7 @@ public abstract class CallController implements Runnable {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
+	private Map<String,String> sipHeadersVariables = null;
 
 	/**
 	 * Initialize the callController with the needed fields 
@@ -30,6 +33,8 @@ public abstract class CallController implements Runnable {
 		channelID = ss.getChannel().getId();
 		ari = a;
 		this.arity = ARIty;
+		sipHeadersVariables = new HashMap<String, String>();
+
 	}
 	
 	/**
@@ -139,5 +144,16 @@ public abstract class CallController implements Runnable {
 						: CompletableFuture.completedFuture(value));
 	}
 	
-
+	/**
+	 * get sip headers of the call
+	 * @return
+	 */
+	public Map<String, String> getSipHeadersVariables() {
+		return sipHeadersVariables;
+	}
+	
+	
+	public void setSipHeadersVariables(Map<String, String> headers) {
+		this.sipHeadersVariables = headers;
+	}
 }
