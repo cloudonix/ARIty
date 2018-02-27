@@ -1,9 +1,7 @@
 package io.cloudonix.arity;
 
 import java.net.URISyntaxException;
-import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -14,9 +12,7 @@ import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
-import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.AsteriskInfo;
 import ch.loway.oss.ari4java.generated.CallerID;
 import ch.loway.oss.ari4java.generated.DialplanCEP;
 import ch.loway.oss.ari4java.generated.Message;
@@ -161,12 +157,12 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-		Variable header = null;
 		
 		if (event instanceof StasisStart) {
 			logger.info("asterisk id: "+ event.getAsterisk_id());
 			
 			StasisStart ss = (StasisStart) event;
+			
 			// information about the channel:
 			logger.info("accountcode: " + ss.getChannel().getAccountcode());
 			CallerID caller = ss.getChannel().getCaller();
@@ -187,13 +183,6 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("extension in dialplan is: "+ dialplanINfo.getExten());
 			logger.info("priority: "+ dialplanINfo.getPriority());
 			
-			try {
-				 header = ari.channels().getChannelVar(ss.getChannel().getId(),"SIP_HEADER(TO)");
-				logger.info("header info: "+ header.getValue());
-			} catch (RestException e) {
-				logger.warning("channel or header not found: "+ ErrorStream.fromThrowable(e));
-			}
-			
 			logger.info("----------------------------------------------------------------------------------------------------------");
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
@@ -204,8 +193,6 @@ public class ARIty implements AriCallback<Message> {
 
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
-			// add sip header to the call sip headers map (in CallController)- this is only one example!!
-			cc.addSipHeader("SIP_HEADER(TO)", header.getValue());
 			try {
 				cc.run();
 			} catch (Throwable t) {
@@ -291,6 +278,10 @@ public class ARIty implements AriCallback<Message> {
 
 	}
 	
+	/**
+	 * Get the url that we are connected to
+	 * @return
+	 */
 	public String getConnetion () {
 		return ari.getUrl();
 	}

@@ -1,12 +1,11 @@
 package io.cloudonix.arity;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.tools.RestException;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -21,7 +20,7 @@ public abstract class CallController implements Runnable {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-	private Map<String, String> sipHeadersVariables = null;
+	//private Map<String, String> sipHeadersVariables = null;
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -39,7 +38,7 @@ public abstract class CallController implements Runnable {
 		channelID = ss.getChannel().getId();
 		ari = a;
 		this.arity = ARIty;
-		sipHeadersVariables = new HashMap<String, String>();
+		//sipHeadersVariables = new HashMap<String, String>();
 
 	}
 
@@ -154,33 +153,13 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * get sip headers of the call
-	 * 
+	 * get the value of a specific sip header
+	 * @param haderName the name of the header, for examle: "SIP_HEADER(TO)"
 	 * @return
+	 * @throws RestException
 	 */
-	public Map<String, String> getSipHeadersVariables() {
-		return sipHeadersVariables;
+	public String getSipHeader(String haderName) throws RestException {
+		return ari.channels().getChannelVar(channelID,haderName).getValue();
 	}
 	
-	/**
-	 * set sip parameters
-	 * @param headers
-	 */
-	/*public void setSipHeadersVariables(Map<String, String> headers) {
-		if (Objects.isNull(sipHeadersVariables))
-			sipHeadersVariables = new HashMap<String, String>();
-
-		for (Map.Entry<String, String> currHeader : headers.entrySet()) {
-			sipHeadersVariables.put(currHeader.getKey(), currHeader.getValue());
-		}
-	}*/
-	
-	/**
-	 * add a sip header
-	 * @param headerName
-	 * @param headerValue
-	 */
-	public void addSipHeader(String headerName, String headerValue) {
-		sipHeadersVariables.put(headerName, headerValue);
-	}
 }
