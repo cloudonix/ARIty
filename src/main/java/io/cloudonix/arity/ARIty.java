@@ -188,7 +188,8 @@ public class ARIty implements AriCallback<Message> {
 			
 			try {
 				Variable header = ari.channels().getChannelVar(ss.getChannel().getId(),"SIP_HEADER(TO)");
-				logger.info("header info: "+ header);
+				
+				logger.info("header info: "+ header.getValue());
 			} catch (RestException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
