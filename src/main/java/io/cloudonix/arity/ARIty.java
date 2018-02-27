@@ -161,6 +161,7 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
+		Variable header = null;
 		
 		if (event instanceof StasisStart) {
 			logger.info("asterisk id: "+ event.getAsterisk_id());
@@ -187,12 +188,10 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("priority: "+ dialplanINfo.getPriority());
 			
 			try {
-				Variable header = ari.channels().getChannelVar(ss.getChannel().getId(),"SIP_HEADER(TO)");
-				
+				 header = ari.channels().getChannelVar(ss.getChannel().getId(),"SIP_HEADER(TO)");
 				logger.info("header info: "+ header.getValue());
 			} catch (RestException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.warning("channel or header not found: "+ ErrorStream.fromThrowable(e));
 			}
 			
 			logger.info("----------------------------------------------------------------------------------------------------------");
@@ -205,6 +204,8 @@ public class ARIty implements AriCallback<Message> {
 
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
+			// add sip header to the call sip headers map (in CallController)- this is only one example!!
+			cc.addSipHeader("SIP_HEADER(TO)", header.getValue());
 			try {
 				cc.run();
 			} catch (Throwable t) {

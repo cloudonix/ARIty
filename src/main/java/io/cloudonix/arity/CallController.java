@@ -166,12 +166,21 @@ public abstract class CallController implements Runnable {
 	 * set sip parameters
 	 * @param headers
 	 */
-	public void setSipHeadersVariables(Map<String, String> headers) {
+	/*public void setSipHeadersVariables(Map<String, String> headers) {
 		if (Objects.isNull(sipHeadersVariables))
 			sipHeadersVariables = new HashMap<String, String>();
 
 		for (Map.Entry<String, String> currHeader : headers.entrySet()) {
 			sipHeadersVariables.put(currHeader.getKey(), currHeader.getValue());
 		}
+	}*/
+	
+	/**
+	 * add a sip header
+	 * @param headerName
+	 * @param headerValue
+	 */
+	public void addSipHeader(String headerName, String headerValue) {
+		sipHeadersVariables.put(headerName, headerValue);
 	}
 }
