@@ -21,6 +21,7 @@ import ch.loway.oss.ari4java.generated.CallerID;
 import ch.loway.oss.ari4java.generated.DialplanCEP;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -162,6 +163,8 @@ public class ARIty implements AriCallback<Message> {
 	public void onSuccess(Message event) {
 		
 		if (event instanceof StasisStart) {
+			logger.info("asterisk id: "+ event.getAsterisk_id());
+			
 			StasisStart ss = (StasisStart) event;
 			// information about the channel:
 			logger.info("accountcode: " + ss.getChannel().getAccountcode());
@@ -182,6 +185,14 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("context in dialplan: "+ dialplanINfo.getContext());
 			logger.info("extension in dialplan is: "+ dialplanINfo.getExten());
 			logger.info("priority: "+ dialplanINfo.getPriority());
+			
+			try {
+				Variable header = ari.channels().getChannelVar(ss.getChannel().getId(),"to");
+				logger.info("header info: "+ header);
+			} catch (RestException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			logger.info("----------------------------------------------------------------------------------------------------------");
 			// if the list contains the stasis start event with this channel id, remove it
