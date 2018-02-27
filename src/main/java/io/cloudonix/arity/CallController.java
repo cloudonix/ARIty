@@ -9,23 +9,29 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
 
 /**
- * The class represents a call controller, including all the call operation and needed information for a call
+ * The class represents a call controller, including all the call operation and
+ * needed information for a call
+ * 
  * @author naamag
  *
  */
 public abstract class CallController implements Runnable {
-	
+
 	private StasisStart callStasisStart;
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-	private Map<String,String> sipHeadersVariables = null;
+	private Map<String, String> sipHeadersVariables = null;
 
 	/**
-	 * Initialize the callController with the needed fields 
-	 * @param ss StasisStart
-	 * @param a ARI 
-	 * @param ARIty ARITY
+	 * Initialize the callController with the needed fields
+	 * 
+	 * @param ss
+	 *            StasisStart
+	 * @param a
+	 *            ARI
+	 * @param ARIty
+	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
 
@@ -36,7 +42,7 @@ public abstract class CallController implements Runnable {
 		sipHeadersVariables = new HashMap<String, String>();
 
 	}
-	
+
 	/**
 	 * get the StasisStart from the call
 	 * 
@@ -76,7 +82,8 @@ public abstract class CallController implements Runnable {
 	/**
 	 * The method creates a new Play operation with the file to be played
 	 * 
-	 * @param file file to be played
+	 * @param file
+	 *            file to be played
 	 * @return Play
 	 */
 	public Play play(String file) {
@@ -122,7 +129,8 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method created new Dial operation
 	 * 
-	 * @param number the number of the endpoint (who are we calling to)
+	 * @param number
+	 *            the number of the endpoint (who are we calling to)
 	 * @return
 	 */
 	public Dial dial(String number) {
@@ -130,30 +138,40 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * the method verifies that the call is always hangs up, even if an error occurred
-	 * during any operation
+	 * the method verifies that the call is always hangs up, even if an error
+	 * occurred during any operation
 	 * 
-	 * @param value if no error occurred
-	 * @param th if an error occurred it will contain the error
+	 * @param value
+	 *            if no error occurred
+	 * @param th
+	 *            if an error occurred it will contain the error
 	 * @return
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
-		return hangup().run()
-				.handle((hangup, th2) -> null)
+		return hangup().run().handle((hangup, th2) -> null)
 				.thenCompose(v -> Objects.nonNull(th) ? Operation.completedExceptionally(th)
 						: CompletableFuture.completedFuture(value));
 	}
-	
+
 	/**
 	 * get sip headers of the call
+	 * 
 	 * @return
 	 */
 	public Map<String, String> getSipHeadersVariables() {
 		return sipHeadersVariables;
 	}
 	
-	
+	/**
+	 * set sip parameters
+	 * @param headers
+	 */
 	public void setSipHeadersVariables(Map<String, String> headers) {
-		this.sipHeadersVariables = headers;
+		if (Objects.isNull(sipHeadersVariables))
+			sipHeadersVariables = new HashMap<String, String>();
+
+		for (Map.Entry<String, String> currHeader : headers.entrySet()) {
+			sipHeadersVariables.put(currHeader.getKey(), currHeader.getValue());
+		}
 	}
 }

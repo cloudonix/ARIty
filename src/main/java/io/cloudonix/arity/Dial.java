@@ -159,32 +159,4 @@ public class Dial extends CancelableOperations {
 		}
 	}
 	
-	/**
-	 * set sip headers
-	 * @param headers
-	 */
-	public void setSipHeaders(Map<String,String> headers) {
-		
-		if(Objects.isNull(sipHeadersVariables))
-			sipHeadersVariables = new HashMap<String, String>();
-		
-		for (Map.Entry<String, String> currHeader : sipHeadersVariables.entrySet()) {
-			sipHeadersVariables.put(currHeader.getKey(), currHeader.getValue());
-		}
-		
-	}
-	
-	/**
-	 * Add one sip header
-	 * @param header
-	 */
-	public void addHeader(Map.Entry<String, String> header) {
-		
-		if(Objects.isNull(sipHeadersVariables))
-			sipHeadersVariables = new HashMap<String, String>();
-
-		sipHeadersVariables.put(header.getKey(), header.getValue());
-		
-	}
-
 }
