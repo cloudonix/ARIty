@@ -1,5 +1,7 @@
 package io.cloudonix.arity;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,7 +22,8 @@ public abstract class CallController implements Runnable {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
-	//private Map<String, String> sipHeadersVariables = null;
+	// sip headers that were added by request, not part of the existing headers
+	private Map<String, String> addedSipHeaders = null;
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -38,7 +41,7 @@ public abstract class CallController implements Runnable {
 		channelID = ss.getChannel().getId();
 		ari = a;
 		this.arity = ARIty;
-		//sipHeadersVariables = new HashMap<String, String>();
+		addedSipHeaders = new HashMap<String, String>();
 
 	}
 
@@ -154,12 +157,26 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * get the value of a specific sip header
-	 * @param haderName the name of the header, for examle: "SIP_HEADER(TO)"
+	 * 
+	 * @param haderName
+	 *            the name of the header, for examle: "SIP_HEADER(TO)"
 	 * @return
 	 * @throws RestException
 	 */
 	public String getSipHeader(String haderName) throws RestException {
-		return ari.channels().getChannelVar(channelID,haderName).getValue();
+		return ari.channels().getChannelVar(channelID, haderName).getValue();
 	}
-	
+
+	/**
+	 * add a sip header
+	 * 
+	 * @param headerName
+	 * @param headerValue
+	 * @throws RestException 
+	 */
+	public void addSipHeader(String headerName, String headerValue) throws RestException {
+		//ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
+		addedSipHeaders.put(headerName, headerValue);
+	}
+
 }
