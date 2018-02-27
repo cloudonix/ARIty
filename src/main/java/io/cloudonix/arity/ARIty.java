@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.net.URISyntaxException;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -16,6 +17,7 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.AsteriskInfo;
+import ch.loway.oss.ari4java.generated.CallerID;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -160,7 +162,23 @@ public class ARIty implements AriCallback<Message> {
 		
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
-			logger.info("channel vars: " + ss.getChannel().getChannelvars());
+			
+			// information about the channel:
+			logger.info("accountcode: " + ss.getChannel().getAccountcode());
+			CallerID caller = ss.getChannel().getCaller();
+			String callerIdName = caller.getName();
+			String callerIdNumber = caller.getNumber();
+			logger.info("caller name is: "+ callerIdName+ " and caller number is: "+ callerIdNumber);
+			logger.info("channel vars are: "+ ss.getChannel().getChannelvars());
+			CallerID callerConnected = ss.getChannel().getConnected();
+			String callerConnectedName = callerConnected.getName();
+			String callerConnectedNumber = caller.getNumber();
+			logger.info("caller connected name is: "+ callerConnectedName+ " and caller connected number is: "+ callerConnectedNumber);
+			logger.info("channel name is: "+ ss.getChannel().getName());
+			logger.info("state is: "+ ss.getChannel().getState());
+			logger.info("channel was created at: "+ss.getChannel().getCreationtime());
+			logger.info("channel id: "+ ss.getChannel().getId());
+			logger.info("----------------------------------------------------------------------------------------------------------");
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
