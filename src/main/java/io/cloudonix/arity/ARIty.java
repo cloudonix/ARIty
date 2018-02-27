@@ -187,7 +187,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("priority: "+ dialplanINfo.getPriority());
 			
 			try {
-				Variable header = ari.channels().getChannelVar(ss.getChannel().getId(),"${SIP_HEADER(TO)");
+				Variable header = ari.channels().getChannelVar(ss.getChannel().getId(),"SIP_HEADER(TO)");
 				logger.info("header info: "+ header);
 			} catch (RestException e) {
 				// TODO Auto-generated catch block
