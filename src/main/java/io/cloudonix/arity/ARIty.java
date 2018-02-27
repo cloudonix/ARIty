@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.net.URISyntaxException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -159,6 +160,10 @@ public class ARIty implements AriCallback<Message> {
 		
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
+			
+			List<String> args = ss.getArgs();
+			logger.info("stasis args: "+ args);
+			
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
