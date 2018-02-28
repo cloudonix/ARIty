@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.CallerID;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.DialplanCEP;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -42,6 +43,7 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
+	private Channel callChannel = null;
 
 	/**
 	 * Constructor
@@ -162,9 +164,8 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("asterisk id: "+ event.getAsterisk_id());
 			
 			StasisStart ss = (StasisStart) event;
-			
+			callChannel = ss.getChannel();
 			// information about the channel:
-			logger.info("accountcode: " + ss.getChannel().getAccountcode());
 			CallerID caller = ss.getChannel().getCaller();
 			String callerIdName = caller.getName();
 			String callerIdNumber = caller.getNumber();
@@ -172,7 +173,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("channel vars are: "+ ss.getChannel().getChannelvars());
 			CallerID callerConnected = ss.getChannel().getConnected();
 			String callerConnectedName = callerConnected.getName();
-			String callerConnectedNumber = caller.getNumber();
+			String callerConnectedNumber = callerConnected.getNumber();
 			logger.info("caller connected name is: "+ callerConnectedName+ " and caller connected number is: "+ callerConnectedNumber);
 			logger.info("channel name is: "+ ss.getChannel().getName());
 			logger.info("state is: "+ ss.getChannel().getState());
@@ -290,5 +291,25 @@ public class ARIty implements AriCallback<Message> {
 	public String getConnetion () {
 		return ari.getUrl();
 	}
+	
+	/**
+	 * return account code of the channel (information about the channel)
+	 * @return
+	 */
+	public String getAccountCode () {
+		return callChannel.getAccountcode();
+	}
+	
+	
+	/**
+	 * get the caller (whom is calling)
+	 * @return
+	 */
+	public String getCallerIdNumber () {
+		
+		CallerID caller = callChannel.getCaller();
+		return caller.getNumber();
+	}
+	
 
 }
