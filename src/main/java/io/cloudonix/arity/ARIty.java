@@ -161,16 +161,7 @@ public class ARIty implements AriCallback<Message> {
 			StasisStart ss = (StasisStart) event;
 			callChannel = ss.getChannel();
 
-			try {
-				logger.info("header from: "
-						+ ari.channels().getChannelVar(ss.getChannel().getId(), "SIP_HEADER(FROM)").getValue());
-			} catch (RestException e) {
-				logger.severe("unable to find the header");
-			}
-			logger.info(
-					"----------------------------------------------------------------------------------------------------------");
-			// if the list contains the stasis start event with this channel id, remove it
-			// and continue
+			// if the list contains the stasis start event with this channel id, remove it and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
