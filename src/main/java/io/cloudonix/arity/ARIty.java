@@ -13,12 +13,9 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.CallerID;
 import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.DialplanCEP;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -65,9 +62,7 @@ public class ARIty implements AriCallback<Message> {
 		appName = name;
 
 		try {
-			ari = ARI.build(uri, appName, login, pass,  AriVersion.IM_FEELING_LUCKY);
-			//ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
-			//ari = ARI.build(uri, appName, login, pass,  AriVersion.ARI_2_0_0);
+			ari = ARI.build(uri, appName, login, pass, AriVersion.IM_FEELING_LUCKY);
 			logger.info("ari created");
 			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
@@ -112,9 +107,9 @@ public class ARIty implements AriCallback<Message> {
 	 *            the supplier that has the CallController (the voice application)
 	 */
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
-		if(Objects.isNull(controllorSupplier))
-		return;
-		
+		if (Objects.isNull(controllorSupplier))
+			return;
+
 		callSupplier = controllorSupplier;
 	}
 
@@ -149,7 +144,7 @@ public class ARIty implements AriCallback<Message> {
 			public void run() {
 				hangup().run();
 
-				if(Objects.isNull(lastException))
+				if (Objects.isNull(lastException))
 					logger.severe("Your Application is not registered!");
 
 				logger.severe("Invalid application!");
@@ -159,37 +154,21 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-		
+
 		if (event instanceof StasisStart) {
-			logger.info("asterisk id: "+ event.getAsterisk_id());
-			
+			logger.info("asterisk id: " + event.getAsterisk_id());
+
 			StasisStart ss = (StasisStart) event;
 			callChannel = ss.getChannel();
-			// information about the channel:
-			CallerID caller = ss.getChannel().getCaller();
-			String callerIdName = caller.getName();
-			String callerIdNumber = caller.getNumber();
-			logger.info("caller name is: "+ callerIdName+ " and caller number is: "+ callerIdNumber);
-			logger.info("channel vars are: "+ ss.getChannel().getChannelvars());
-			CallerID callerConnected = ss.getChannel().getConnected();
-			String callerConnectedName = callerConnected.getName();
-			String callerConnectedNumber = callerConnected.getNumber();
-			logger.info("caller connected name is: "+ callerConnectedName+ " and caller connected number is: "+ callerConnectedNumber);
-			logger.info("channel name is: "+ ss.getChannel().getName());
-			logger.info("state is: "+ ss.getChannel().getState());
-			logger.info("channel was created at: "+ss.getChannel().getCreationtime());
-			logger.info("channel id: "+ ss.getChannel().getId());
-			DialplanCEP dialplanINfo = ss.getChannel().getDialplan();
-			logger.info("context in dialplan: "+ dialplanINfo.getContext());
-			logger.info("extension in dialplan is: "+ dialplanINfo.getExten());
-			logger.info("priority: "+ dialplanINfo.getPriority());
-			
+
 			try {
-				logger.info("header from: "+ ari.channels().getChannelVar(ss.getChannel().getId(), "SIP_HEADER(FROM)").getValue());
+				logger.info("header from: "
+						+ ari.channels().getChannelVar(ss.getChannel().getId(), "SIP_HEADER(FROM)").getValue());
 			} catch (RestException e) {
 				logger.severe("unable to find the header");
 			}
-			logger.info("----------------------------------------------------------------------------------------------------------");
+			logger.info(
+					"----------------------------------------------------------------------------------------------------------");
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
@@ -250,12 +229,13 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * get the name of the application
+	 * 
 	 * @return
 	 */
 	public String getAppName() {
 		return appName;
 	}
-	
+
 	public Exception getLastException() {
 		return lastException;
 	}
@@ -283,33 +263,117 @@ public class ARIty implements AriCallback<Message> {
 		}
 
 	}
-	
+
 	/**
 	 * Get the url that we are connected to
+	 * 
 	 * @return
 	 */
-	public String getConnetion () {
+	public String getConnetion() {
 		return ari.getUrl();
 	}
-	
+
 	/**
 	 * return account code of the channel (information about the channel)
+	 * 
 	 * @return
 	 */
-	public String getAccountCode () {
-		return callChannel.getAccountcode();
+	public String getAccountCode() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getAccountcode();
+
+		return null;
 	}
-	
-	
+
 	/**
 	 * get the caller (whom is calling)
+	 * 
 	 * @return
 	 */
-	public String getCallerIdNumber () {
-		
-		CallerID caller = callChannel.getCaller();
-		return caller.getNumber();
-	}
-	
+	public String getCallerIdNumber() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getCaller().getNumber();
 
+		return null;
+	}
+
+	/**
+	 * get the name of the channel (for example: SIP/myapp-000001)
+	 * 
+	 * @return
+	 */
+	public String getChannelName() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getName();
+
+		return null;
+	}
+
+	/**
+	 * return channel state
+	 * 
+	 * @return
+	 */
+	public String getChannelState() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getState();
+
+		return null;
+	}
+
+	/**
+	 * get channel creation date and time
+	 * 
+	 * @return
+	 */
+	public String getChannelCreationTime() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getCreationtime().toString();
+
+		return null;
+	}
+
+	/**
+	 * get channel id
+	 * 
+	 * @return
+	 */
+	public String getChannelID() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getId();
+
+		return null;
+	}
+
+	/**
+	 * return dialplan context (for example: ari-context)
+	 * 
+	 * @return
+	 */
+	public String getDialplanContext() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getContext();
+		return null;
+	}
+
+	/**
+	 * get the dialplan extention (the dialed number)
+	 * 
+	 * @return
+	 */
+	public String getDialplanExten() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getExten();
+		return null;
+	}
+
+	/**
+	 * get the dialplan priority
+	 * @return
+	 */
+	public long getPriority() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getPriority();
+		return -1;
+	}
 }
