@@ -173,7 +173,7 @@ public class ARIty implements AriCallback<Message> {
 				cc.run();
 			} catch (Throwable t) {
 				logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
-				cc.hangup();
+				cc.hangup().run();
 			}
 		}
 		// look for a future event in the event list
