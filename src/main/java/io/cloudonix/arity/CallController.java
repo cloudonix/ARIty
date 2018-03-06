@@ -4,10 +4,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.Variable;
+import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -24,6 +29,7 @@ public abstract class CallController implements Runnable {
 	private ARIty arity;
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
+	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -163,8 +169,37 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 * @throws RestException
 	 */
-	public String getSipHeader(String haderName) throws RestException {
-		return ari.channels().getChannelVar(channelID, haderName).getValue();
+	public CompletableFuture<String> getSipHeader(String haderName) {
+
+		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, haderName, cb))
+				.thenApply(v -> {
+					return v.getValue();
+				});
+
+	}
+
+	/**
+	 * helper method for getSipHeader in order to have AriCallback
+	 * @param consumer
+	 * @return
+	 */
+	private <V> CompletableFuture<V> futureFromAriCallBack(Consumer<AriCallback<V>> consumer) {
+		CompletableFuture<V> compFuture = new CompletableFuture<V>();
+
+		consumer.accept(new AriCallback<V>() {
+
+			@Override
+			public void onSuccess(V result) {
+				compFuture.complete(result);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				compFuture.completeExceptionally(e);
+
+			}
+		});
+		return compFuture;
 	}
 
 	/**
@@ -172,10 +207,10 @@ public abstract class CallController implements Runnable {
 	 * 
 	 * @param headerName
 	 * @param headerValue
-	 * @throws RestException 
+	 * @throws RestException
 	 */
 	public void addSipHeader(String headerName, String headerValue) throws RestException {
-		//ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
+		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
 		addedSipHeaders.put(headerName, headerValue);
 	}
 
