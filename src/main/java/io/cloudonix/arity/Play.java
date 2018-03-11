@@ -19,7 +19,7 @@ import io.cloudonix.arity.errors.PlaybackException;
 public class Play extends CancelableOperations {
 
 	private StasisStart callStasisStart;
-	private String fileLocation;
+	private String playFileName;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
@@ -28,9 +28,9 @@ public class Play extends CancelableOperations {
 	private CompletableFuture<Play> compFuturePlayback;
 
 	/**
-	 * constructor
+	 * constructor- will we used when we want set the file to play after creation
 	 * 
-	 * @param call
+	 * @param callController call main logic object
 	 */
 	public Play(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
@@ -39,19 +39,16 @@ public class Play extends CancelableOperations {
 	}
 
 	/**
-	 * second constructor- will be used when we cancel the use of runSound and
-	 * runRecording to general "run" and use enums to differ between the types of
-	 * uri scheme
+	 * constructor
 	 * 
-	 * @param callController
-	 * @param fileLocation
-	 * @param times
+	 * @param callController call main logic object
+	 * @param fileName name of the file to be played
 	 */
-	public Play(CallController callController, String fileLocation) {
+	public Play(CallController callController, String fileName) {
 
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
-		this.fileLocation = fileLocation;
+		this.playFileName = fileName;
 		compFuturePlayback = new CompletableFuture<>();
 	}
 
@@ -79,7 +76,7 @@ public class Play extends CancelableOperations {
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
-			String fullPath = uriScheme + fileLocation;
+			String fullPath = uriScheme + playFileName;
 
 			getAri().channels().play(getChanneLID(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
 					playbackId, new AriCallback<Playback>() {
@@ -98,7 +95,7 @@ public class Play extends CancelableOperations {
 
 							// save the playback
 							playback = resultM;
-							logger.info("playback started! Playing: " + fileLocation + " and playback id is: " + playback.getId());
+							logger.info("playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 
 							// add a playback finished future event to the futureEvent list
 							getArity().addFutureEvent(PlaybackFinished.class, (playb) -> {
@@ -157,6 +154,22 @@ public class Play extends CancelableOperations {
 		} catch (RestException e) {
 			logger.info("playback is not playing at the moment : " + e);
 		}
+	}
+	
+	/**
+	 * get the name of the file to play
+	 * @return
+	 */
+	public String getPlayFileName() {
+		return playFileName;
+	}
+
+	/**
+	 * set the file to be played
+	 * @param playFileName
+	 */
+	public void setPlayFileName(String playFileName) {
+		this.playFileName = playFileName;
 	}
 
 }
