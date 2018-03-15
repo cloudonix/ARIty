@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
+import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
@@ -62,7 +63,8 @@ public class ARIty implements AriCallback<Message> {
 		appName = name;
 
 		try {
-			ari = ARI.build(uri, appName, login, pass, AriVersion.IM_FEELING_LUCKY);
+			//ari = ARI.build(uri, appName, login, pass, AriVersion.IM_FEELING_LUCKY);
+			ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.IM_FEELING_LUCKY);
 			logger.info("ari created");
 			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
