@@ -10,7 +10,7 @@ stages:
 package: 
   stage: package
   script:
-     - 'mvn package' 
+     - mvn -B package -DskipTests 
   artifacts: 
     paths: 
       - target
