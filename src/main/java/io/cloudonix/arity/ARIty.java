@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.net.URISyntaxException;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -11,14 +12,15 @@ import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
-import ch.loway.oss.ari4java.AriFactory;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.*;
+import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents the creation of ari and websocket service that handles
@@ -33,18 +35,24 @@ public class ARIty implements AriCallback<Message> {
 	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
 	private ARI ari;
 	private String appName;
-	private Supplier<CallController> callSupplier = null;
+	private Supplier<CallController> callSupplier = this::hangupDefault;
 	// save the channel id of new calls (for ignoring another stasis start event, if
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
+	private Exception lastException = null;
+	private Channel callChannel = null;
 
 	/**
 	 * Constructor
 	 * 
-	 * @param uri URI
-	 * @param name name of the stasis application
-	 * @param login user name
-	 * @param pass password
+	 * @param uri
+	 *            URI
+	 * @param name
+	 *            name of the stasis application
+	 * @param login
+	 *            user name
+	 * @param pass
+	 *            password
 	 * 
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
@@ -54,21 +62,26 @@ public class ARIty implements AriCallback<Message> {
 		appName = name;
 
 		try {
-			ari = AriFactory.nettyHttp(uri, login, pass, AriVersion.ARI_2_0_0);
+			ari = ARI.build(uri, appName, login, pass, AriVersion.IM_FEELING_LUCKY);
 			logger.info("ari created");
+			logger.info("ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("websocket is open");
-
 		} catch (ARIException e) {
-			logger.severe("connection failed: " + e.getMessage());
+			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
 		}
 	}
 
 	/**
-	 * The method register a new application to be executed according to the class of the voice application
+	 * The method register a new application to be executed according to the class
+	 * of the voice application
 	 * 
-	 * @param class instance of the class that contains the voice application (extends from callController) 
+	 * @param class
+	 *            instance of the class that contains the voice application (extends
+	 *            from callController)
+	 * @throws IllegalAccessException
+	 * @throws InstantiationException
 	 */
 	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
 		callSupplier = new Supplier<CallController>() {
@@ -79,25 +92,30 @@ public class ARIty implements AriCallback<Message> {
 					return controllerClass.newInstance();
 
 				} catch (InstantiationException | IllegalAccessException e) {
-					logger.warning("Unexpected error during creating a new controller " + ErrorStream.fromThrowable(e));
-					hangupErr();
-					return null;
+					lastException = e;
+					return hangupDefault();
 				}
 			}
 		};
 	}
 
-
 	/**
-	 * The method register the voice application (the supplier that has a CallController, meaning the application)
-	 * @param controllorSupplier the supplier that has the CallController (the voice application)
+	 * The method register the voice application (the supplier that has a
+	 * CallController, meaning the application)
+	 * 
+	 * @param controllorSupplier
+	 *            the supplier that has the CallController (the voice application)
 	 */
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
+		if (Objects.isNull(controllorSupplier))
+			return;
+
 		callSupplier = controllorSupplier;
 	}
 
 	/**
 	 * The method register the voice application and execute it
+	 * 
 	 * @param cc
 	 */
 	public void registerVoiceApp(Consumer<CallController> cc) {
@@ -107,33 +125,43 @@ public class ARIty implements AriCallback<Message> {
 				@Override
 				public void run() {
 					cc.accept(this);
-
 				}
 			};
 		};
 	}
 
 	/**
-	 * The method hangs up the call if we can't create an instance of the class that contains the voice application 
+	 * The method hangs up the call if we can't create an instance of the class that
+	 * contains the voice application
+	 * 
+	 * @param e
+	 * @return
 	 */
-	protected void hangupErr() {
-		new CallController() {
-			
-			@Override
+
+	protected CallController hangupDefault() {
+		return new CallController() {
+
 			public void run() {
-				this.hangup().run();
+				hangup().run();
+
+				if (Objects.isNull(lastException))
+					logger.severe("Your Application is not registered!");
+
+				logger.severe("Invalid application!");
 			}
 		};
 	}
 
-	
 	@Override
 	public void onSuccess(Message event) {
 
 		if (event instanceof StasisStart) {
+			logger.info("asterisk id: " + event.getAsterisk_id());
+
 			StasisStart ss = (StasisStart) event;
-			// if the list contains the stasis start event with this channel id, remove it
-			// and continue
+			callChannel = ss.getChannel();
+			
+			// if the list contains the stasis start event with this channel id, remove it and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
@@ -141,13 +169,13 @@ public class ARIty implements AriCallback<Message> {
 
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
-			cc.run();
-
-			// Call call = new Call((StasisStart) event, ari, this);
-			// logger.info("New call created! " + call);
-			// voiceApp.accept(call);
+			try {
+				cc.run();
+			} catch (Throwable t) {
+				logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
+				cc.hangup().run();
+			}
 		}
-
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
 
@@ -165,7 +193,6 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onFailure(RestException e) {
-		// e.printStackTrace();
 		logger.warning(e.getMessage());
 	}
 
@@ -191,8 +218,17 @@ public class ARIty implements AriCallback<Message> {
 		futureEvents.add(futureEvent);
 	}
 
+	/**
+	 * get the name of the application
+	 * 
+	 * @return
+	 */
 	public String getAppName() {
 		return appName;
+	}
+
+	public Exception getLastException() {
+		return lastException;
 	}
 
 	/**
@@ -215,9 +251,120 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("closing the web socket");
 		} catch (ARIException e) {
 			logger.info("failed closing the web socket");
-			e.printStackTrace();
 		}
 
 	}
 
+	/**
+	 * Get the url that we are connected to
+	 * 
+	 * @return
+	 */
+	public String getConnetion() {
+		return ari.getUrl();
+	}
+
+	/**
+	 * return account code of the channel (information about the channel)
+	 * 
+	 * @return
+	 */
+	public String getAccountCode() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getAccountcode();
+
+		return null;
+	}
+
+	/**
+	 * get the caller (whom is calling)
+	 * 
+	 * @return
+	 */
+	public String getCallerIdNumber() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getCaller().getNumber();
+
+		return null;
+	}
+
+	/**
+	 * get the name of the channel (for example: SIP/myapp-000001)
+	 * 
+	 * @return
+	 */
+	public String getChannelName() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getName();
+
+		return null;
+	}
+
+	/**
+	 * return channel state
+	 * 
+	 * @return
+	 */
+	public String getChannelState() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getState();
+
+		return null;
+	}
+
+	/**
+	 * get channel creation date and time
+	 * 
+	 * @return
+	 */
+	public String getChannelCreationTime() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getCreationtime().toString();
+
+		return null;
+	}
+
+	/**
+	 * get channel id
+	 * 
+	 * @return
+	 */
+	public String getChannelID() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getId();
+
+		return null;
+	}
+
+	/**
+	 * return dialplan context (for example: ari-context)
+	 * 
+	 * @return
+	 */
+	public String getDialplanContext() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getContext();
+		return null;
+	}
+
+	/**
+	 * get the dialplan extention (the dialed number)
+	 * 
+	 * @return
+	 */
+	public String getDialplanExten() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getExten();
+		return null;
+	}
+
+	/**
+	 * get the dialplan priority
+	 * @return
+	 */
+	public long getPriority() {
+		if (Objects.nonNull(callChannel))
+			return callChannel.getDialplan().getPriority();
+		return -1;
+	}
 }

@@ -1,0 +1,6 @@
+org.jitsi.impl.neomedia.device.PulseAudioSystem.disabled=true
+org.jitsi.impl.neomedia.device.PortAudioSystem.disabled=true
+org.jitsi.impl.neomedia.device.Video4Linux2System.disabled=true
+org.jitsi.impl.neomedia.device.ImgStreamingSystem.disabled=true
+net.java.sip.communicator.service.media.DISABLE_AUDIO_SUPPORT=true
+net.java.sip.communicator.service.media.DISABLE_VIDEO_SUPPORT=true

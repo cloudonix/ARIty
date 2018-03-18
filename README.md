@@ -73,7 +73,7 @@ Then add ARIty as a dependency:
 
 ```
 <dependency>
-	<groupId>tech.greenfield</groupId>
+	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
 	<version>[0,)</version>
 </dependency>

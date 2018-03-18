@@ -3,20 +3,40 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.1.2</version>
+	<version>0.1.3-SNAPSHOT</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
 			<url>https://jcenter.bintray.com/</url>
 		</repository>
+
+		<repository>
+			<id>jitsi-maven-repository-releases</id>
+			<layout>default</layout>
+			<name>Jitsi Maven Repository (Releases)</name>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<url>https://github.com/jitsi/jitsi-maven-repository/raw/master/releases/</url>
+		</repository>
+		<repository>
+			<id>jitsi-maven-repository-snapshots</id>
+			<layout>default</layout>
+			<name>Jitsi Maven Repository (Snapshots)</name>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<url>https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/</url>
+		</repository>
+
 	</repositories>
 	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>[4,)</version>
-			<scope>test</scope>
-		</dependency>
 
 		<dependency>
 			<groupId>ch.loway.oss.ari4java</groupId>
@@ -24,6 +44,58 @@
 			<version>0.4.5</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
+			<version>[1.7.0,)</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<version>[1.5,)</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.sip</groupId>
+			<artifactId>jain-sip-ri</artifactId>
+			<version>1.2.1.3</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.sip</groupId>
+			<artifactId>jain-sip-api</artifactId>
+			<version>1.2.1.3</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-json-org</artifactId>
+			<version>2.9.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jitsi</groupId>
+			<artifactId>libjitsi</artifactId>
+			<version>1.0-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>[4,)</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -48,6 +120,22 @@
 						</goals>
 						<configuration>
 							<createDependencyReducedPom>true</createDependencyReducedPom>
+							<artifactSet>
+								<excludes>
+									<exclude>junit:junit</exclude>
+									<exclude>org.junit:*</exclude>
+								</excludes>
+							</artifactSet>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes> <!-- remove bouncy castle signatures so my jar wont be rejected -->
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
 							<transformers>
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">

@@ -1,28 +1,45 @@
 package io.cloudonix.arity;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.Variable;
+import ch.loway.oss.ari4java.tools.AriCallback;
+import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
- * The class represents a call controller, including all the call operation and needed information for a call
+ * The class represents a call controller, including all the call operation and
+ * needed information for a call
+ * 
  * @author naamag
  *
  */
-public abstract class CallController {
-	
+public abstract class CallController implements Runnable {
+
 	private StasisStart callStasisStart;
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
+	// sip headers that were added by request, not part of the existing headers
+	private Map<String, String> addedSipHeaders = null;
+	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 
 	/**
-	 * Initialize the callController with the needed fields 
-	 * @param ss StasisStart
-	 * @param a ARI 
-	 * @param ARIty ARITY
+	 * Initialize the callController with the needed fields
+	 * 
+	 * @param ss
+	 *            StasisStart
+	 * @param a
+	 *            ARI
+	 * @param ARIty
+	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
 
@@ -30,8 +47,10 @@ public abstract class CallController {
 		channelID = ss.getChannel().getId();
 		ari = a;
 		this.arity = ARIty;
+		addedSipHeaders = new HashMap<String, String>();
+
 	}
-	
+
 	/**
 	 * get the StasisStart from the call
 	 * 
@@ -55,7 +74,7 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public ARIty getARItyServirce() {
+	public ARIty getARItyService() {
 		return arity;
 	}
 
@@ -71,7 +90,8 @@ public abstract class CallController {
 	/**
 	 * The method creates a new Play operation with the file to be played
 	 * 
-	 * @param file file to be played
+	 * @param file
+	 *            file to be played
 	 * @return Play
 	 */
 	public Play play(String file) {
@@ -117,7 +137,8 @@ public abstract class CallController {
 	/**
 	 * the method created new Dial operation
 	 * 
-	 * @param number the number of the endpoint (who are we calling to)
+	 * @param number
+	 *            the number of the endpoint (who are we calling to)
 	 * @return
 	 */
 	public Dial dial(String number) {
@@ -125,20 +146,72 @@ public abstract class CallController {
 	}
 
 	/**
-	 * the method verifies that the call is always hangs up, even if an error occurred
-	 * during any operation
+	 * the method verifies that the call is always hangs up, even if an error
+	 * occurred during any operation
 	 * 
-	 * @param value if no error occurred
-	 * @param th if an error occurred it will contain the error
+	 * @param value
+	 *            if no error occurred
+	 * @param th
+	 *            if an error occurred it will contain the error
 	 * @return
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
-		return hangup().run()
-				.handle((hangup, th2) -> null)
+		return hangup().run().handle((hangup, th2) -> null)
 				.thenCompose(v -> Objects.nonNull(th) ? Operation.completedExceptionally(th)
 						: CompletableFuture.completedFuture(value));
 	}
-	
-	public abstract void run();
+
+	/**
+	 * get the value of a specific sip header
+	 * 
+	 * @param haderName
+	 *            the name of the header, for examle: "SIP_HEADER(TO)"
+	 * @return
+	 * @throws RestException
+	 */
+	public CompletableFuture<String> getSipHeader(String haderName) {
+
+		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, haderName, cb))
+				.thenApply(v -> {
+					return v.getValue();
+				});
+
+	}
+
+	/**
+	 * helper method for getSipHeader in order to have AriCallback
+	 * @param consumer
+	 * @return
+	 */
+	private <V> CompletableFuture<V> futureFromAriCallBack(Consumer<AriCallback<V>> consumer) {
+		CompletableFuture<V> compFuture = new CompletableFuture<V>();
+
+		consumer.accept(new AriCallback<V>() {
+
+			@Override
+			public void onSuccess(V result) {
+				compFuture.complete(result);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				compFuture.completeExceptionally(e);
+
+			}
+		});
+		return compFuture;
+	}
+
+	/**
+	 * add a sip header
+	 * 
+	 * @param headerName
+	 * @param headerValue
+	 * @throws RestException
+	 */
+	public void addSipHeader(String headerName, String headerValue) throws RestException {
+		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
+		addedSipHeaders.put(headerName, headerValue);
+	}
 
 }
