@@ -19,7 +19,7 @@ package:
 deploy:
   stage: deploy
   script: 
-    - 'mvn -DaltDeploymentRepository=repo::default::file:./target/staging deploy'
+    - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
     - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
   artifacts: 
     paths:
