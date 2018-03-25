@@ -28,6 +28,7 @@ public abstract class CallController implements Runnable {
 	private ARIty arity;
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
+	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -168,12 +169,13 @@ public abstract class CallController implements Runnable {
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
-		
 		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
+				}).exceptionally(t->{
+					logger.fine("unable to find header: " +headerName);
+					return null;
 				});
-
 	}
 
 	/**
@@ -182,6 +184,9 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	private <V> CompletableFuture<V> futureFromAriCallBack(Consumer<AriCallback<V>> consumer) {
+		Exception e = new Exception();
+		e.fillInStackTrace();
+		StackTraceElement[] st = e.getStackTrace();
 		CompletableFuture<V> compFuture = new CompletableFuture<V>();
 
 		consumer.accept(new AriCallback<V>() {
@@ -193,8 +198,9 @@ public abstract class CallController implements Runnable {
 
 			@Override
 			public void onFailure(RestException e) {
-				compFuture.completeExceptionally(e);
-
+				Exception e1 = new Exception(e);
+				e1.setStackTrace(st);
+				compFuture.completeExceptionally(e1);
 			}
 		});
 		return compFuture;
