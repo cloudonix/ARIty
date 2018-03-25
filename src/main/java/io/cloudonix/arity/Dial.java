@@ -1,9 +1,6 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -36,7 +33,7 @@ public class Dial extends CancelableOperations {
 	/**
 	 * Constructor
 	 * 
-	 * @param callController
+	 * @param callController an instance that represents a call
 	 * @param number the number we are calling to (the endpoint)
 	 */
 	public Dial(CallController callController, String number) {
@@ -48,7 +45,6 @@ public class Dial extends CancelableOperations {
 	/**
 	 * The method dials to a number (a sip number for now)
 	 * 
-	 * @param number
 	 * @return
 	 */
 
@@ -92,7 +88,6 @@ public class Dial extends CancelableOperations {
 		
 		
 		logger.info("future event of ChannelHangupRequest was added");
-		
 		
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
 			String dialStatus = dial.getDialstatus();
@@ -142,7 +137,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * the method cancels dialing
+	 * the method cancels dialing operation
 	 */
 	@Override
 	void cancel() {
