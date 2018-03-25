@@ -1,5 +1,10 @@
 package io.cloudonix.arity.errors;
 
+/**
+ * The class throws an exception when a playback can not be played
+ * @author naamag
+ *
+ */
 public class PlaybackException extends Exception {
 	
 	private static final long serialVersionUID = 1L;

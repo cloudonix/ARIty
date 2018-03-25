@@ -52,6 +52,11 @@ public class ErrorStream extends PrintStream implements Iterable<String> {
 		return Arrays.asList(data.toString().split("\n")).iterator();
 	}
 
+	/**
+	 * helper method to print the error in a readable way
+	 * @param failure the error (throwable)
+	 * @return
+	 */
 	public static ErrorStream fromThrowable(Throwable failure) {
 		try {
 			ErrorStream es = new ErrorStream();
