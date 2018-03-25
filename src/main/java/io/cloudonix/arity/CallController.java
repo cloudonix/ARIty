@@ -162,14 +162,14 @@ public abstract class CallController implements Runnable {
 	/**
 	 * get the value of a specific sip header
 	 * 
-	 * @param headrName
-	 *            the name of the header, for example: (To)
+	 * @param headerName
+	 *            the name of the header, for example: To
 	 * @return
 	 * @throws RestException
 	 */
-	public CompletableFuture<String> getSipHeader(String headrName) {
+	public CompletableFuture<String> getSipHeader(String headerName) {
 		
-		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER" + headrName, cb))
+		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				});
@@ -209,7 +209,7 @@ public abstract class CallController implements Runnable {
 	 */
 	public void addSipHeader(String headerName, String headerValue) throws RestException {
 		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
-		addedSipHeaders.put("SIP_HEADER"+headerName, headerValue);
+		addedSipHeaders.put("SIP_HEADER(" + headerName + ")", headerValue);
 	}
 
 }
