@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
-import io.cloudonix.arity.errors.HangUpException;
 
 /**
  * The class represents the Answer operation (handel answering a call) 
