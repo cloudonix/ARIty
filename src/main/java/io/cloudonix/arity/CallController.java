@@ -12,7 +12,6 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -29,7 +28,6 @@ public abstract class CallController implements Runnable {
 	private ARIty arity;
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
-	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 
 	/**
 	 * Initialize the callController with the needed fields
