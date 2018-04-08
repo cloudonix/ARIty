@@ -32,8 +32,6 @@ public class Dial extends CancelableOperations {
 	private boolean isCanceled = false;
 	private List<Operation> nestedOperations;
 	private Operation currOpertation = null;
-
-	
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
 	/**
@@ -70,7 +68,6 @@ public class Dial extends CancelableOperations {
 			}
 
 		}
-		
 		endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
@@ -192,6 +189,19 @@ public class Dial extends CancelableOperations {
 				return operation.run();
 			return CompletableFuture.completedFuture(null);
 		});
+	}
+	
+	/**
+	 * add new operation to list of nested operation that run method will execute
+	 * one by one
+	 * 
+	 * @param operation
+	 * @return
+	 */
+
+	public Dial and(CancelableOperations operation) {
+		nestedOperations.add(operation);
+		return this;
 	}
 	
 }
