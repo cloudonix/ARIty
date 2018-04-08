@@ -67,7 +67,7 @@ public class ReceivedDTMF extends Operation {
 			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
 				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
 					currOpertation = nestedOperations.get(i);
-					future = loopOperations(future, nestedOperations.get(i));
+					future = loopOperations(future);
 				}
 			}
 
@@ -100,17 +100,14 @@ public class ReceivedDTMF extends Operation {
 	 * compose the previous future (of the previous verb) to the result of the new
 	 * future
 	 * 
-	 * @param future
-	 * @param operation
+	 * @param future future of the previous operation
 	 * @return
 	 */
-	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future,
-			Operation operation) {
+	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future) {
 		logger.info("The current nested operation is: " + currOpertation.toString());
-		return future.thenCompose(pb -> {
-			if (Objects.nonNull(pb))
-				// if the previous future (previous playback) is not null, run it
-				return operation.run();
+		return future.thenCompose(op -> {
+			if (Objects.nonNull(op))
+				return currOpertation.run();
 			return CompletableFuture.completedFuture(null);
 		});
 	}
