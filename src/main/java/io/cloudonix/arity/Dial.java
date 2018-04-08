@@ -1,6 +1,9 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -27,6 +30,9 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private long mediaLenStart = 0;
 	private boolean isCanceled = false;
+	private List<Operation> nestedOperations;
+	private Operation currOpertation = null;
+
 	
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 
@@ -40,6 +46,7 @@ public class Dial extends CancelableOperations {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
+		nestedOperations = new ArrayList<>();
 	}
 
 	/**
@@ -49,7 +56,21 @@ public class Dial extends CancelableOperations {
 	 */
 
 	public CompletableFuture<Dial> run() {
+		// check for nested verbs in Dial
+		if (!nestedOperations.isEmpty()) {
+			logger.info("there are verbs in the nested verb list");
+			currOpertation = nestedOperations.get(0);
+			CompletableFuture<? extends Operation> future = nestedOperations.get(0).run();
 
+			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
+				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
+					currOpertation = nestedOperations.get(i);
+					future = loopOperations(future, nestedOperations.get(i));
+				}
+			}
+
+		}
+		
 		endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
@@ -99,6 +120,7 @@ public class Dial extends CancelableOperations {
 			mediaLenStart = Instant.now().toEpochMilli();	
 			//compFuture.complete(this);
 			return true;
+			
 		});
 		
 		logger.info("future event of Dial_impl_"+ getAri().getVersion()+ " was added");
@@ -112,15 +134,14 @@ public class Dial extends CancelableOperations {
 						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
 						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChanneLID());
 						
-					//	getAri().channels().originateWithId(channelId, endpoint, extension, context, priority, app, appArgs, callerId, timeout, variables, otherChannelId)
-						// getAri().channels().create(endpoint, app, appArgs, channelId, otherChannelId, originator, formats)
 						getAri().channels().create(endPointNumber, getArity().getAppName(), null,
 								endPointChannelId, null, getChanneLID(), null);
 						logger.info("end point channel was created. Channel id: " + endPointChannelId);
 						
 						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 						logger.info("end point channel was added to the bridge");
-
+						
+						getAri().applications().get(getAri().getAppName());
 						return this.<Void>toFuture(dial -> {
 							getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial);
 							});
@@ -152,6 +173,25 @@ public class Dial extends CancelableOperations {
 			logger.warning("failed hang up the endpoint call");
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
+	}
+	
+	
+	/**
+	 * compose the previous future (of the previous verb) to the result of the new
+	 * future
+	 * 
+	 * @param future
+	 * @param operation
+	 * @return
+	 */
+	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future,
+			Operation operation) {
+		logger.info("The current nested operation is: " + currOpertation.toString());
+		return future.thenCompose(op -> {
+			if (Objects.nonNull(op))
+				return operation.run();
+			return CompletableFuture.completedFuture(null);
+		});
 	}
 	
 }
