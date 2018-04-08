@@ -14,7 +14,6 @@ import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
  *
  */
 public class ReceivedDTMF extends Operation {
-
 	private CompletableFuture<ReceivedDTMF> compFuture;
 	private String userInput;
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
@@ -30,7 +29,6 @@ public class ReceivedDTMF extends Operation {
 	 *            - define terminating key (otherwise '#' is the default)
 	 */
 	public ReceivedDTMF(CallController callController, String termKey) {
-
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
@@ -44,7 +42,6 @@ public class ReceivedDTMF extends Operation {
 	 * @param callController
 	 */
 	public ReceivedDTMF(CallController callController) {
-
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		userInput = "";
@@ -60,7 +57,6 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<? extends Operation> run() {
-
 		// if the list of verbs is not empty, execute them one by one
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
@@ -76,7 +72,6 @@ public class ReceivedDTMF extends Operation {
 			}
 
 		}
-
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChanneLID()))) {
 				return false;
