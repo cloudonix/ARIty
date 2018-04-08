@@ -63,7 +63,7 @@ public class Dial extends CancelableOperations {
 			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
 				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
 					currOpertation = nestedOperations.get(i);
-					future = loopOperations(future, nestedOperations.get(i));
+					future = loopOperations(future);
 				}
 			}
 
@@ -104,7 +104,6 @@ public class Dial extends CancelableOperations {
 			return true;
 		});
 		
-		
 		logger.info("future event of ChannelHangupRequest was added");
 		
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
@@ -115,13 +114,10 @@ public class Dial extends CancelableOperations {
 				return false;
 			
 			mediaLenStart = Instant.now().toEpochMilli();	
-			//compFuture.complete(this);
 			return true;
 			
 		});
-		
 		logger.info("future event of Dial_impl_"+ getAri().getVersion()+ " was added");
-
 
 		// create the bridge in order to connect between the caller and end point
 		// channels
@@ -181,12 +177,11 @@ public class Dial extends CancelableOperations {
 	 * @param operation
 	 * @return
 	 */
-	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future,
-			Operation operation) {
+	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future) {
 		logger.info("The current nested operation is: " + currOpertation.toString());
 		return future.thenCompose(op -> {
 			if (Objects.nonNull(op))
-				return operation.run();
+				return currOpertation.run();
 			return CompletableFuture.completedFuture(null);
 		});
 	}
@@ -199,7 +194,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 
-	public Dial and(CancelableOperations operation) {
+	public Dial and(Operation operation) {
 		nestedOperations.add(operation);
 		return this;
 	}
