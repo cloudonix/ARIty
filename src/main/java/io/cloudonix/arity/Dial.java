@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
@@ -33,6 +34,10 @@ public class Dial extends CancelableOperations {
 	private List<Operation> nestedOperations;
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
+	//save each bridge and number of channels connected to it
+	private ConcurrentHashMap<Bridge, Integer> bridges;
+	boolean isConference = false;
+	String name = "bridge";
 
 	/**
 	 * Constructor
@@ -45,6 +50,22 @@ public class Dial extends CancelableOperations {
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
+		bridges = new ConcurrentHashMap<Bridge, Integer> ();
+	}
+	/**
+	 * Constructor for conference case
+	 * @param callController an instance that represents a call
+	 * @param number the number we are calling to (the endpoint)
+	 * @param conf will be a part of a conference call (true if yes, false otherwise)
+	 */
+	public Dial(CallController callController, String number, String name, boolean conf) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		compFuture = new CompletableFuture<>();
+		endPointNumber = number;
+		nestedOperations = new ArrayList<>();
+		bridges = new ConcurrentHashMap<Bridge, Integer> ();
+		isConference = conf;
+		this.name = name;
 	}
 
 	/**
@@ -121,7 +142,7 @@ public class Dial extends CancelableOperations {
 
 		// create the bridge in order to connect between the caller and end point
 		// channels
-		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, "bridge", cf))
+		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf))
 				.thenCompose(bridge -> {
 					try {
 						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
@@ -134,7 +155,10 @@ public class Dial extends CancelableOperations {
 						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 						logger.info("end point channel was added to the bridge");
 						
-						getAri().applications().get(getAri().getAppName());
+						if(isConference)
+						//add bridge to the map
+						bridges.put(bridge, 2);
+						
 						return this.<Void>toFuture(dial -> {
 							getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial);
 							});
@@ -197,6 +221,14 @@ public class Dial extends CancelableOperations {
 	public Dial and(Operation operation) {
 		nestedOperations.add(operation);
 		return this;
+	}
+	
+	public ConcurrentHashMap<Bridge, Integer> getBridges() {
+		return bridges;
+	}
+
+	public void setBridges(ConcurrentHashMap<Bridge, Integer> bridges) {
+		this.bridges = bridges;
 	}
 	
 }

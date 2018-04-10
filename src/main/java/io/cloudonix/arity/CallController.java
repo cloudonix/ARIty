@@ -143,6 +143,19 @@ public abstract class CallController implements Runnable {
 	public Dial dial(String number) {
 		return new Dial(this, number);
 	}
+	
+	/**
+	 * the method created new Dial operation
+	 * 
+	 * @param number
+	 *            the number of the endpoint (who are we calling to)
+	 * @param conf the call will be available for a conference call (true if yes, otherwise if false)
+	 * @param confName name of the conference (bridge)
+	 * @return
+	 */
+	public Dial dial(String number, String confName, boolean conf) {
+		return new Dial(this, number,confName, conf);
+	}
 
 	/**
 	 * the method verifies that the call is always hangs up, even if an error
