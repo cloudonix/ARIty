@@ -368,4 +368,20 @@ public class ARIty implements AriCallback<Message> {
 		return -1;
 	}
 	
+	/**
+	 * get call supplier 
+	 * @return
+	 */
+	public Supplier<CallController> getCallSupplier() {
+		return callSupplier;
+	}
+	
+	/**
+	 * set call supplier
+	 * @param callSupplier
+	 */
+	public void setCallSupplier(Supplier<CallController> callSupplier) {
+		this.callSupplier = callSupplier;
+	}
+	
 }
