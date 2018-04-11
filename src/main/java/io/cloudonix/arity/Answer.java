@@ -30,7 +30,7 @@ public class Answer extends Operation {
 	public CompletableFuture<Answer> run () {
 		try {
 			// answer the call
-			getAri().channels().answer(getChanneLID());
+			getAri().channels().answer(getChannelId());
 		} catch (RestException e) {
 			logger.severe("failed in answering the call: " + e);
 			return completedExceptionally(new AnswerCallException(e));

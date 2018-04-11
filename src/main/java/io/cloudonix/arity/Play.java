@@ -78,7 +78,7 @@ public class Play extends CancelableOperations {
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme + playFileName;
 
-			getAri().channels().play(getChanneLID(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
+			getAri().channels().play(getChannelId(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
 					playbackId, new AriCallback<Playback>() {
 
 						@Override

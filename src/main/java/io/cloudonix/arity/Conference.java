@@ -58,14 +58,14 @@ public class Conference extends Operation {
 
 		return this.<Void>toFuture(v -> {
 			try {
-				getAri().bridges().addChannel(currBridge.getId(), getChanneLID(), "joining conference");
+				getAri().bridges().addChannel(currBridge.getId(), getChannelId(), "joining conference");
 			} catch (RestException e) {
 				logger.info("unable to join channel to the conference bridge " + ErrorStream.fromThrowable(e));
 			}
 		}).thenAccept(v -> {
 			getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (channel) -> {
 				if (Objects.equals(currBridge, channel.getBridge())) {
-					logger.info(" channel was added to the conference bridge. Channel id is: " + getChanneLID());
+					logger.info(" channel was added to the conference bridge. Channel id is: " + getChannelId());
 					compFuture.complete(this);
 					return true;
 				} else {

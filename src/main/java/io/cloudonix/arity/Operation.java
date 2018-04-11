@@ -28,7 +28,7 @@ public abstract class Operation {
 		return ari;
 	}
 
-	public String getChanneLID() {
+	public String getChannelId() {
 		return channelID;
 	}
 
