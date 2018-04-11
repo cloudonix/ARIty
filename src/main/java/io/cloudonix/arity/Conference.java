@@ -9,7 +9,7 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 
-public class Conf extends Operation {
+public class Conference extends Operation {
 	
 	public enum ConferenceState
     {
@@ -22,10 +22,10 @@ public class Conf extends Operation {
 	private String confName;
 	private int count = 0;
 	private List<Channel> channelsInConf;
-	private final static Logger logger = Logger.getLogger(Conf.class.getName());
+	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
 	
-	public Conf(String channelId, ARIty arity, ARI ari) {
+	public Conference(String channelId, ARIty arity, ARI ari) {
 		super(channelId, arity, ari);
 		this.arity = arity;
 		this.ari = ari;

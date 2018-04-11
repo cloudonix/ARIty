@@ -16,7 +16,7 @@ import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.Conf.ConferenceState;
+import io.cloudonix.arity.Conference.ConferenceState;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
 
@@ -39,7 +39,7 @@ public class Dial extends CancelableOperations {
 	private List<Operation> nestedOperations;
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private List<Conf> conferences;
+	private List<Conference> conferences;
 	private boolean isConference = false;
 	private String name = "bridge";
 	private CallController cc;
@@ -162,7 +162,7 @@ public class Dial extends CancelableOperations {
 			}
 			else {
 				if(Objects.nonNull(bridge.getBridge())) {
-				Conf conference = new Conf("", getArity(), getAri());
+				Conference conference = new Conference("", getArity(), getAri());
 				conference.setConfBridge(bridge.getBridge());
 				conference.setCurrState(ConferenceState.Creating);
 				conferences.add(conference);
