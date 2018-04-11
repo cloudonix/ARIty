@@ -6,14 +6,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeDestroyed_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
@@ -176,13 +173,33 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
-		// add channel to conference bridge
+		// add 2 channels to conference bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
 			if (!isConference) {
 				logger.info("channel is not a part from a conference call");
 				return true;
 			} else {
-				if (Objects.nonNull(chanInBridge.getChannel())) {
+				if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
+					for (int i = 0; i < conferences.size(); i++) {
+						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
+							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
+							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
+									+ conferences.get(i).getConfName());
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		});
+		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
+		
+		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
+			if (!isConference) {
+				logger.info("channel is not a part from a conference call");
+				return true;
+			} else {
+				if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 					for (int i = 0; i < conferences.size(); i++) {
 						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
 							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
@@ -295,5 +312,22 @@ public class Dial extends CancelableOperations {
 		nestedOperations.add(operation);
 		return this;
 	}
+	
+	/**
+	 * get list of conferences
+	 * @return
+	 */
+	public List<Conference> getConferences() {
+		return conferences;
+	}
+
+	/**
+	 * set list of confernces
+	 * @param conferences
+	 */
+	public void setConferences(List<Conference> conferences) {
+		this.conferences = conferences;
+	}
+
 
 }
