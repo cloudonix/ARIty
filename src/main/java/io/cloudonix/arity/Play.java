@@ -28,7 +28,7 @@ public class Play extends CancelableOperations {
 	private CompletableFuture<Play> compFuturePlayback;
 
 	/**
-	 * constructor- will we used when we want set the file to play after creation
+	 * constructor 
 	 * 
 	 * @param callController call main logic object
 	 */
@@ -45,7 +45,6 @@ public class Play extends CancelableOperations {
 	 * @param fileName name of the file to be played
 	 */
 	public Play(CallController callController, String fileName) {
-
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		this.playFileName = fileName;
@@ -55,7 +54,6 @@ public class Play extends CancelableOperations {
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
-	 * @param recLocation
 	 * @return
 	 */
 	public CompletableFuture<Play> playRecording() {
