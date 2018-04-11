@@ -10,19 +10,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.Conf.ConferenceState;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
 
 /**
  * The class represents the Dial operation
+ * 
  * @author naamag
  *
  */
 public class Dial extends CancelableOperations {
-	
+
 	private CompletableFuture<Dial> compFuture;
 	private String endPointNumber;
 	private String endPointChannelId;
@@ -34,37 +39,46 @@ public class Dial extends CancelableOperations {
 	private List<Operation> nestedOperations;
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	//save each bridge and number of channels connected to it
-	private ConcurrentHashMap<Bridge, Integer> bridges;
-	boolean isConference = false;
-	String name = "bridge";
+	private List<Conf> conferences;
+	private boolean isConference = false;
+	private String name = "bridge";
+	private CallController cc;
 
 	/**
 	 * Constructor
 	 * 
-	 * @param callController an instance that represents a call
-	 * @param number the number we are calling to (the endpoint)
+	 * @param callController
+	 *            an instance that represents a call
+	 * @param number
+	 *            the number we are calling to (the endpoint)
 	 */
 	public Dial(CallController callController, String number) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		cc = callController;
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
-		bridges = new ConcurrentHashMap<Bridge, Integer> ();
+		conferences = new ArrayList<>();
+
 	}
+
 	/**
 	 * Constructor for conference case
-	 * @param callController an instance that represents a call
-	 * @param number the number we are calling to (the endpoint)
-	 * @param conf will be a part of a conference call (true if yes, false otherwise)
+	 * 
+	 * @param callController
+	 *            an instance that represents a call
+	 * @param number
+	 *            the number we are calling to (the endpoint)
+	 * @param conf
+	 *            will be a part of a conference call (true if yes, false otherwise)
 	 */
 	public Dial(CallController callController, String number, String name, boolean conf) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
-		bridges = new ConcurrentHashMap<Bridge, Integer> ();
 		isConference = conf;
+		conferences = new ArrayList<>();
 		this.name = name;
 	}
 
@@ -97,7 +111,7 @@ public class Dial extends CancelableOperations {
 
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
 			
-			if(hangup.getChannel().getId().equals(getChanneLID()) && !isCanceled) {
+			if(hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 				logger.info("cancel dial");
 				isCanceled = true;
 				cancel();
@@ -138,29 +152,68 @@ public class Dial extends CancelableOperations {
 			return true;
 			
 		});
-		logger.info("future event of Dial_impl_"+ getAri().getVersion()+ " was added");
+		logger.info("future event of Dial_impl_ari_2_0_0.class was added");
+		
+		// if the created bridge can be confrence bridge, add it to confrences list
+		getArity().addFutureEvent (BridgeCreated_impl_ari_2_0_0.class, (bridge)->{
+			if(!isConference) {
+				logger.info("the bridge is not a conference bridge");
+				return false;
+			}
+			else {
+				if(Objects.nonNull(bridge.getBridge())) {
+				Conf conference = new Conf("", getArity(), getAri());
+				conference.setConfBridge(bridge.getBridge());
+				conference.setCurrState(ConferenceState.Creating);
+				conferences.add(conference);
+				logger.info("confrence bridge was saved");
+				return true;
+			}
+				logger.severe("conference bridge was not created");
+				return false;
+			}
+		});
+		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
+		
+		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) ->{
+			if(!isConference) {
+				logger.info("channel is not a part from a conference call");
+				return false;
+			}
+			else {
+				if(Objects.nonNull(chanInBridge.getChannel())) {
+					for(int i = 0; i< conferences.size(); i++) {
+						if(Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
+							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
+							logger.info("channel: " +chanInBridge.getChannel().getId()+ " was added to confrence: "+ conferences.get(i).getConfName());
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		});
+		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
 
+		
 		// create the bridge in order to connect between the caller and end point
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf))
 				.thenCompose(bridge -> {
 					try {
-						getAri().bridges().addChannel(bridge.getId(), getChanneLID(), "caller");
-						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChanneLID());
+						getAri().bridges().startMoh(bridge.getId(), "default");
+						getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
+						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 						
 						getAri().channels().create(endPointNumber, getArity().getAppName(), null,
-								endPointChannelId, null, getChanneLID(), null);
+								endPointChannelId, null, getChannelId(), null);
 						logger.info("end point channel was created. Channel id: " + endPointChannelId);
 						
 						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 						logger.info("end point channel was added to the bridge");
 						
-						if(isConference)
-						//add bridge to the map
-						bridges.put(bridge, 2);
-						
 						return this.<Void>toFuture(dial -> {
-							getAri().channels().dial(endPointChannelId, getChanneLID(), 60000, dial);
+							getAri().channels().dial(endPointChannelId, getChannelId(), 60000, dial);
 							});
 						
 					} catch (RestException e2) {
@@ -171,7 +224,6 @@ public class Dial extends CancelableOperations {
 					logger.info("dial succeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
-
 	}
 
 	/**
@@ -191,8 +243,7 @@ public class Dial extends CancelableOperations {
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}
-	
-	
+
 	/**
 	 * compose the previous future (of the previous verb) to the result of the new
 	 * future
@@ -209,7 +260,7 @@ public class Dial extends CancelableOperations {
 			return CompletableFuture.completedFuture(null);
 		});
 	}
-	
+
 	/**
 	 * add new operation to list of nested operation that run method will execute
 	 * one by one
@@ -222,13 +273,5 @@ public class Dial extends CancelableOperations {
 		nestedOperations.add(operation);
 		return this;
 	}
-	
-	public ConcurrentHashMap<Bridge, Integer> getBridges() {
-		return bridges;
-	}
 
-	public void setBridges(ConcurrentHashMap<Bridge, Integer> bridges) {
-		this.bridges = bridges;
-	}
-	
 }
