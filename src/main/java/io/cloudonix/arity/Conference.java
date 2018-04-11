@@ -138,6 +138,20 @@ public class Conference extends Operation {
 		if(count == 2)
 			currState = ConferenceState.Ready;
 	}
+	
+	/**
+	 * remove channel that left the conference
+	 * @param channel channel to be removed
+	 */
+	public void removeChannelFromConf(Channel channel) {
+		count--;
+		channelsInConf.remove(channel);
+		// conference can't contain less than 2 participants
+		if (count < 2) {
+			currState = ConferenceState.Destroying;
+			compFuture.complete(this);
+		}
+	}
 
 
 }
