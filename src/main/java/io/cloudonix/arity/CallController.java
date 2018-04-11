@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,7 @@ public abstract class CallController implements Runnable {
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
+	private List<Conference> conferences = null;
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -47,7 +49,6 @@ public abstract class CallController implements Runnable {
 		ari = a;
 		this.arity = ARIty;
 		addedSipHeaders = new HashMap<String, String>();
-
 	}
 
 	/**
@@ -141,7 +142,10 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Dial dial(String number) {
-		return new Dial(this, number);
+		Dial dial = new Dial(this, number);
+		conferences = dial.getConferences();
+		return dial;
+		
 	}
 	
 	/**
@@ -154,7 +158,9 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Dial dial(String number, String confName, boolean conf) {
-		return new Dial(this, number,confName, conf);
+		Dial dial = new Dial(this, number,confName, conf);
+		conferences = dial.getConferences();
+		return dial;
 	}
 
 	/**
@@ -230,5 +236,23 @@ public abstract class CallController implements Runnable {
 		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
 		addedSipHeaders.put("SIP_HEADER(" + headerName + ")", headerValue);
 	}
+	
+	/** 
+	 * get list of conference calls
+	 * @return
+	 */
+	public List<Conference> getConferences() {
+		return conferences;
+	}
+	
+	/** 
+	 * set list of conference calls
+	 * @param conferences update list of conference calls
+	 * @return
+	 */
+	public void setConferences(List<Conference> conferences) {
+		this.conferences = conferences;
+	}
+
 
 }
