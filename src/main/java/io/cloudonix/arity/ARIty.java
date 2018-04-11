@@ -313,7 +313,7 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * get channel creation date and time
+	 * get channel creation time
 	 * 
 	 * @return
 	 */
@@ -367,4 +367,5 @@ public class ARIty implements AriCallback<Message> {
 			return callChannel.getDialplan().getPriority();
 		return -1;
 	}
+	
 }
