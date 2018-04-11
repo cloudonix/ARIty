@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 public class Conference extends Operation {
 	
@@ -15,21 +17,21 @@ public class Conference extends Operation {
     {
         Destroyed, Destroying ,Creating, Ready, ReadyWaiting, Muted, AdminMuted 
     }
-	private ARIty arity;
-	private ARI ari;
+	private CompletableFuture<Conference> compFuture;
 	private ConferenceState currState;
 	private Bridge confBridge;
 	private String confName;
 	private int count = 0;
 	private List<Channel> channelsInConf;
+	private String confId;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
 	
-	public Conference(String channelId, ARIty arity, ARI ari) {
-		super(channelId, arity, ari);
-		this.arity = arity;
-		this.ari = ari;
+	public Conference(String confId, ARIty arity, ARI ari) {
+		super(confId, arity, ari);
+		this.confId = confId;
 		channelsInConf = new ArrayList<>();
+		compFuture = new CompletableFuture<>();
 	}
 
 	@Override
@@ -37,46 +39,91 @@ public class Conference extends Operation {
 		return null;
 	}
 	
+	/**
+	 * get conference currenr state
+	 * @return
+	 */
 	public ConferenceState getCurrState() {
 		return currState;
 	}
-
+	
+	/**
+	 * set conference state
+	 * @param currState  update sate of conference
+	 * 	 */
 	public void setCurrState(ConferenceState currState) {
 		this.currState = currState;
 	}
+	/**
+	 * get conference bridge
+	 * @return
+	 */
 	public Bridge getConfBridge() {
 		return confBridge;
 	}
-
+	/**
+	 * set conference bridge
+	 * @return
+	 */
 	public void setConfBridge(Bridge confBridge) {
 		this.confBridge = confBridge;
 	}
-
+	/**
+	 * get conference name
+	 * @return
+	 */
 	public String getConfName() {
 		return confName;
 	}
-
+	/**
+	 * set conference name
+	 * @return
+	 */
 	public void setConfName(String confName) {
 		this.confName = confName;
 	}
-
+	
+	/**
+	 * get number of channels in conference
+	 * @return
+	 */
 	public int getCount() {
 		return count;
 	}
-
+	/**
+	 * set number of channels in conference
+	 * @return
+	 */
 	public void setCount(int count) {
 		this.count = count;
 	}
-
+	
+	/**
+	 * get list of channels connected to the conference bridge
+	 * @return
+	 */
 	public List<Channel> getChannelsInConf() {
 		return channelsInConf;
 	}
-
+	/**
+	 * set list of channels connected to the conference bridge
+	 * @return
+	 */
 	public void setChannelsInConf(List<Channel> channelsInConf) {
 		this.channelsInConf = channelsInConf;
 	}
-	
+	/**
+	 * add channel to the conference
+	 * @param channel
+	 * @param cc
+	 */
 	public void addChannelToConf (Channel channel, CallController cc) {
+		try {
+			cc.getAri().bridges().addChannel(confBridge.getId(), channel.getId(), "joining conference");
+		} catch (RestException e) {
+			logger.severe("unable to add channel to conference " +ErrorStream.fromThrowable(e));
+			return;
+		}
 		channelsInConf.add(channel);
 		count++;
 		if(count == 1) {

@@ -13,6 +13,7 @@ import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeDestroyed_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -59,7 +60,6 @@ public class Dial extends CancelableOperations {
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
 		conferences = new ArrayList<>();
-
 	}
 
 	/**
@@ -158,11 +158,12 @@ public class Dial extends CancelableOperations {
 		getArity().addFutureEvent (BridgeCreated_impl_ari_2_0_0.class, (bridge)->{
 			if(!isConference) {
 				logger.info("the bridge is not a conference bridge");
-				return false;
+				return true;
 			}
 			else {
 				if(Objects.nonNull(bridge.getBridge())) {
-				Conference conference = new Conference("", getArity(), getAri());
+				String confId = UUID.randomUUID().toString();
+				Conference conference = new Conference(confId, getArity(), getAri());
 				conference.setConfBridge(bridge.getBridge());
 				conference.setCurrState(ConferenceState.Creating);
 				conferences.add(conference);
@@ -175,10 +176,11 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 		
+		// add channel to conference bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) ->{
 			if(!isConference) {
 				logger.info("channel is not a part from a conference call");
-				return false;
+				return true;
 			}
 			else {
 				if(Objects.nonNull(chanInBridge.getChannel())) {
@@ -194,14 +196,31 @@ public class Dial extends CancelableOperations {
 			}
 		});
 		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
-
+		
+		// notice when a bridge is being destroyed
+		getArity().addFutureEvent(BridgeDestroyed_impl_ari_2_0_0.class, (destroyedBridge)->{
+			if(!isConference)
+				return true;
+			else {
+				for(int i = 0; i < conferences.size(); i++) {
+					if(Objects.equals(conferences.get(i).getConfBridge(), destroyedBridge.getBridge())) {
+						logger.info("removing conference");
+						conferences.get(i).setCurrState(ConferenceState.Destroyed);
+						conferences.remove(i);
+						return true;
+					}
+				}
+			}
+			logger.info("no conference with bridge: " +destroyedBridge.getBridge().getId());
+			return false;
+		});
+		logger.info("future event of BridgeDestroyed_impl_ari_2_0_0.class was added");
 		
 		// create the bridge in order to connect between the caller and end point
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf))
 				.thenCompose(bridge -> {
 					try {
-						getAri().bridges().startMoh(bridge.getId(), "default");
 						getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
 						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 						
