@@ -15,6 +15,7 @@ import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeDestroyed_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.Conference.ConferenceState;
@@ -110,84 +111,83 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-			
-			if(hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
+
+			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 				logger.info("cancel dial");
 				isCanceled = true;
 				cancel();
 				return false;
 			}
-			
+
 			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
 				return false;
 			}
-			
-			if(!isCanceled) {
-			// end call timer
-			long end = Instant.now().toEpochMilli();
 
-			callDuration = Math.abs(end-dialStart);
-			logger.info("duration of the call: "+ callDuration + " ms");
-			
-			mediaLength =  Math.abs(end-mediaLenStart);
-			logger.info("media lenght of the call: "+ mediaLength + " ms");
+			if (!isCanceled) {
+				// end call timer
+				long end = Instant.now().toEpochMilli();
 
-			logger.info("end point channel hanged up");
+				callDuration = Math.abs(end - dialStart);
+				logger.info("duration of the call: " + callDuration + " ms");
+
+				mediaLength = Math.abs(end - mediaLenStart);
+				logger.info("media lenght of the call: " + mediaLength + " ms");
+
+				logger.info("end point channel hanged up");
 			}
-			
+
 			compFuture.complete(this);
 			return true;
 		});
-		
+
 		logger.info("future event of ChannelHangupRequest was added");
-		
+
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
 			String dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
-			
-			if(!dialStatus.equals("ANSWER")) 
+
+			if (!dialStatus.equals("ANSWER"))
 				return false;
-			
-			mediaLenStart = Instant.now().toEpochMilli();	
+
+			mediaLenStart = Instant.now().toEpochMilli();
 			return true;
-			
+
 		});
 		logger.info("future event of Dial_impl_ari_2_0_0.class was added");
-		
+
 		// if the created bridge can be confrence bridge, add it to confrences list
-		getArity().addFutureEvent (BridgeCreated_impl_ari_2_0_0.class, (bridge)->{
-			if(!isConference) {
+		getArity().addFutureEvent(BridgeCreated_impl_ari_2_0_0.class, (bridge) -> {
+			if (!isConference) {
 				logger.info("the bridge is not a conference bridge");
 				return true;
-			}
-			else {
-				if(Objects.nonNull(bridge.getBridge())) {
-				String confId = UUID.randomUUID().toString();
-				Conference conference = new Conference(confId, getArity(), getAri());
-				conference.setConfBridge(bridge.getBridge());
-				conference.setCurrState(ConferenceState.Creating);
-				conferences.add(conference);
-				logger.info("confrence bridge was saved");
-				return true;
-			}
+			} else {
+				if (Objects.nonNull(bridge.getBridge())) {
+					String confId = UUID.randomUUID().toString();
+					Conference conference = new Conference(confId, getArity(), getAri());
+					conference.setConfBridge(bridge.getBridge());
+					conference.setCurrState(ConferenceState.Creating);
+					conferences.add(conference);
+					logger.info("confrence bridge was saved");
+					return true;
+				}
 				logger.severe("conference bridge was not created");
 				return false;
 			}
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
-		
+
 		// add channel to conference bridge
-		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) ->{
-			if(!isConference) {
+		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
+			if (!isConference) {
 				logger.info("channel is not a part from a conference call");
 				return true;
-			}
-			else {
-				if(Objects.nonNull(chanInBridge.getChannel())) {
-					for(int i = 0; i< conferences.size(); i++) {
-						if(Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
+			} else {
+				if (Objects.nonNull(chanInBridge.getChannel())) {
+					for (int i = 0; i < conferences.size(); i++) {
+						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
 							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
-							logger.info("channel: " +chanInBridge.getChannel().getId()+ " was added to confrence: "+ conferences.get(i).getConfName());
+							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
+									+ conferences.get(i).getConfName());
 							return true;
 						}
 					}
@@ -196,53 +196,56 @@ public class Dial extends CancelableOperations {
 			}
 		});
 		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
-		
-		// notice when a bridge is being destroyed
-		getArity().addFutureEvent(BridgeDestroyed_impl_ari_2_0_0.class, (destroyedBridge)->{
-			if(!isConference)
+
+		// notice when a channel leaves a bridge
+		getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
+			if (!isConference)
 				return true;
 			else {
-				for(int i = 0; i < conferences.size(); i++) {
-					if(Objects.equals(conferences.get(i).getConfBridge(), destroyedBridge.getBridge())) {
-						logger.info("removing conference");
-						conferences.get(i).setCurrState(ConferenceState.Destroyed);
-						conferences.remove(i);
-						return true;
+				for (int i = 0; i < conferences.size(); i++) {
+					if (conferences.get(i).getChannelsInConf().contains(channelLeft.getChannel())) {
+						logger.info("removing channel: " + channelLeft.getChannel().getId() + " from conference");
+						conferences.get(i).removeChannelFromConf(channelLeft.getChannel());
+						if (conferences.get(i).getCount() < 2) {
+							logger.info("conference call was completed, remove it from the list");
+							conferences.remove(i);
+						}
+
+					return true;
 					}
 				}
 			}
-			logger.info("no conference with bridge: " +destroyedBridge.getBridge().getId());
+			logger.info("no conference contains the channel: " + channelLeft.getChannel().getId());
 			return false;
 		});
-		logger.info("future event of BridgeDestroyed_impl_ari_2_0_0.class was added");
-		
+		logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
+
 		// create the bridge in order to connect between the caller and end point
 		// channels
-		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf))
-				.thenCompose(bridge -> {
-					try {
-						getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
-						logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
-						
-						getAri().channels().create(endPointNumber, getArity().getAppName(), null,
-								endPointChannelId, null, getChannelId(), null);
-						logger.info("end point channel was created. Channel id: " + endPointChannelId);
-						
-						getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
-						logger.info("end point channel was added to the bridge");
-						
-						return this.<Void>toFuture(dial -> {
-							getAri().channels().dial(endPointChannelId, getChannelId(), 60000, dial);
-							});
-						
-					} catch (RestException e2) {
-						logger.info("failed dailing " + e2);
-						return completedExceptionally(new DialException(e2));
-					}
-				}).thenAccept(v -> {
-					logger.info("dial succeded!");
-					dialStart = Instant.now().toEpochMilli();
-				}).thenCompose(v -> compFuture);
+		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
+			try {
+				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
+				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
+
+				getAri().channels().create(endPointNumber, getArity().getAppName(), null, endPointChannelId, null,
+						getChannelId(), null);
+				logger.info("end point channel was created. Channel id: " + endPointChannelId);
+
+				getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
+				logger.info("end point channel was added to the bridge");
+
+				return this.<Void>toFuture(dial -> {
+					getAri().channels().dial(endPointChannelId, getChannelId(), 60000, dial);
+				});
+
+			} catch (RestException e2) {
+				logger.info("failed dailing " + e2);
+				return completedExceptionally(new DialException(e2));
+			}
+		}).thenAccept(v -> {
+			logger.info("dial succeded!");
+			dialStart = Instant.now().toEpochMilli();
+		}).thenCompose(v -> compFuture);
 	}
 
 	/**
