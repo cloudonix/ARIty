@@ -40,7 +40,6 @@ public class Dial extends CancelableOperations {
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private List<Conference> conferences;
-	// private boolean isConference = false;
 	private String name = "bridge";
 	private String dialStatus;
 
@@ -74,7 +73,6 @@ public class Dial extends CancelableOperations {
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
-		// isConference = conf;
 		conferences = new ArrayList<>();
 		this.name = name;
 	}
@@ -136,6 +134,10 @@ public class Dial extends CancelableOperations {
 			logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
 
 			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
+				if(Objects.equals(dialStatus, "ANSWER")) {
+					cancel();
+					return false;
+				}
 				logger.info("cancel dial");
 				isCanceled = true;
 				cancel();
@@ -146,7 +148,7 @@ public class Dial extends CancelableOperations {
 				return false;
 			}
 
-			if (!isCanceled || dialStatus.equals("ANSWER")) {
+			if (!isCanceled || Objects.equals(dialStatus, "ANSWER")) {
 				// end call timer
 				long end = Instant.now().toEpochMilli();
 
@@ -260,7 +262,7 @@ public class Dial extends CancelableOperations {
 			compFuture.complete(this);
 
 		} catch (RestException e) {
-			logger.warning("failed hang up the endpoint call");
+			logger.warning("caller asked to hang up");
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}
