@@ -12,7 +12,11 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
-
+/**
+ * The class handles and saves all needed information for a conference call
+ * @author naamag
+ *
+ */
 public class Conference extends Operation {
 
 	public enum ConferenceState {
