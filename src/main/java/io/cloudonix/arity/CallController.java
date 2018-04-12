@@ -157,8 +157,8 @@ public abstract class CallController implements Runnable {
 	 * @param confName name of the conference (bridge)
 	 * @return
 	 */
-	public Dial dial(String number, String confName, boolean conf) {
-		Dial dial = new Dial(this, number,confName, conf);
+	public Dial dial(String number, String confName) {
+		Dial dial = new Dial(this, number,confName);
 		conferences = dial.getConferences();
 		return dial;
 	}

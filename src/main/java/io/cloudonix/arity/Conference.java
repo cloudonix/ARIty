@@ -184,7 +184,7 @@ public class Conference extends Operation {
 	 */
 	public void addChannelToConf(Channel channel) {
 		try {
-			ari.bridges().addChannel(confBridge.getId(), channel.getId(), "joining conference");
+			getAri().bridges().addChannel(confBridge.getId(), channel.getId(), "join");
 		} catch (RestException e) {
 			logger.severe("unable to add channel to conference " + ErrorStream.fromThrowable(e));
 			return;
@@ -193,10 +193,10 @@ public class Conference extends Operation {
 		count++;
 
 		if (count == 1) {
-			logger.info("channel joind to conference and it is the only one channel in it");
-			new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
+			logger.info("channel joined to conference and it is the only in it");
+		//	new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
 		} else {
-			logger.info("channel joind to conference");
+			logger.info("channel joined to conference");
 			// play to all channels in the bridge- new PlayBridge class and in run method:
 			// getAri().bridges().play(getBridgeId(), fullPath,
 			// callStasisStart.getChannel().getLanguage(), 0, 0,playbackId, new

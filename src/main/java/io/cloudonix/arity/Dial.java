@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
@@ -39,7 +40,7 @@ public class Dial extends CancelableOperations {
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private List<Conference> conferences;
-	private boolean isConference = false;
+	// private boolean isConference = false;
 	private String name = "bridge";
 	private String dialStatus;
 
@@ -66,15 +67,14 @@ public class Dial extends CancelableOperations {
 	 *            an instance that represents a call
 	 * @param number
 	 *            the number we are calling to (the endpoint)
-	 * @param conf
-	 *            will be a part of a conference call (true if yes, false otherwise)
+	 * @return
 	 */
-	public Dial(CallController callController, String number, String name, boolean conf) {
+	public Dial(CallController callController, String number, String name) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
-		isConference = conf;
+		// isConference = conf;
 		conferences = new ArrayList<>();
 		this.name = name;
 	}
@@ -84,7 +84,6 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-
 	public CompletableFuture<Dial> run() {
 		// check for nested verbs in Dial
 		if (!nestedOperations.isEmpty()) {
@@ -107,6 +106,34 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
+
+			// notice when a channel leaves a bridge after a hang up occurred
+			getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
+				if (conferences.size() == 1 && conferences.get(0).getChannelsInConf().size() == 0) {
+					logger.info("1 conference with no participents. remove it");
+					conferences.remove(0);
+					getArity().getCallSupplier().get().setConferences(conferences);
+					return true;
+				}
+				for (int i = 0; i < conferences.size(); i++) {
+					for (int j = 0; j < conferences.get(i).getChannelsInConf().size(); j++) {
+						if (Objects.equals(conferences.get(i).getChannelsInConf().get(j).getId(),
+								channelLeft.getChannel().getId())) {
+							logger.info("removing channel: " + channelLeft.getChannel().getId() + " from conference");
+							conferences.get(i).removeChannelFromConf(channelLeft.getChannel());
+							if (conferences.get(i).getCount() < 2) {
+								logger.info("conference call was completed, remove it from the list");
+								conferences.remove(i);
+								getArity().getCallSupplier().get().setConferences(conferences);
+								return true;
+							}
+						}
+					}
+				}
+				logger.info("no conference contains the channel: " + channelLeft.getChannel().getId());
+				return false;
+			});
+			logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
 
 			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 				logger.info("cancel dial");
@@ -151,91 +178,47 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of Dial_impl_ari_2_0_0.class was added");
 
-		// if the created bridge can be confrence bridge, add it to confrences list
+		// if the created bridge can be conference bridge, add it to conferences list
 		getArity().addFutureEvent(BridgeCreated_impl_ari_2_0_0.class, (bridge) -> {
-			if (!isConference) {
-				logger.info("the bridge is not a conference bridge");
+			if (Objects.nonNull(bridge.getBridge())) {
+				Conference conference = new Conference(UUID.randomUUID().toString(), getArity(), getAri());
+				conference.setConfBridge(bridge.getBridge());
+				logger.info("brige id: " + bridge.getBridge().getId());
+				conference.setCurrState(ConferenceState.Creating);
+				conferences.add(conference);
+				// update call controller conferences list as well
+				getArity().getCallSupplier().get().setConferences(conferences);
+				logger.info("confrence bridge was saved");
 				return true;
-			} else {
-				if (Objects.nonNull(bridge.getBridge())) {
-					String confId = UUID.randomUUID().toString();
-					Conference conference = new Conference(confId, getArity(), getAri());
-					conference.setConfBridge(bridge.getBridge());
-					conference.setCurrState(ConferenceState.Creating);
-					conferences.add(conference);
-					logger.info("confrence bridge was saved");
-					return true;
-				}
-				logger.severe("conference bridge was not created");
-				return false;
 			}
+			logger.severe("conference bridge was not created");
+			return false;
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
-		// notice when the 2 channels entered to the conference bridge
+		// notice when a channel enters the bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
-			if (!isConference) {
-				logger.info("channel is not a part from a conference call");
-				return true;
-			} else {
-				if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
-					for (int i = 0; i < conferences.size(); i++) {
-						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
-							conferences.get(i).addChannelToConf(chanInBridge.getChannel());
-							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
-									+ conferences.get(i).getConfName());
-							return true;
-						}
-					}
-				}
-				return false;
-			}
-		});
-		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
-		
-		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
-			if (!isConference) {
-				logger.info("channel is not a part from a conference call");
-				return true;
-			} else {
-				if (Objects.equals(chanInBridge.getChannel().getId(),getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
-					for (int i = 0; i < conferences.size(); i++) {
-						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
-							conferences.get(i).addChannelToConf(chanInBridge.getChannel());
-							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
-									+ conferences.get(i).getConfName());
-							return true;
-						}
-					}
-				}
-				return false;
-			}
-		});
-		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
-
-		// notice when a channel leaves a bridge
-		getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
-			if (!isConference)
-				return true;
-			else {
+			if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId())
+					|| Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 				for (int i = 0; i < conferences.size(); i++) {
-					if (conferences.get(i).getChannelsInConf().contains(channelLeft.getChannel())) {
-						logger.info("removing channel: " + channelLeft.getChannel().getId() + " from conference");
-						conferences.get(i).removeChannelFromConf(channelLeft.getChannel());
-						if (conferences.get(i).getCount() < 2) {
-							logger.info("conference call was completed, remove it from the list");
-							conferences.remove(i);
+					if (Objects.equals(conferences.get(i).getConfBridge().getId(), chanInBridge.getBridge().getId())) {
+						conferences.get(i).setNewChannel(chanInBridge.getChannel());
+						conferences.get(i).setConfName(name);
+						conferences.get(i).addChannelToConf(chanInBridge.getChannel());
+						logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
+								+ conferences.get(i).getConfName());
+						if (conferences.get(i).getCount() == 2) {
+							conferences.get(i).setCurrState(ConferenceState.Ready);
+							return true;
 						}
-
-					return true;
 					}
 				}
 			}
-			logger.info("no conference contains the channel: " + channelLeft.getChannel().getId());
 			return false;
 		});
-		logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
+		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
 
+		
 		// create the bridge in order to connect between the caller and end point
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
@@ -311,9 +294,10 @@ public class Dial extends CancelableOperations {
 		nestedOperations.add(operation);
 		return this;
 	}
-	
+
 	/**
 	 * get list of conferences
+	 * 
 	 * @return
 	 */
 	public List<Conference> getConferences() {
@@ -322,11 +306,11 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * set list of confernces
+	 * 
 	 * @param conferences
 	 */
 	public void setConferences(List<Conference> conferences) {
 		this.conferences = conferences;
 	}
-
 
 }
