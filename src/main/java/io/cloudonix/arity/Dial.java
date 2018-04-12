@@ -134,7 +134,7 @@ public class Dial extends CancelableOperations {
 			logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
 
 			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
-				if(Objects.equals(dialStatus, "ANSWER")) {
+				if (Objects.equals(dialStatus, "ANSWER")) {
 					cancel();
 					return false;
 				}
@@ -168,6 +168,7 @@ public class Dial extends CancelableOperations {
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
+
 			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 
@@ -198,29 +199,26 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
-		// notice when a channel enters the bridge
+		// notice when the caller enters the bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
-			if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId())
-					|| Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
-				for (int i = 0; i < conferences.size(); i++) {
-					if (Objects.equals(conferences.get(i).getConfBridge().getId(), chanInBridge.getBridge().getId())) {
-						conferences.get(i).setNewChannel(chanInBridge.getChannel());
-						conferences.get(i).setConfName(name);
-						conferences.get(i).addChannelToConf(chanInBridge.getChannel());
-						logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
-								+ conferences.get(i).getConfName());
-						if (conferences.get(i).getCount() == 2) {
-							conferences.get(i).setCurrState(ConferenceState.Ready);
-							return true;
-						}
-					}
-				}
+			if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId())) {
+				logger.info("try adding caller to conference");
+				return channelEnteredBridge(chanInBridge);
 			}
 			return false;
 		});
 		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
 
-		
+		// notice when calle enters the bridge
+		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
+			if (Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
+				logger.info("try to add callee to conference");
+				return channelEnteredBridge(chanInBridge);
+			}
+			return false;
+		});
+		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
+
 		// create the bridge in order to connect between the caller and end point
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
@@ -247,6 +245,25 @@ public class Dial extends CancelableOperations {
 			logger.info("dial succeded!");
 			dialStart = Instant.now().toEpochMilli();
 		}).thenCompose(v -> compFuture);
+	}
+
+	private boolean channelEnteredBridge(ChannelEnteredBridge_impl_ari_2_0_0 chanInBridge) {
+		for (int i = 0; i < conferences.size(); i++) {
+			if (Objects.equals(conferences.get(i).getConfBridge().getId(), chanInBridge.getBridge().getId())) {
+				conferences.get(i).setNewChannel(chanInBridge.getChannel());
+				conferences.get(i).setConfName(name);
+				conferences.get(i).addChannelToConf(chanInBridge.getChannel());
+				logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
+						+ conferences.get(i).getConfName());
+				if (conferences.get(i).getCount() == 2) {
+					conferences.get(i).setCurrState(ConferenceState.Ready);
+					logger.info("conference is ready");
+					return true;
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
