@@ -42,6 +42,7 @@ public class Dial extends CancelableOperations {
 	private boolean isConference = false;
 	private String name = "bridge";
 	private CallController cc;
+	private String dialStatus;
 
 	/**
 	 * Constructor
@@ -120,7 +121,7 @@ public class Dial extends CancelableOperations {
 				return false;
 			}
 
-			if (!isCanceled) {
+			if (!isCanceled || dialStatus.equals("ANSWER")) {
 				// end call timer
 				long end = Instant.now().toEpochMilli();
 
@@ -140,7 +141,7 @@ public class Dial extends CancelableOperations {
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
-			String dialStatus = dial.getDialstatus();
+			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 
 			if (!dialStatus.equals("ANSWER"))
@@ -173,7 +174,7 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
-		// add 2 channels to conference bridge
+		// notice when the 2 channels entered to the conference bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
 			if (!isConference) {
 				logger.info("channel is not a part from a conference call");
