@@ -31,7 +31,7 @@ public class Hangup extends Operation{
 	public CompletableFuture<Hangup> run (){
 		try {
 			// hang up the call
-			getAri().channels().hangup(getId(), "normal");
+			getAri().channels().hangup(getChannelId(), "normal");
 		} catch (RestException e) {
 			logger.warning("failed hang up the call");
 			return completedExceptionally(new HangUpException(e));

@@ -109,7 +109,7 @@ public class Dial extends CancelableOperations {
 
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
 
-			if (hangup.getChannel().getId().equals(getId()) && !isCanceled) {
+			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 				logger.info("cancel dial");
 				isCanceled = true;
 				cancel();
@@ -179,7 +179,7 @@ public class Dial extends CancelableOperations {
 				logger.info("channel is not a part from a conference call");
 				return true;
 			} else {
-				if (Objects.equals(chanInBridge.getChannel().getId(), getId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
+				if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 					for (int i = 0; i < conferences.size(); i++) {
 						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
 							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
@@ -199,7 +199,7 @@ public class Dial extends CancelableOperations {
 				logger.info("channel is not a part from a conference call");
 				return true;
 			} else {
-				if (Objects.equals(chanInBridge.getChannel().getId(), getId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
+				if (Objects.equals(chanInBridge.getChannel().getId(),getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 					for (int i = 0; i < conferences.size(); i++) {
 						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
 							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
@@ -241,18 +241,18 @@ public class Dial extends CancelableOperations {
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
 			try {
-				getAri().bridges().addChannel(bridge.getId(), getId(), "caller");
-				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getId());
+				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
+				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 
 				getAri().channels().create(endPointNumber, getArity().getAppName(), null, endPointChannelId, null,
-						getId(), null);
+						getChannelId(), null);
 				logger.info("end point channel was created. Channel id: " + endPointChannelId);
 
 				getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 				logger.info("end point channel was added to the bridge");
 
 				return this.<Void>toFuture(dial -> {
-					getAri().channels().dial(endPointChannelId, getId(), 60000, dial);
+					getAri().channels().dial(endPointChannelId, getChannelId(), 60000, dial);
 				});
 
 			} catch (RestException e2) {
