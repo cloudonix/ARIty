@@ -14,11 +14,11 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
 
 public class Conference extends Operation {
-	
-	public enum ConferenceState
-    {
-        Destroyed, Destroying ,Creating, Ready, ReadyWaiting, Muted, AdminMuted 
-    }
+
+	public enum ConferenceState {
+		Destroyed, Destroying, Creating, Ready, ReadyWaiting, Muted, AdminMuted
+	}
+
 	private ARIty arity;
 	private CompletableFuture<Conference> compFuture;
 	private ConferenceState currState;
@@ -26,11 +26,11 @@ public class Conference extends Operation {
 	private String confName;
 	private int count = 0;
 	private List<Channel> channelsInConf;
+	private Channel newChannel = null;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
-	
-	public Conference(String confId, ARIty a, ARI ari) {
-		super(confId, a, ari);
+	public Conference(String id, ARIty a, ARI ari) {
+		super(id, a, ari);
 		arity = a;
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
@@ -38,127 +38,175 @@ public class Conference extends Operation {
 
 	@Override
 	public CompletableFuture<? extends Operation> run() {
-		/*if(Objects.equals(currState, ConferenceState.Ready)) {
-			return this.<Void>toFuture(addChannel-> addChannelToConf(channel , getArity().getCallSupplier().get()))
-					.thenAccept(v->{
-						for(int i = 0; i <channelsInConf.size(); i++) {
-							getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge)-> {
-								removeChannelFromConf(channelsInConf.get(i));
-								if(channelsInConf.size() < 2) {
-									logger.info("conference must contain at least 2 participantes. closing the conference");
-									compFuture.complete(this);
+		if (Objects.equals(currState, ConferenceState.Ready)) {
+			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel, getArity().getCallSupplier().get()))
+					.thenAccept(v -> {
+						for (int i = 0; i < channelsInConf.size(); i++) {
+							arity.addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
+								if (channelsInConf.contains(chanLeftBridge.getChannel())) {
+									removeChannelFromConf(chanLeftBridge.getChannel());
+									if (channelsInConf.size() < 2) {
+										logger.info("conference must contain at least 2 participantes. closing the conference");
+										//update the list of active conferences
+										currState = ConferenceState.Destroying;
+										List<Conference> conferences = arity.getCallSupplier().get().getConferences();
+										conferences.remove(this);
+										arity.getCallSupplier().get().setConferences(conferences);
+										compFuture.complete(this);
+									}
+									return true;
 								}
+								return false;
 							});
 						}
-					}).thenCompose(v->compFuture);
-					
-		}*/
+					}).thenCompose(v -> compFuture);
+		}
+		logger.severe("cannot join conference that is not ready");
 		return null;
 	}
-	
+
 	/**
 	 * get conference currenr state
+	 * 
 	 * @return
 	 */
 	public ConferenceState getCurrState() {
 		return currState;
 	}
-	
+
 	/**
 	 * set conference state
-	 * @param currState  update sate of conference
-	 * 	 */
+	 * 
+	 * @param currState
+	 *            update sate of conference
+	 */
 	public void setCurrState(ConferenceState currState) {
 		this.currState = currState;
 	}
+
 	/**
 	 * get conference bridge
+	 * 
 	 * @return
 	 */
 	public Bridge getConfBridge() {
 		return confBridge;
 	}
+
 	/**
 	 * set conference bridge
+	 * 
 	 * @return
 	 */
 	public void setConfBridge(Bridge confBridge) {
 		this.confBridge = confBridge;
 	}
+
 	/**
 	 * get conference name
+	 * 
 	 * @return
 	 */
 	public String getConfName() {
 		return confName;
 	}
+
 	/**
 	 * set conference name
+	 * 
 	 * @return
 	 */
 	public void setConfName(String confName) {
 		this.confName = confName;
 	}
-	
+
 	/**
 	 * get number of channels in conference
+	 * 
 	 * @return
 	 */
 	public int getCount() {
 		return count;
 	}
+
 	/**
 	 * set number of channels in conference
+	 * 
 	 * @return
 	 */
 	public void setCount(int count) {
 		this.count = count;
 	}
-	
+
 	/**
 	 * get list of channels connected to the conference bridge
+	 * 
 	 * @return
 	 */
 	public List<Channel> getChannelsInConf() {
 		return channelsInConf;
 	}
+
 	/**
 	 * set list of channels connected to the conference bridge
+	 * 
 	 * @return
 	 */
 	public void setChannelsInConf(List<Channel> channelsInConf) {
 		this.channelsInConf = channelsInConf;
 	}
+
+	/**
+	 * get the channel we want to add to the conference
+	 * 
+	 * @return
+	 */
+	public Channel getNewChannel() {
+		return newChannel;
+	}
+
+	/**
+	 * set the channel we want to add to the conference
+	 * 
+	 * @param newChannel
+	 */
+	public void setNewChannel(Channel newChannel) {
+		this.newChannel = newChannel;
+	}
+
 	/**
 	 * add channel to the conference
+	 * 
 	 * @param channel
 	 * @param cc
 	 */
-	public void addChannelToConf (Channel channel, CallController cc) {
+	public void addChannelToConf(Channel channel, CallController cc) {
 		try {
 			cc.getAri().bridges().addChannel(confBridge.getId(), channel.getId(), "joining conference");
 		} catch (RestException e) {
-			logger.severe("unable to add channel to conference " +ErrorStream.fromThrowable(e));
+			logger.severe("unable to add channel to conference " + ErrorStream.fromThrowable(e));
 			return;
 		}
 		channelsInConf.add(channel);
 		count++;
-		
-		if(count == 1) {
+
+		if (count == 1) {
 			logger.info("channel joind to conference and it is the only one channel in it");
 			new Play(cc, "conf-onlyperson").run();
-		}
-		else {
+		} else {
 			logger.info("channel joind to conference");
-			//play to all channels in the bridge- new PlayBridge class and in run method: 
-			//getAri().bridges().play(getBridgeId(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,playbackId, new AriCallback<Playback>() {
+			// play to all channels in the bridge- new PlayBridge class and in run method:
+			// getAri().bridges().play(getBridgeId(), fullPath,
+			// callStasisStart.getChannel().getLanguage(), 0, 0,playbackId, new
+			// AriCallback<Playback>() {
 		}
-		if(count == 2)
+		if (count == 2)
 			currState = ConferenceState.Ready;
 	}
-	
+
 	/**
 	 * remove channel that left the conference
+	 * 
 	 * @param channel
 	 */
 	public void removeChannelFromConf(Channel channel) {
@@ -170,6 +218,5 @@ public class Conference extends Operation {
 			compFuture.complete(this);
 		}
 	}
-
 
 }
