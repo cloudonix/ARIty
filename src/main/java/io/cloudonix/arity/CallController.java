@@ -253,6 +253,22 @@ public abstract class CallController implements Runnable {
 	public void setConferences(List<Conference> conferences) {
 		this.conferences = conferences;
 	}
+	
+	/**
+	 * check if there is a conference with a specific name
+	 * @param name name of the conference we are looking for
+	 * @return
+	 */
+	public boolean isConferenceWithName (String name) {
+		for(int i=0; i<conferences.size(); i++) {
+			if(Objects.equals(conferences.get(i).getConfName(), name)) {
+				logger.info("conference with name: " +name+ " exists");
+				return true;
+			}
+		}
+		logger.info("np conference with name: "+ name);
+		return false;
+	}
 
 
 }
