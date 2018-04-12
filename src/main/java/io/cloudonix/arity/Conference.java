@@ -19,7 +19,6 @@ public class Conference extends Operation {
 		Destroyed, Destroying, Creating, Ready, ReadyWaiting, Muted, AdminMuted
 	}
 
-	private ARIty arity;
 	private CompletableFuture<Conference> compFuture;
 	private ConferenceState currState;
 	private Bridge confBridge;
@@ -27,13 +26,10 @@ public class Conference extends Operation {
 	private int count = 0;
 	private List<Channel> channelsInConf;
 	private Channel newChannel = null;
-	private ARI ari;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
 	public Conference(String id, ARIty arity, ARI ari) {
 		super(id, arity, ari);
-		this.ari = ari;
-		this.arity = arity;
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 	}
@@ -41,27 +37,26 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<? extends Operation> run() {
 		if (Objects.equals(currState, ConferenceState.Ready)) {
-			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel))
-					.thenAccept(v -> {
-						for (int i = 0; i < channelsInConf.size(); i++) {
-							arity.addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
-								if (channelsInConf.contains(chanLeftBridge.getChannel())) {
-									removeChannelFromConf(chanLeftBridge.getChannel());
-									if (channelsInConf.size() < 2) {
-										logger.info("conference must contain at least 2 participantes. closing the conference");
-										//update the list of active conferences
-										currState = ConferenceState.Destroying;
-										List<Conference> conferences = arity.getCallSupplier().get().getConferences();
-										conferences.remove(this);
-										arity.getCallSupplier().get().setConferences(conferences);
-										compFuture.complete(this);
-									}
-									return true;
-								}
-								return false;
-							});
+			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
+				for (int i = 0; i < channelsInConf.size(); i++) {
+					getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
+						if (channelsInConf.contains(chanLeftBridge.getChannel())) {
+							removeChannelFromConf(chanLeftBridge.getChannel());
+							if (channelsInConf.size() < 2) {
+								logger.info("conference must contain at least 2 participantes. closing the conference");
+								// update the list of active conferences
+								currState = ConferenceState.Destroying;
+								List<Conference> conferences = getArity().getCallSupplier().get().getConferences();
+								conferences.remove(this);
+								getArity().getCallSupplier().get().setConferences(conferences);
+								compFuture.complete(this);
+							}
+							return true;
 						}
-					}).thenCompose(v -> compFuture);
+						return false;
+					});
+				}
+			}).thenCompose(v -> compFuture);
 		}
 		logger.severe("cannot join conference that is not ready");
 		return null;
@@ -194,7 +189,7 @@ public class Conference extends Operation {
 
 		if (count == 1) {
 			logger.info("channel joined to conference and it is the only in it");
-		//	new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
+			// new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
 		} else {
 			logger.info("channel joined to conference");
 			// play to all channels in the bridge- new PlayBridge class and in run method:
