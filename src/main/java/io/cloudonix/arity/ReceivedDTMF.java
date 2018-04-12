@@ -73,7 +73,7 @@ public class ReceivedDTMF extends Operation {
 
 		}
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
-			if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
+			if (!(dtmf.getChannel().getId().equals(getId()))) {
 				return false;
 			}
 
