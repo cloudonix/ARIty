@@ -247,6 +247,11 @@ public class Dial extends CancelableOperations {
 		}).thenCompose(v -> compFuture);
 	}
 
+	/**
+	 * handle a channel entered bridge event
+	 * @param chanInBridge instance of channelEnteredBridge event 
+	 * @return
+	 */
 	private boolean channelEnteredBridge(ChannelEnteredBridge_impl_ari_2_0_0 chanInBridge) {
 		for (int i = 0; i < conferences.size(); i++) {
 			if (Objects.equals(conferences.get(i).getConfBridge().getId(), chanInBridge.getBridge().getId())) {
