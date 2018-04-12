@@ -266,7 +266,7 @@ public abstract class CallController implements Runnable {
 				return true;
 			}
 		}
-		logger.info("np conference with name: "+ name);
+		logger.info("no conference with name: "+ name);
 		return false;
 	}
 
