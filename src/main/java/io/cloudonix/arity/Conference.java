@@ -27,11 +27,13 @@ public class Conference extends Operation {
 	private int count = 0;
 	private List<Channel> channelsInConf;
 	private Channel newChannel = null;
+	private ARI ari;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
-	public Conference(String id, ARIty a, ARI ari) {
-		super(id, a, ari);
-		arity = a;
+	public Conference(String id, ARIty arity, ARI ari) {
+		super(id, arity, ari);
+		this.ari = ari;
+		this.arity = arity;
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 	}
@@ -39,7 +41,7 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<? extends Operation> run() {
 		if (Objects.equals(currState, ConferenceState.Ready)) {
-			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel, getArity().getCallSupplier().get()))
+			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel))
 					.thenAccept(v -> {
 						for (int i = 0; i < channelsInConf.size(); i++) {
 							arity.addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
@@ -180,9 +182,9 @@ public class Conference extends Operation {
 	 * @param channel
 	 * @param cc
 	 */
-	public void addChannelToConf(Channel channel, CallController cc) {
+	public void addChannelToConf(Channel channel) {
 		try {
-			cc.getAri().bridges().addChannel(confBridge.getId(), channel.getId(), "joining conference");
+			ari.bridges().addChannel(confBridge.getId(), channel.getId(), "joining conference");
 		} catch (RestException e) {
 			logger.severe("unable to add channel to conference " + ErrorStream.fromThrowable(e));
 			return;
@@ -192,7 +194,7 @@ public class Conference extends Operation {
 
 		if (count == 1) {
 			logger.info("channel joind to conference and it is the only one channel in it");
-			new Play(cc, "conf-onlyperson").run();
+			new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
 		} else {
 			logger.info("channel joind to conference");
 			// play to all channels in the bridge- new PlayBridge class and in run method:

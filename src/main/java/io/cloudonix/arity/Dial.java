@@ -41,7 +41,6 @@ public class Dial extends CancelableOperations {
 	private List<Conference> conferences;
 	private boolean isConference = false;
 	private String name = "bridge";
-	private CallController cc;
 	private String dialStatus;
 
 	/**
@@ -54,7 +53,6 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String number) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		cc = callController;
 		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
 		nestedOperations = new ArrayList<>();
@@ -183,7 +181,7 @@ public class Dial extends CancelableOperations {
 				if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 					for (int i = 0; i < conferences.size(); i++) {
 						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
-							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
+							conferences.get(i).addChannelToConf(chanInBridge.getChannel());
 							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
 									+ conferences.get(i).getConfName());
 							return true;
@@ -203,7 +201,7 @@ public class Dial extends CancelableOperations {
 				if (Objects.equals(chanInBridge.getChannel().getId(),getChannelId()) || Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
 					for (int i = 0; i < conferences.size(); i++) {
 						if (Objects.equals(conferences.get(i).getConfBridge(), chanInBridge.getBridge())) {
-							conferences.get(i).addChannelToConf(chanInBridge.getChannel(), cc);
+							conferences.get(i).addChannelToConf(chanInBridge.getChannel());
 							logger.info("channel: " + chanInBridge.getChannel().getId() + " was added to confrence: "
 									+ conferences.get(i).getConfName());
 							return true;
