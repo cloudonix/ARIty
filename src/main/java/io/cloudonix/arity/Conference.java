@@ -17,7 +17,7 @@ import io.cloudonix.arity.errors.ErrorStream;
  * @author naamag
  *
  */
-public class Conference extends Operation {
+public class Conference extends CancelableOperations {
 
 	public enum ConferenceState {
 		Destroyed, Destroying, Creating, Ready, ReadyWaiting, Muted, AdminMuted
@@ -226,6 +226,11 @@ public class Conference extends Operation {
 			currState = ConferenceState.Destroying;
 			compFuture.complete(this);
 		}
+	}
+
+	@Override
+	void cancel() {
+		// to be completed..
 	}
 
 }

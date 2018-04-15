@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
@@ -36,7 +35,7 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private long mediaLenStart = 0;
 	private boolean isCanceled = false;
-	private List<Operation> nestedOperations;
+	private List<CancelableOperations> nestedOperations;
 	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private List<Conference> conferences;
@@ -313,7 +312,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 
-	public Dial and(Operation operation) {
+	public Dial and(CancelableOperations operation) {
 		nestedOperations.add(operation);
 		return this;
 	}
