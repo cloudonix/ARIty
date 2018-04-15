@@ -103,7 +103,6 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 
 		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-
 			// notice when a channel leaves a bridge after a hang up occurred
 			getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
 				if (conferences.size() == 1 && conferences.get(0).getChannelsInConf().size() == 0) {
