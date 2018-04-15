@@ -32,6 +32,12 @@ public class Conference extends Operation {
 	private Channel newChannel = null;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
+	/**
+	 * COnstructor
+	 * @param id  id of the conference
+	 * @param arity instance of ARIty
+	 * @param ari instance of ARI
+	 */
 	public Conference(String id, ARIty arity, ARI ari) {
 		super(id, arity, ari);
 		channelsInConf = new ArrayList<>();
