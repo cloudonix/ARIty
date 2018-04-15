@@ -162,6 +162,16 @@ public abstract class CallController implements Runnable {
 		conferences = dial.getConferences();
 		return dial;
 	}
+	/**
+	 * the method creates a new Conference
+	 * @param confId id of the conference
+	 * @param ari ari instance
+	 * @param arity arity instance
+	 * @return
+	 */
+	public Conference conference (String confId, ARI ari, ARIty arity) {
+		return new Conference(confId, arity,ari);
+	}
 
 	/**
 	 * the method verifies that the call is always hangs up, even if an error
