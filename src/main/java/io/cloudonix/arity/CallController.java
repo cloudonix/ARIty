@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -175,7 +176,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Conference conference() {
-		return new Conference(getChannel().getId(), arity, ari);
+		return new Conference(UUID.randomUUID().toString(), arity, ari);
 	}
 
 	/**
