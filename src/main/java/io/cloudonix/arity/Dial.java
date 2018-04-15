@@ -334,5 +334,21 @@ public class Dial extends CancelableOperations {
 	public void setConferences(List<Conference> conferences) {
 		this.conferences = conferences;
 	}
+	
+	/**
+	 * get the number we are calling to
+	 * @return
+	 */
+	public String getEndPointNumber() {
+		return endPointNumber;
+	}
+
+	/**
+	 * set the number we are calling to
+	 * @param endPointNumber
+	 */
+	public void setEndPointNumber(String endPointNumber) {
+		this.endPointNumber = endPointNumber;
+	}
 
 }
