@@ -42,10 +42,6 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<? extends Operation> run() {
 		if (Objects.equals(currState, ConferenceState.Ready)) {
-			// update the list of active conferences
-			List<Conference> updateConf = getArity().getCallSupplier().get().getConferences();
-			updateConf.add(this);
-			getArity().getCallSupplier().get().setConferences(updateConf);
 			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
 				for (int i = 0; i < channelsInConf.size(); i++) {
 					// notice when a channel left a conference bridge
