@@ -36,13 +36,19 @@ public class Conference extends Operation {
 		super(id, arity, ari);
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
+		currState = ConferenceState.Creating;
 	}
 
 	@Override
 	public CompletableFuture<? extends Operation> run() {
 		if (Objects.equals(currState, ConferenceState.Ready)) {
+			// update the list of active conferences
+			List<Conference> updateConf = getArity().getCallSupplier().get().getConferences();
+			updateConf.add(this);
+			getArity().getCallSupplier().get().setConferences(updateConf);
 			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
 				for (int i = 0; i < channelsInConf.size(); i++) {
+					// notice when a channel left a conference bridge
 					getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
 						if (channelsInConf.contains(chanLeftBridge.getChannel())) {
 							removeChannelFromConf(chanLeftBridge.getChannel());

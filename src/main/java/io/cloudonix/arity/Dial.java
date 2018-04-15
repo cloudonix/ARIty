@@ -187,10 +187,7 @@ public class Dial extends CancelableOperations {
 				Conference conference = new Conference(UUID.randomUUID().toString(), getArity(), getAri());
 				conference.setConfBridge(bridge.getBridge());
 				logger.info("brige id: " + bridge.getBridge().getId());
-				conference.setCurrState(ConferenceState.Creating);
 				conferences.add(conference);
-				// update call controller conferences list as well
-				getArity().getCallSupplier().get().setConferences(conferences);
 				logger.info("confrence bridge was saved");
 				return true;
 			}
@@ -262,6 +259,8 @@ public class Dial extends CancelableOperations {
 						+ conferences.get(i).getConfName());
 				if (conferences.get(i).getCount() == 2) {
 					conferences.get(i).setCurrState(ConferenceState.Ready);
+					// update call controller conferences list as well
+					getArity().getCallSupplier().get().setConferences(conferences);
 					logger.info("conference is ready");
 					return true;
 				}
