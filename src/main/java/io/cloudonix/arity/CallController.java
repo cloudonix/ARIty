@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -27,6 +28,7 @@ public abstract class CallController implements Runnable {
 	private ARI ari;
 	private String channelID;
 	private ARIty arity;
+	private Channel channel;
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
@@ -43,9 +45,9 @@ public abstract class CallController implements Runnable {
 	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-
 		callStasisStart = ss;
 		channelID = ss.getChannel().getId();
+		channel = ss.getChannel();
 		ari = a;
 		this.arity = ARIty;
 		addedSipHeaders = new HashMap<String, String>();
@@ -145,32 +147,35 @@ public abstract class CallController implements Runnable {
 		Dial dial = new Dial(this, number);
 		conferences = dial.getConferences();
 		return dial;
-		
+
 	}
-	
+
 	/**
 	 * the method created new Dial operation
 	 * 
 	 * @param number
 	 *            the number of the endpoint (who are we calling to)
-	 * @param conf the call will be available for a conference call (true if yes, otherwise if false)
-	 * @param confName name of the conference (bridge)
+	 * @param conf
+	 *            the call will be available for a conference call (true if yes,
+	 *            otherwise if false)
+	 * @param confName
+	 *            name of the conference (bridge)
 	 * @return
 	 */
 	public Dial dial(String number, String confName) {
-		Dial dial = new Dial(this, number,confName);
+		Dial dial = new Dial(this, number, confName);
 		conferences = dial.getConferences();
 		return dial;
 	}
+
 	/**
 	 * the method creates a new Conference
-	 * @param confId id of the conference
-	 * @param ari ari instance
-	 * @param arity arity instance
+	 * 
+	 *
 	 * @return
 	 */
-	public Conference conference (String confId, ARI ari, ARIty arity) {
-		return new Conference(confId, arity,ari);
+	public Conference conference() {
+		return new Conference(getChannel().getId(), arity, ari);
 	}
 
 	/**
@@ -198,17 +203,20 @@ public abstract class CallController implements Runnable {
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
-		return this.<Variable>futureFromAriCallBack(cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER(" + headerName + ")", cb))
+		return this
+				.<Variable>futureFromAriCallBack(
+						cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
-				}).exceptionally(t->{
-					logger.fine("unable to find header: " +headerName);
+				}).exceptionally(t -> {
+					logger.fine("unable to find header: " + headerName);
 					return null;
 				});
 	}
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
+	 * 
 	 * @param consumer
 	 * @return
 	 */
@@ -238,47 +246,69 @@ public abstract class CallController implements Runnable {
 	/**
 	 * add a sip header
 	 * 
-	 * @param headerName the name of the header, for example: (To)
-	 * @param headerValue the value of the header
+	 * @param headerName
+	 *            the name of the header, for example: (To)
+	 * @param headerValue
+	 *            the value of the header
 	 * @throws RestException
 	 */
 	public void addSipHeader(String headerName, String headerValue) throws RestException {
 		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
 		addedSipHeaders.put("SIP_HEADER(" + headerName + ")", headerValue);
 	}
-	
-	/** 
+
+	/**
 	 * get list of conference calls
+	 * 
 	 * @return
 	 */
 	public List<Conference> getConferences() {
 		return conferences;
 	}
-	
-	/** 
+
+	/**
 	 * set list of conference calls
-	 * @param conferences update list of conference calls
+	 * 
+	 * @param conferences
+	 *            update list of conference calls
 	 * @return
 	 */
 	public void setConferences(List<Conference> conferences) {
 		this.conferences = conferences;
 	}
-	
+
 	/**
 	 * check if there is a conference with a specific name
-	 * @param name name of the conference we are looking for
+	 * 
+	 * @param name
+	 *            name of the conference we are looking for
 	 * @return
 	 */
-	public boolean isConferenceWithName (String name) {
-		for(int i=0; i<conferences.size(); i++) {
-			if(Objects.equals(conferences.get(i).getConfName(), name)) {
-				logger.info("conference with name: " +name+ " exists");
+	public boolean isConferenceWithName(String name) {
+		for (int i = 0; i < conferences.size(); i++) {
+			if (Objects.equals(conferences.get(i).getConfName(), name)) {
+				logger.info("conference with name: " + name + " exists");
 				return true;
 			}
 		}
-		logger.info("no conference with name: "+ name);
+		logger.info("no conference with name: " + name);
 		return false;
 	}
 
+	/**
+	 * get the channel of the call
+	 * @return
+	 */
+	public Channel getChannel() {
+		return channel;
+	}
+
+	/**
+	 * set the channel of the call
+	 * @param channel channel to update
+	 */
+	public void setChannel(Channel channel) {
+		this.channel = channel;
+	}
 
 }
