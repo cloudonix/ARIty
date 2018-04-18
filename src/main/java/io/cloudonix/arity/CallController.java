@@ -311,5 +311,13 @@ public abstract class CallController implements Runnable {
 	public void setChannel(Channel channel) {
 		this.channel = channel;
 	}
+	
+	/**
+	 * the method return the extension from the dialplan
+	 * @return
+	 */
+	public String getExtension () {
+		return callStasisStart.getChannel().getDialplan().getExten();
+	}
 
 }
