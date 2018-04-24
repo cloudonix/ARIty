@@ -319,5 +319,13 @@ public abstract class CallController implements Runnable {
 	public String getExtension () {
 		return callStasisStart.getChannel().getDialplan().getExten();
 	}
+	
+	/**
+	 * get the call controller in order to give it to another call controller
+	 * @return
+	 */
+	public CallController handOverCall() {
+		return this;
+	}
 
 }
