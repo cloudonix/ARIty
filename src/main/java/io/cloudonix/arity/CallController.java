@@ -323,5 +323,13 @@ public abstract class CallController implements Runnable {
 	public CallController handOverCall() {
 		return this;
 	}
+	
+	public CallState getState() {
+		return state;
+	}
+
+	public void setState(CallState state) {
+		this.state = state;
+	}
 
 }
