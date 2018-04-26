@@ -25,11 +25,7 @@ import ch.loway.oss.ari4java.tools.RestException;
  */
 public abstract class CallController implements Runnable {
 
-	private StasisStart callStasisStart;
-	private ARI ari;
-	private String channelID;
-	private ARIty arity;
-	private Channel channel;
+	private CallState state = new CallState();
 	// sip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
@@ -46,11 +42,11 @@ public abstract class CallController implements Runnable {
 	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-		callStasisStart = ss;
-		channelID = ss.getChannel().getId();
-		channel = ss.getChannel();
-		ari = a;
-		this.arity = ARIty;
+		state.setCallStasisStart(ss);
+		state.setAri(a);
+		state.setArity(ARIty);
+		state.setChannel(ss.getChannel());
+		state.setChannelID(ss.getChannel().getId());
 		addedSipHeaders = new HashMap<String, String>();
 	}
 
@@ -60,7 +56,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public StasisStart getCallStasisStart() {
-		return callStasisStart;
+		return state.getCallStasisStart();
 	}
 
 	/**
@@ -69,7 +65,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public ARI getAri() {
-		return ari;
+		return state.getAri();
 	}
 
 	/**
@@ -78,7 +74,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public ARIty getARItyService() {
-		return arity;
+		return state.getArity();
 	}
 
 	/**
@@ -87,7 +83,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getChannelID() {
-		return channelID;
+		return state.getChannelID();
 	}
 
 	/**
@@ -176,7 +172,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Conference conference() {
-		return new Conference(UUID.randomUUID().toString(), arity, ari);
+		return new Conference(UUID.randomUUID().toString(), state.getArity(), state.getAri());
 	}
 
 	/**
@@ -206,7 +202,7 @@ public abstract class CallController implements Runnable {
 	public CompletableFuture<String> getSipHeader(String headerName) {
 		return this
 				.<Variable>futureFromAriCallBack(
-						cb -> ari.channels().getChannelVar(channelID, "SIP_HEADER(" + headerName + ")", cb))
+						cb -> state.getAri().channels().getChannelVar(state.getChannelID(), "SIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -301,7 +297,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Channel getChannel() {
-		return channel;
+		return state.getChannel();
 	}
 
 	/**
@@ -309,7 +305,7 @@ public abstract class CallController implements Runnable {
 	 * @param channel channel to update
 	 */
 	public void setChannel(Channel channel) {
-		this.channel = channel;
+		state.setChannel(channel);
 	}
 	
 	/**
@@ -317,7 +313,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getExtension () {
-		return callStasisStart.getChannel().getDialplan().getExten();
+		return state.getCallStasisStart().getChannel().getDialplan().getExten();
 	}
 	
 	/**
