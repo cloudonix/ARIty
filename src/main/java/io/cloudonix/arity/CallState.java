@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -20,7 +21,7 @@ public class CallState {
 	private String channelID;
 	private ARIty arity;
 	private Channel channel;
-	private Map<String, Object> metaData;
+	private Map<String, Object> metaData = new HashMap<>();
 
 	public StasisStart getCallStasisStart() {
 		return callStasisStart;
