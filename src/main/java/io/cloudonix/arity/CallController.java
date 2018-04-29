@@ -26,8 +26,9 @@ import ch.loway.oss.ari4java.tools.RestException;
 public abstract class CallController implements Runnable {
 
 	private CallState state = new CallState();
-	// sip headers that were added by request, not part of the existing headers
+	// save sip/pjsip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
+	private Map<String, String> addedPJSipHeaders = null;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 	private List<Conference> conferences = null;
 
@@ -210,6 +211,40 @@ public abstract class CallController implements Runnable {
 					logger.fine("unable to find header: " + headerName);
 					return null;
 				});
+	}
+	
+	/**
+	 * get the value of a specific PJSIP header
+	 * 
+	 * @param headerName
+	 *            the name of the header, for example: To
+	 * @return
+	 * @throws RestException
+	 */
+	public CompletableFuture<String> getPJSipHeader(String headerName) {
+		return this
+				.<Variable>futureFromAriCallBack(
+						cb -> state.getAri().channels().getChannelVar(state.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
+				.thenApply(v -> {
+					return v.getValue();
+				}).exceptionally(t -> {
+					logger.fine("unable to find header: " + headerName);
+					return null;
+				});
+	}
+	
+	/**
+	 * add a PJSIP header
+	 * 
+	 * @param headerName
+	 *            the name of the header
+	 * @param headerValue
+	 *            the value of the header
+	 * @throws RestException
+	 */
+	public void addPJSipHeader(String headerName, String headerValue) throws RestException {
+		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
+		addedPJSipHeaders.put("PJSIP_HEADER(" + headerName + ")", headerValue);
 	}
 
 	/**
