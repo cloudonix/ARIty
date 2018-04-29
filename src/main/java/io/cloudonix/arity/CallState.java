@@ -21,6 +21,8 @@ public class CallState {
 	private String channelID;
 	private ARIty arity;
 	private Channel channel;
+	private String channelTechnology;
+
 	private Map<String, Object> metaData = new HashMap<>();
 
 	public StasisStart getCallStasisStart() {
@@ -99,6 +101,23 @@ public class CallState {
 				return (T) entry.getValue();
 		}
 		return null;
+	}
+	
+	/**
+	 * get channel technology. ex: SIP, PJSIP
+	 * @return
+	 */
+	public String getChannelTechnology() {
+		return channelTechnology;
+	}
+	
+	/**
+	 * set the channel technology. ex: SIP, PJSIP
+	 */
+	public void setChannelTechnology() {
+		String channName = channel.getName();
+		String[] parts = channName.split("/");
+		channelTechnology = parts[0];
 	}
 
 }
