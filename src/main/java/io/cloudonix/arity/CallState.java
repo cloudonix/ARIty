@@ -3,8 +3,6 @@ package io.cloudonix.arity;
 import java.util.Map;
 import java.util.Objects;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
