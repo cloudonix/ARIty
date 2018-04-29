@@ -47,6 +47,7 @@ public abstract class CallController implements Runnable {
 		state.setArity(ARIty);
 		state.setChannel(ss.getChannel());
 		state.setChannelID(ss.getChannel().getId());
+		state.setChannelTechnology();
 		addedSipHeaders = new HashMap<String, String>();
 	}
 
@@ -330,6 +331,78 @@ public abstract class CallController implements Runnable {
 
 	public void setState(CallState state) {
 		this.state = state;
+	}
+	
+	/**
+	 * return account code of the channel (information about the channel)
+	 * 
+	 * @return
+	 */
+	public String getAccountCode() {
+		return state.getChannel().getAccountcode();
+	}
+
+	/**
+	 * get the caller (whom is calling)
+	 * 
+	 * @return
+	 */
+	public String getCallerIdNumber() {
+		return state.getChannel().getCaller().getNumber();
+	}
+
+	/**
+	 * get the name of the channel (for example: SIP/myapp-000001)
+	 * 
+	 * @return
+	 */
+	public String getChannelName() {
+		return state.getChannel().getName();
+	}
+
+	/**
+	 * return channel state
+	 * 
+	 * @return
+	 */
+	public String getChannelState() {
+		return state.getChannel().getState();
+	}
+
+	/**
+	 * get channel creation time
+	 * 
+	 * @return
+	 */
+	public String getChannelCreationTime() {
+		return state.getChannel().getCreationtime().toString();
+	}
+
+
+	/**
+	 * return dialplan context (for example: ari-context)
+	 * 
+	 * @return
+	 */
+	public String getDialplanContext() {
+		return state.getChannel().getDialplan().getContext();
+	}
+
+	/**
+	 * get the dialplan extention (the dialed number)
+	 * 
+	 * @return
+	 */
+	public String getDialplanExten() {
+		return state.getChannel().getDialplan().getExten();
+	}
+
+	/**
+	 * get the dialplan priority
+	 * @return
+	 */
+	public long getPriority() {
+		return state.getChannel().getDialplan().getPriority();
 	}
 
 }

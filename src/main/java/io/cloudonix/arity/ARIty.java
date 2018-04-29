@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -40,7 +39,6 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
-	private Channel callChannel = null;
 
 	/**
 	 * Constructor
@@ -159,7 +157,6 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("asterisk id: " + event.getAsterisk_id());
 
 			StasisStart ss = (StasisStart) event;
-			callChannel = ss.getChannel();
 			
 			// if the list contains the stasis start event with this channel id, remove it and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
@@ -264,110 +261,6 @@ public class ARIty implements AriCallback<Message> {
 		return ari.getUrl();
 	}
 
-	/**
-	 * return account code of the channel (information about the channel)
-	 * 
-	 * @return
-	 */
-	public String getAccountCode() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getAccountcode();
-
-		return null;
-	}
-
-	/**
-	 * get the caller (whom is calling)
-	 * 
-	 * @return
-	 */
-	public String getCallerIdNumber() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getCaller().getNumber();
-
-		return null;
-	}
-
-	/**
-	 * get the name of the channel (for example: SIP/myapp-000001)
-	 * 
-	 * @return
-	 */
-	public String getChannelName() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getName();
-
-		return null;
-	}
-
-	/**
-	 * return channel state
-	 * 
-	 * @return
-	 */
-	public String getChannelState() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getState();
-
-		return null;
-	}
-
-	/**
-	 * get channel creation time
-	 * 
-	 * @return
-	 */
-	public String getChannelCreationTime() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getCreationtime().toString();
-
-		return null;
-	}
-
-	/**
-	 * get channel id
-	 * 
-	 * @return
-	 */
-	public String getChannelID() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getId();
-
-		return null;
-	}
-
-	/**
-	 * return dialplan context (for example: ari-context)
-	 * 
-	 * @return
-	 */
-	public String getDialplanContext() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getDialplan().getContext();
-		return null;
-	}
-
-	/**
-	 * get the dialplan extention (the dialed number)
-	 * 
-	 * @return
-	 */
-	public String getDialplanExten() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getDialplan().getExten();
-		return null;
-	}
-
-	/**
-	 * get the dialplan priority
-	 * @return
-	 */
-	public long getPriority() {
-		if (Objects.nonNull(callChannel))
-			return callChannel.getDialplan().getPriority();
-		return -1;
-	}
-	
 	/**
 	 * get call supplier 
 	 * @return
