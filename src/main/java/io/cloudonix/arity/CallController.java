@@ -334,7 +334,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getExtension () {
-		return state.getCallStasisStart().getChannel().getDialplan().getExten();
+		return state.getChannel().getDialplan().getExten();
 	}
 	
 	/**
