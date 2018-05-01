@@ -25,7 +25,7 @@ import ch.loway.oss.ari4java.tools.RestException;
  */
 public abstract class CallController implements Runnable {
 
-	private CallState state = new CallState();
+	private CallState state;
 	// save sip/pjsip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
 	private Map<String, String> addedPJSipHeaders = null;
@@ -43,13 +43,7 @@ public abstract class CallController implements Runnable {
 	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-		state.setCallStasisStart(ss);
-		state.setAri(a);
-		state.setArity(ARIty);
-		state.setChannel(ss.getChannel());
-		state.setChannelID(ss.getChannel().getId());
-		state.setChannelTechnology();
-		addedSipHeaders = new HashMap<String, String>();
+		state = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(), getChannelTechnology(ss.getChannel()));
 	}
 
 	/**
@@ -337,14 +331,6 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * set the channel of the call
-	 * @param channel channel to update
-	 */
-	public void setChannel(Channel channel) {
-		state.setChannel(channel);
-	}
-	
-	/**
 	 * the method return the extension from the dialplan
 	 * @return
 	 */
@@ -353,20 +339,13 @@ public abstract class CallController implements Runnable {
 	}
 	
 	/**
-	 * get the call controller in order to give it to another call controller
+	 * get the sate of the call
 	 * @return
 	 */
-	public CallController handOverCall() {
-		return this;
-	}
-	
 	public CallState getState() {
 		return state;
 	}
 
-	public void setState(CallState state) {
-		this.state = state;
-	}
 	
 	/**
 	 * return account code of the channel (information about the channel)
@@ -438,6 +417,16 @@ public abstract class CallController implements Runnable {
 	 */
 	public long getPriority() {
 		return state.getChannel().getDialplan().getPriority();
+	}
+	/**
+	 * get the channel technology (ex: SIP or PJSIP)
+	 * @param channel
+	 * @return
+	 */
+	private String getChannelTechnology(Channel channel) {
+		String chanName = channel.getName();
+		String[] technology = chanName.split("/");
+		return technology[0];
 	}
 
 }

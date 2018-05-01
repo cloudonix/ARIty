@@ -22,55 +22,39 @@ public class CallState {
 	private ARIty arity;
 	private Channel channel;
 	private String channelTechnology;
+	private Map<String, Object> metaData;
 
-	private Map<String, Object> metaData = new HashMap<>();
-
+	public CallState(StasisStart callStasisStart, ARI ari,ARIty arity, String channelID, Channel channel, String channelTechnology) {
+		this.ari = ari;
+		this.arity = arity;
+		this.channelID = channelID;
+		this.channel = channel;
+		this.channelTechnology = channelTechnology;
+		this.metaData = new HashMap<>();
+	}
+	
 	public StasisStart getCallStasisStart() {
 		return callStasisStart;
-	}
-
-	public void setCallStasisStart(StasisStart callStasisStart) {
-		this.callStasisStart = callStasisStart;
 	}
 
 	public ARI getAri() {
 		return ari;
 	}
 
-	public void setAri(ARI ari) {
-		this.ari = ari;
-	}
-
 	public String getChannelID() {
 		return channelID;
-	}
-
-	public void setChannelID(String channelID) {
-		this.channelID = channelID;
 	}
 
 	public ARIty getArity() {
 		return arity;
 	}
 
-	public void setArity(ARIty arity) {
-		this.arity = arity;
-	}
-
 	public Channel getChannel() {
 		return channel;
 	}
 
-	public void setChannel(Channel channel) {
-		this.channel = channel;
-	}
-
 	public Map<String, Object> getMetaData() {
 		return metaData;
-	}
-
-	public void setMetaData(Map<String, Object> metaData) {
-		this.metaData = metaData;
 	}
 
 	/**
@@ -109,15 +93,6 @@ public class CallState {
 	 */
 	public String getChannelTechnology() {
 		return channelTechnology;
-	}
-	
-	/**
-	 * set the channel technology. ex: SIP, PJSIP
-	 */
-	public void setChannelTechnology() {
-		String channName = channel.getName();
-		String[] parts = channName.split("/");
-		channelTechnology = parts[0];
 	}
 
 }
