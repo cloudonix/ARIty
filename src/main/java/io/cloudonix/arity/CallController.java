@@ -439,5 +439,29 @@ public abstract class CallController implements Runnable {
 	public  <T> T get(String dataName, Class<T> class1) {
 		return callState.get(dataName, class1);
 	}
-
+	
+	/**
+	 * get call controller
+	 * @return
+	 */
+	public CallController getCallController() {
+		return this;
+	}
+	
+	/**
+	 * hand over data of one call to another
+	 * 
+	 * @param callState the data we are passing to
+	 */
+	public void handOverCallData(CallState callState) {
+		this.callState = callState;
+	}
+	
+	/**
+	 * get call state
+	 * @return
+	 */
+	public CallState getCallState() {
+		return callState;
+	}
 }
