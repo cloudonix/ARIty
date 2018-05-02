@@ -24,7 +24,7 @@ import ch.loway.oss.ari4java.tools.RestException;
  */
 public abstract class CallController implements Runnable {
 
-	private CallState state;
+	private CallState callState;
 	// save sip/pjsip headers that were added by request, not part of the existing headers
 	private Map<String, String> addedSipHeaders = null;
 	private Map<String, String> addedPJSipHeaders = null;
@@ -42,7 +42,7 @@ public abstract class CallController implements Runnable {
 	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-		state = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(), getChannelTechnology(ss.getChannel()));
+		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(), getChannelTechnology(ss.getChannel()));
 	}
 
 	/**
@@ -51,7 +51,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public StasisStart getCallStasisStart() {
-		return state.getCallStasisStart();
+		return callState.getCallStasisStart();
 	}
 
 	/**
@@ -60,7 +60,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public ARI getAri() {
-		return state.getAri();
+		return callState.getAri();
 	}
 
 	/**
@@ -69,7 +69,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public ARIty getARItyService() {
-		return state.getArity();
+		return callState.getArity();
 	}
 
 	/**
@@ -78,7 +78,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getChannelID() {
-		return state.getChannelID();
+		return callState.getChannelID();
 	}
 
 	/**
@@ -167,7 +167,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Conference conference() {
-		return new Conference(UUID.randomUUID().toString(), state.getArity(), state.getAri());
+		return new Conference(UUID.randomUUID().toString(), callState.getArity(), callState.getAri());
 	}
 
 	/**
@@ -197,7 +197,7 @@ public abstract class CallController implements Runnable {
 	public CompletableFuture<String> getSipHeader(String headerName) {
 		return this
 				.<Variable>futureFromAriCallBack(
-						cb -> state.getAri().channels().getChannelVar(state.getChannelID(), "SIP_HEADER(" + headerName + ")", cb))
+						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -217,7 +217,7 @@ public abstract class CallController implements Runnable {
 	public CompletableFuture<String> getPJSipHeader(String headerName) {
 		return this
 				.<Variable>futureFromAriCallBack(
-						cb -> state.getAri().channels().getChannelVar(state.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
+						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -326,7 +326,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Channel getChannel() {
-		return state.getChannel();
+		return callState.getChannel();
 	}
 
 	/**
@@ -334,17 +334,9 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getExtension () {
-		return state.getChannel().getDialplan().getExten();
+		return callState.getChannel().getDialplan().getExten();
 	}
 	
-	/**
-	 * get the sate of the call
-	 * @return
-	 */
-	public CallState getState() {
-		return state;
-	}
-
 	
 	/**
 	 * return account code of the channel (information about the channel)
@@ -352,7 +344,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getAccountCode() {
-		return state.getChannel().getAccountcode();
+		return callState.getChannel().getAccountcode();
 	}
 
 	/**
@@ -361,7 +353,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getCallerIdNumber() {
-		return state.getChannel().getCaller().getNumber();
+		return callState.getChannel().getCaller().getNumber();
 	}
 
 	/**
@@ -370,7 +362,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getChannelName() {
-		return state.getChannel().getName();
+		return callState.getChannel().getName();
 	}
 
 	/**
@@ -379,7 +371,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getChannelState() {
-		return state.getChannel().getState();
+		return callState.getChannel().getState();
 	}
 
 	/**
@@ -388,7 +380,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getChannelCreationTime() {
-		return state.getChannel().getCreationtime().toString();
+		return callState.getChannel().getCreationtime().toString();
 	}
 
 
@@ -398,7 +390,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getDialplanContext() {
-		return state.getChannel().getDialplan().getContext();
+		return callState.getChannel().getDialplan().getContext();
 	}
 
 	/**
@@ -407,7 +399,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public String getDialplanExten() {
-		return state.getChannel().getDialplan().getExten();
+		return callState.getChannel().getDialplan().getExten();
 	}
 
 	/**
@@ -415,7 +407,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public long getPriority() {
-		return state.getChannel().getDialplan().getPriority();
+		return callState.getChannel().getDialplan().getPriority();
 	}
 	/**
 	 * get the channel technology (ex: SIP or PJSIP)
@@ -426,6 +418,26 @@ public abstract class CallController implements Runnable {
 		String chanName = channel.getName();
 		String[] technology = chanName.split("/");
 		return technology[0];
+	}
+	
+	/**
+	 * add data about the call
+	 * 
+	 * @param dataName name of the data we are adding
+	 * @param dataContent object that contains the content of the data
+	 */
+	public void put (String dataName, Object dataContent) {
+		callState.put(dataName, dataContent);
+	}
+	
+	/**
+	 * get data about the call
+	 * 
+	 * @param dataName name of the data we asking for
+	 * @param class1 class that represents the content we are asking for
+	 */
+	public  <T> T get(String dataName, Class<T> class1) {
+		return callState.get(dataName, class1);
 	}
 
 }
