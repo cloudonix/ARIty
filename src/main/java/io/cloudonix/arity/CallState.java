@@ -30,6 +30,7 @@ public class CallState {
 		this.channelID = channelID;
 		this.channel = channel;
 		this.channelTechnology = channelTechnology;
+		this.callStasisStart = callStasisStart;
 		this.metaData = new HashMap<>();
 	}
 	
