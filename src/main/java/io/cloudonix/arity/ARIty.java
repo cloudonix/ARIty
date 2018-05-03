@@ -158,6 +158,10 @@ public class ARIty implements AriCallback<Message> {
 
 			StasisStart ss = (StasisStart) event;
 			
+			if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
+				logger.fine("ignore h");
+				return;
+			}
 			// if the list contains the stasis start event with this channel id, remove it and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
