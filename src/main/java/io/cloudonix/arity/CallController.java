@@ -450,28 +450,30 @@ public abstract class CallController implements Runnable {
 		return callState.get(dataName, class1);
 	}
 	
-	/**
-	 * get call controller
-	 * @return
-	 */
-	public CallController getCallController() {
+	public CallState getCallState() {
+		return callState;
+	}
+
+	public Map<String, String> getAddedSipHeaders() {
+		return addedSipHeaders;
+	}
+
+	public Map<String, String> getAddedPJSipHeaders() {
+		return addedPJSipHeaders;
+	}
+	
+	public CallController getCallController () {
 		return this;
 	}
 	
 	/**
-	 * hand over data of one call to another
-	 * 
-	 * @param callState the data we are passing to
+	 * transfer one CallCtroller to another callController
+	 * @param cc CallController that we are getting the data from
 	 */
-	public void handOverCallData(CallState callState) {
-		this.callState = callState;
-	}
-	
-	/**
-	 * get call state
-	 * @return
-	 */
-	public CallState getCallState() {
-		return callState;
+	public void execute (CallController cc) {
+		this.addedPJSipHeaders = cc.getAddedPJSipHeaders();
+		this.addedSipHeaders = cc.getAddedSipHeaders();
+		this.callState = cc.getCallState();
+		this.conferences = cc.getConferences();
 	}
 }
