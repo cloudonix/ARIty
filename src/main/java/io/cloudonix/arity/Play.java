@@ -23,20 +23,8 @@ public class Play extends CancelableOperations {
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
-
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 	private CompletableFuture<Play> compFuturePlayback;
-
-	/**
-	 * constructor 
-	 * 
-	 * @param callController call main logic object
-	 */
-	public Play(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		callStasisStart = callController.getCallStasisStart();
-		compFuturePlayback = new CompletableFuture<>();
-	}
 
 	/**
 	 * constructor
@@ -84,13 +72,10 @@ public class Play extends CancelableOperations {
 							logger.warning("failed in playing playback " + e.getMessage());
 							compFuturePlayback.completeExceptionally(new PlaybackException(fullPath, e));
 						}
-
 						@Override
 						public void onSuccess(Playback resultM) {
-
 							if (!(resultM instanceof Playback))
 								return;
-
 							// save the playback
 							playback = resultM;
 							logger.info("playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
@@ -105,9 +90,7 @@ public class Play extends CancelableOperations {
 								return true;
 
 							});
-
 							logger.info("future event of playbackFinished was added");
-
 						}
 
 					});
