@@ -20,7 +20,7 @@ public class PlaySilence extends Operation{
 
 	@Override
 	public CompletableFuture<Play> run() {
-		return new Play(callController, silenceFile).run();
+		return new Play(callController, "silence/"+silenceFile).run();
 	}
-
+		
 }
