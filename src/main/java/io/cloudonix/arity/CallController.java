@@ -171,16 +171,6 @@ public abstract class CallController implements Runnable {
 	}
 	
 	/**
-	 * create new PlaySilence operation
-	 * 
-	 * @param silenceFile file of silence to play
-	 * @return
-	 */
-	public PlaySilence playSilence (String silenceFile) {
- 		return new PlaySilence(this, silenceFile);
-	}
-
-	/**
 	 * the method verifies that the call is always hangs up, even if an error
 	 * occurred during any operation
 	 * 
