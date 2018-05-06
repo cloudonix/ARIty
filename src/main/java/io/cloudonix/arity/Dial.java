@@ -2,13 +2,16 @@ package io.cloudonix.arity;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
@@ -28,7 +31,7 @@ import io.cloudonix.arity.errors.HangUpException;
 public class Dial extends CancelableOperations {
 
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();;
-	private String endPointNumber;
+	private String endPoint;
 	private String endPointChannelId;
 	private long callDuration = 0;
 	private long dialStart = 0;
@@ -50,7 +53,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String number) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		endPointNumber = number;
+		endPoint = number;
 	}
 
 	/**
@@ -64,7 +67,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String number, String name) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		endPointNumber = number;
+		endPoint = number;
 		this.name = name;
 	}
 
@@ -115,13 +118,20 @@ public class Dial extends CancelableOperations {
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
 			try {
+				Map<String, String> headers = new HashMap<String,String>();
+				//add 2 headers to the map - to complete
+				
 				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
 				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 
-				getAri().channels().create(endPointNumber, getArity().getAppName(), null, endPointChannelId, null,
-						getChannelId(), null);
-				logger.info("end point channel was created. Channel id: " + endPointChannelId);
+				getAri().channels().create(endPoint, getArity().getAppName(), null, endPointChannelId, null, getChannelId(), null);
+				
+				// originateWithId(String channelId, String endpoint, String extension, String context, long priority, String label, String app, String appArgs, String callerId, int timeout, Map<String,String> variables, String otherChannelId, String originator, String formats)
+				logger.info("end point channel creation to resource: " + endPoint);
 
+				//getAri().channels().originateWithId(endPointChannelId, endPoint, null, null ,1 , null, getAri().getAppName(), null, getChannelId(),-1 ,headers, null, getChannelId(),"");
+				logger.info("end point channel was created. Channel id: " + endPointChannelId);
+				
 				getAri().bridges().addChannel(bridge.getId(), endPointChannelId, "callee");
 				logger.info("end point channel was added to the bridge");
 
@@ -291,7 +301,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public String getEndPointNumber() {
-		return endPointNumber;
+		return endPoint;
 	}
 
 	/**
@@ -300,7 +310,7 @@ public class Dial extends CancelableOperations {
 	 * @param endPointNumber
 	 */
 	public void setEndPointNumber(String endPointNumber) {
-		this.endPointNumber = endPointNumber;
+		this.endPoint = endPointNumber;
 	}
 
 }
