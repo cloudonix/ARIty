@@ -1,7 +1,6 @@
 package io.cloudonix.arity;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,9 +24,6 @@ import ch.loway.oss.ari4java.tools.RestException;
 public abstract class CallController implements Runnable {
 
 	private CallState callState;
-	// save sip/pjsip headers that were added by request, not part of the existing headers
-	private Map<String, String> addedSipHeaders = null;
-	private Map<String, String> addedPJSipHeaders = null;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
 	private List<Conference> conferences = null;
 
@@ -226,19 +222,6 @@ public abstract class CallController implements Runnable {
 				});
 	}
 	
-	/**
-	 * add a PJSIP header
-	 * 
-	 * @param headerName
-	 *            the name of the header
-	 * @param headerValue
-	 *            the value of the header
-	 * @throws RestException
-	 */
-	public void addPJSipHeader(String headerName, String headerValue) throws RestException {
-		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
-		addedPJSipHeaders.put("PJSIP_HEADER(" + headerName + ")", headerValue);
-	}
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
@@ -267,20 +250,6 @@ public abstract class CallController implements Runnable {
 			}
 		});
 		return compFuture;
-	}
-
-	/**
-	 * add a sip header
-	 * 
-	 * @param headerName
-	 *            the name of the header, for example: (To)
-	 * @param headerValue
-	 *            the value of the header
-	 * @throws RestException
-	 */
-	public void addSipHeader(String headerName, String headerValue) throws RestException {
-		// ari.channels().getChannelVar(channelID, headerName).setValue(headerValue);
-		addedSipHeaders.put("SIP_HEADER(" + headerName + ")", headerValue);
 	}
 
 	/**
@@ -447,32 +416,14 @@ public abstract class CallController implements Runnable {
 	public CallState getCallState() {
 		return callState;
 	}
-
-	/**
-	 * get sip headers that were added to the current CallContorller
-	 * @return
-	 */
-	public Map<String, String> getAddedSipHeaders() {
-		return addedSipHeaders;
-	}
-
-	/**
-	 * get pjsip headers that were added to the current CallContorller
-	 * @return
-	 */
-	public Map<String, String> getAddedPJSipHeaders() {
-		return addedPJSipHeaders;
-	}
 	
 	/**
-	 * transfer one CallCotroller to another callController
-	 * @param cc CallController that we are getting the data from
+	 * transfer CallController to the next CallCOntroller
+	 * @param nextCallController CallController that we are getting the data from
 	 */
-	public CallController execute (CallController cc) {
-		this.addedPJSipHeaders = cc.getAddedPJSipHeaders();
-		this.addedSipHeaders = cc.getAddedSipHeaders();
-		this.callState = cc.getCallState();
-		this.conferences = cc.getConferences();
-		return cc;
+	public void execute (CallController nextCallController) {
+		nextCallController.callState = callState;
+		nextCallController.conferences = conferences;
+		nextCallController.run();
 	}
 }
