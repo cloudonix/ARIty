@@ -440,30 +440,39 @@ public abstract class CallController implements Runnable {
 		return callState.get(dataName, class1);
 	}
 	
+	/**
+	 * get callState of the current CallContorller
+	 * @return
+	 */
 	public CallState getCallState() {
 		return callState;
 	}
 
+	/**
+	 * get sip headers that were added to the current CallContorller
+	 * @return
+	 */
 	public Map<String, String> getAddedSipHeaders() {
 		return addedSipHeaders;
 	}
 
+	/**
+	 * get pjsip headers that were added to the current CallContorller
+	 * @return
+	 */
 	public Map<String, String> getAddedPJSipHeaders() {
 		return addedPJSipHeaders;
 	}
 	
-	public CallController getCallController () {
-		return this;
-	}
-	
 	/**
-	 * transfer one CallCtroller to another callController
+	 * transfer one CallCotroller to another callController
 	 * @param cc CallController that we are getting the data from
 	 */
-	public void execute (CallController cc) {
+	public CallController execute (CallController cc) {
 		this.addedPJSipHeaders = cc.getAddedPJSipHeaders();
 		this.addedSipHeaders = cc.getAddedSipHeaders();
 		this.callState = cc.getCallState();
 		this.conferences = cc.getConferences();
+		return cc;
 	}
 }
