@@ -27,18 +27,16 @@ import io.cloudonix.arity.errors.HangUpException;
  */
 public class Dial extends CancelableOperations {
 
-	private CompletableFuture<Dial> compFuture;
+	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();;
 	private String endPointNumber;
 	private String endPointChannelId;
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
-	private long mediaLenStart = 0;
+	private Instant mediaLenStart;
 	private boolean isCanceled = false;
-	private List<CancelableOperations> nestedOperations;
-	private Operation currOpertation = null;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private List<Conference> conferences;
+	private List<Conference> conferences = new ArrayList<>();
 	private String name = "bridge";
 	private String dialStatus;
 
@@ -52,10 +50,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String number) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-		nestedOperations = new ArrayList<>();
-		conferences = new ArrayList<>();
 	}
 
 	/**
@@ -69,10 +64,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String number, String name) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		compFuture = new CompletableFuture<>();
 		endPointNumber = number;
-		nestedOperations = new ArrayList<>();
-		conferences = new ArrayList<>();
 		this.name = name;
 	}
 
@@ -82,132 +74,37 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Dial> run() {
-		// check for nested verbs in Dial
-		if (!nestedOperations.isEmpty()) {
-			logger.info("there are verbs in the nested verb list");
-			currOpertation = nestedOperations.get(0);
-			CompletableFuture<? extends Operation> future = nestedOperations.get(0).run();
-
-			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
-				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
-					currOpertation = nestedOperations.get(i);
-					future = loopOperations(future);
-				}
-			}
-
-		}
 		endPointChannelId = UUID.randomUUID().toString();
 		String bridgeID = UUID.randomUUID().toString();
 
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
-
-		getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-			// notice when a channel leaves a bridge after a hang up occurred
-			getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
-				if (conferences.size() == 1 && conferences.get(0).getChannelsInConf().size() == 0) {
-					logger.info("1 conference with no participents. remove it");
-					conferences.remove(0);
-					getArity().getCallSupplier().get().setConferences(conferences);
-					return true;
-				}
-				for (int i = 0; i < conferences.size(); i++) {
-					for (int j = 0; j < conferences.get(i).getChannelsInConf().size(); j++) {
-						if (Objects.equals(conferences.get(i).getChannelsInConf().get(j).getId(),
-								channelLeft.getChannel().getId())) {
-							logger.info("removing channel: " + channelLeft.getChannel().getId() + " from conference");
-							conferences.get(i).removeChannelFromConf(channelLeft.getChannel());
-							if (conferences.get(i).getCount() < 2) {
-								logger.info("conference call was completed, remove it from the list");
-								conferences.remove(i);
-								getArity().getCallSupplier().get().setConferences(conferences);
-								return true;
-							}
-						}
-					}
-				}
-				logger.info("no conference contains the channel: " + channelLeft.getChannel().getId());
-				return false;
-			});
-			logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
-
-			if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
-				if (Objects.equals(dialStatus, "ANSWER")) {
-					cancel();
-					return false;
-				}
-				logger.info("cancel dial");
-				isCanceled = true;
-				cancel();
-				return false;
-			}
-
-			if (!(hangup.getChannel().getId().equals(endPointChannelId))) {
-				return false;
-			}
-
-			if (!isCanceled || Objects.equals(dialStatus, "ANSWER")) {
-				// end call timer
-				long end = Instant.now().toEpochMilli();
-
-				callDuration = Math.abs(end - dialStart);
-				logger.info("duration of the call: " + callDuration + " ms");
-
-				mediaLength = Math.abs(end - mediaLenStart);
-				logger.info("media lenght of the call: " + mediaLength + " ms");
-
-				logger.info("end point channel hanged up");
-			}
-
-			compFuture.complete(this);
-			return true;
-		});
+		getArity().addFutureEvent(ChannelHangupRequest.class, this::handleHangup);
 
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
-
 			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 
 			if (!dialStatus.equals("ANSWER"))
 				return false;
 
-			mediaLenStart = Instant.now().toEpochMilli();
+			mediaLenStart = Instant.now();
 			return true;
 
 		});
 		logger.info("future event of Dial_impl_ari_2_0_0.class was added");
 
-		// if the created bridge can be conference bridge, add it to conferences list
-		getArity().addFutureEvent(BridgeCreated_impl_ari_2_0_0.class, (bridge) -> {
-			if (Objects.nonNull(bridge.getBridge())) {
-				Conference conference = new Conference(UUID.randomUUID().toString(), getArity(), getAri());
-				conference.setConfBridge(bridge.getBridge());
-				logger.info("brige id: " + bridge.getBridge().getId());
-				conferences.add(conference);
-				logger.info("confrence bridge was saved");
-				return true;
-			}
-			logger.severe("conference bridge was not created");
-			return false;
-		});
+		getArity().addFutureEvent(BridgeCreated_impl_ari_2_0_0.class, this::bridgeCreated);
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
-		// notice when the caller enters the bridge
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
 			if (Objects.equals(chanInBridge.getChannel().getId(), getChannelId())) {
 				logger.info("try adding caller to conference");
 				return channelEnteredBridge(chanInBridge);
 			}
-			return false;
-		});
-		logger.info("future event of ChannelEnteredBridge_impl_ari_2_0_0.class was added");
-
-		// notice when calle enters the bridge
-		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
 			if (Objects.equals(chanInBridge.getChannel().getId(), endPointChannelId)) {
-				logger.info("try to add callee to conference");
 				return channelEnteredBridge(chanInBridge);
 			}
 			return false;
@@ -243,8 +140,92 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
+	 * handle bridge created event
+	 * 
+	 * @param bridge BridgeCreated event
+	 * @return
+	 */
+	private boolean bridgeCreated(BridgeCreated_impl_ari_2_0_0 bridge) {
+			if (Objects.nonNull(bridge.getBridge())) {
+				Conference conference = new Conference(UUID.randomUUID().toString(), getArity(), getAri());
+				conference.setConfBridge(bridge.getBridge());
+				logger.info("brige id: " + bridge.getBridge().getId());
+				conferences.add(conference);
+				logger.info("confrence bridge was saved");
+				return true;
+			}
+			logger.severe("conference bridge was not created");
+			return false;
+	}
+
+	/**
+	 * handler hangup event
+	 * @param hangup ChannelHangupRequest event
+	 * @return
+	 */
+	private Boolean handleHangup(ChannelHangupRequest hangup) {
+		// notice when a channel leaves a bridge after a hang up occurred
+		getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
+			if (conferences.size() == 1 && conferences.get(0).getChannelsInConf().size() == 0) {
+				logger.info("1 conference with no participents. remove it");
+				conferences.remove(0);
+				getArity().getCallSupplier().get().setConferences(conferences);
+				return true;
+			}
+			for (int i = 0; i < conferences.size(); i++) {
+				for (int j = 0; j < conferences.get(i).getChannelsInConf().size(); j++) {
+					if (Objects.equals(conferences.get(i).getChannelsInConf().get(j).getId(),
+							channelLeft.getChannel().getId())) {
+						logger.info("removing channel: " + channelLeft.getChannel().getId() + " from conference");
+						conferences.get(i).removeChannelFromConf(channelLeft.getChannel());
+						if (conferences.get(i).getCount() < 2) {
+							logger.info("conference call was completed, remove it from the list");
+							conferences.remove(i);
+							getArity().getCallSupplier().get().setConferences(conferences);
+							return true;
+						}
+					}
+				}
+			}
+			logger.info("no conference contains the channel: " + channelLeft.getChannel().getId());
+			return false;
+		});
+		logger.info("future event of ChannelLeftBridge_impl_ari_2_0_0.class was added");
+
+		if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
+			if (Objects.equals(dialStatus, "ANSWER")) {
+				cancel();
+				return false;
+			}
+			logger.info("cancel dial");
+			isCanceled = true;
+			cancel();
+			return false;
+		}
+
+		if (!(hangup.getChannel().getId().equals(endPointChannelId)))
+			return false;
+
+		if (!isCanceled || Objects.equals(dialStatus, "ANSWER")) {
+			// end call timer
+			Instant end = Instant.now();
+			callDuration = Math.abs(end.toEpochMilli() - dialStart);
+			logger.info("duration of the call: " + callDuration + " ms");
+			mediaLength = Math.abs(end.toEpochMilli() - mediaLenStart.toEpochMilli());
+			logger.info("media lenght of the call: " + mediaLength + " ms");
+			logger.info("end point channel hanged up");
+		}
+
+		compFuture.complete(this);
+		return true;
+	}
+
+	/**
 	 * handle a channel entered bridge event
-	 * @param chanInBridge instance of channelEnteredBridge event 
+	 * 
+	 * @param chanInBridge
+	 *            instance of channelEnteredBridge event
+	 * @param channelId 
 	 * @return
 	 */
 	private boolean channelEnteredBridge(ChannelEnteredBridge_impl_ari_2_0_0 chanInBridge) {
@@ -287,36 +268,6 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * compose the previous future (of the previous verb) to the result of the new
-	 * future
-	 * 
-	 * @param future
-	 * @param operation
-	 * @return
-	 */
-	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future) {
-		logger.info("The current nested operation is: " + currOpertation.toString());
-		return future.thenCompose(op -> {
-			if (Objects.nonNull(op))
-				return currOpertation.run();
-			return CompletableFuture.completedFuture(null);
-		});
-	}
-
-	/**
-	 * add new operation to list of nested operation that run method will execute
-	 * one by one
-	 * 
-	 * @param operation
-	 * @return
-	 */
-
-	public Dial and(CancelableOperations operation) {
-		nestedOperations.add(operation);
-		return this;
-	}
-
-	/**
 	 * get list of conferences
 	 * 
 	 * @return
@@ -333,9 +284,10 @@ public class Dial extends CancelableOperations {
 	public void setConferences(List<Conference> conferences) {
 		this.conferences = conferences;
 	}
-	
+
 	/**
 	 * get the number we are calling to
+	 * 
 	 * @return
 	 */
 	public String getEndPointNumber() {
@@ -344,6 +296,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * set the number we are calling to
+	 * 
 	 * @param endPointNumber
 	 */
 	public void setEndPointNumber(String endPointNumber) {
