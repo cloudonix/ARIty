@@ -120,6 +120,7 @@ public class Dial extends CancelableOperations {
 			try {
 				Map<String, String> headers = new HashMap<String,String>();
 				//add 2 headers to the map - to complete
+				//headers.put("PJSIP_HEADER(" + headerName + ")", headerValue); or 	headers.put("SIP_HEADER(" + headerName + ")", headerValue);
 				
 				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
 				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
