@@ -2,16 +2,13 @@ package io.cloudonix.arity;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
@@ -118,18 +115,15 @@ public class Dial extends CancelableOperations {
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
 			try {
-				Map<String, String> headers = new HashMap<String,String>();
-				//add 2 headers to the map - to complete
-				//headers.put("PJSIP_HEADER(" + headerName + ")", headerValue); or 	headers.put("SIP_HEADER(" + headerName + ")", headerValue);
-				
+								
 				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
 				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 
 				getAri().channels().create(endPoint, getArity().getAppName(), null, endPointChannelId, null, getChannelId(), null);
 				
-				// originateWithId(String channelId, String endpoint, String extension, String context, long priority, String label, String app, String appArgs, String callerId, int timeout, Map<String,String> variables, String otherChannelId, String originator, String formats)
 				logger.info("end point channel creation to resource: " + endPoint);
 
+				// originateWithId(String channelId, String endpoint, String extension, String context, long priority, String label, String app, String appArgs, String callerId, int timeout, Map<String,String> variables, String otherChannelId, String originator, String formats)
 				//getAri().channels().originateWithId(endPointChannelId, endPoint, null, null ,1 , null, getAri().getAppName(), null, getChannelId(),-1 ,headers, null, getChannelId(),"");
 				logger.info("end point channel was created. Channel id: " + endPointChannelId);
 				
