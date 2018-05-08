@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -39,6 +40,7 @@ public class Dial extends CancelableOperations {
 	private List<Conference> conferences = new ArrayList<>();
 	private String name = "bridge";
 	private String dialStatus;
+	private Map<String,String> headers = null;
 
 	/**
 	 * Constructor
@@ -51,6 +53,22 @@ public class Dial extends CancelableOperations {
 	public Dial(CallController callController, String number) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		endPoint = number;
+	}
+	
+	/**
+	 * Constructor
+	 * 
+	 * @param callController
+	 *            an instance that represents a call
+	 * @param number
+	 *            the number we are calling to (the endpoint)
+	 *  @param headers 
+	 *  			headers that we want to add when dialing 
+	 */
+	public Dial(CallController callController, String number, Map<String,String> headers) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		this.endPoint = number;
+		this.headers = headers;
 	}
 
 	/**
@@ -115,7 +133,6 @@ public class Dial extends CancelableOperations {
 		// channels
 		return this.<Bridge>toFuture(cf -> getAri().bridges().create("", bridgeID, name, cf)).thenCompose(bridge -> {
 			try {
-								
 				getAri().bridges().addChannel(bridge.getId(), getChannelId(), "caller");
 				logger.info(" Caller's channel was added to the bridge. Channel id of the caller:" + getChannelId());
 

@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -155,6 +156,22 @@ public abstract class CallController implements Runnable {
 		conferences = dial.getConferences();
 		return dial;
 	}
+	
+	/**
+	 * the method created new Dial operation
+	 * 
+	 * @param number
+	 *            the number of the endpoint (who are we calling to)
+	 * @param headers headers that we want to add to the channel we are calling to (the callee)
+	 * @param confName
+	 *            name of the conference (bridge)
+	 * @return
+	 */
+	public Dial dial(String number, Map<String,String>headers) {
+		Dial dial = new Dial(this, number, headers);
+		conferences = dial.getConferences();
+		return dial;
+	}
 
 	/**
 	 * the method creates a new Conference
@@ -202,21 +219,22 @@ public abstract class CallController implements Runnable {
 				});
 	}
 	/**
-	 * add sip header to a channel
+	 * add header to a channel
 	 * 
 	 * @param headerName name of the new header
 	 * @param headerValue value of the new header
 	 * @return
 	 */
-	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
+	public CompletableFuture<Void> addHeader(String headerName, String headerValue) {
 		return this
 				.<Void>futureFromAriCallBack(
-						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")",headerValue, cb))
+						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), headerName ,headerValue, cb))
 				.exceptionally(t -> {
-					logger.fine("unable to find header: " + headerName);
+					logger.fine("unable to add header: " + headerName);
 					return null;
 				});
 	}	
+	
 	/**
 	 * get the value of a specific PJSIP header
 	 * 
