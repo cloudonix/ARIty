@@ -201,7 +201,22 @@ public abstract class CallController implements Runnable {
 					return null;
 				});
 	}
-	
+	/**
+	 * add sip header to a channel
+	 * 
+	 * @param headerName name of the new header
+	 * @param headerValue value of the new header
+	 * @return
+	 */
+	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
+		return this
+				.<Void>futureFromAriCallBack(
+						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")",headerValue, cb))
+				.exceptionally(t -> {
+					logger.fine("unable to find header: " + headerName);
+					return null;
+				});
+	}	
 	/**
 	 * get the value of a specific PJSIP header
 	 * 
@@ -222,6 +237,22 @@ public abstract class CallController implements Runnable {
 				});
 	}
 	
+	/**
+	 * add pjsip header to a channel
+	 * 
+	 * @param headerName name of the new header
+	 * @param headerValue value of the new header
+	 * @return
+	 */
+	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
+		return this
+				.<Void>futureFromAriCallBack(
+						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")",headerValue, cb))
+				.exceptionally(t -> {
+					logger.fine("unable to find header: " + headerName);
+					return null;
+				});
+	}	
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
