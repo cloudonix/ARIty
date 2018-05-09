@@ -10,11 +10,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.BridgeCreated;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.BridgeCreated_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelEnteredBridge_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.Conference.ConferenceState;
 import io.cloudonix.arity.errors.DialException;
@@ -101,7 +100,7 @@ public class Dial extends CancelableOperations {
 
 		logger.info("future event of ChannelHangupRequest was added");
 
-		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
+		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, (dial) -> {
 			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 
@@ -114,7 +113,7 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of Dial_impl_ari_2_0_0.class was added");
 
-		getArity().addFutureEvent(BridgeCreated_impl_ari_2_0_0.class, this::bridgeCreated);
+		getArity().addFutureEvent(BridgeCreated.class, this::bridgeCreated);
 		logger.info("future event of BridgeCreated_impl_ari_2_0_0.class was added");
 
 		getArity().addFutureEvent(ChannelEnteredBridge_impl_ari_2_0_0.class, (chanInBridge) -> {
@@ -167,7 +166,7 @@ public class Dial extends CancelableOperations {
 	 * @param bridge BridgeCreated event
 	 * @return
 	 */
-	private boolean bridgeCreated(BridgeCreated_impl_ari_2_0_0 bridge) {
+	private boolean bridgeCreated(BridgeCreated bridge) {
 			if (Objects.nonNull(bridge.getBridge())) {
 				Conference conference = new Conference(UUID.randomUUID().toString(), getArity(), getAri());
 				conference.setConfBridge(bridge.getBridge());
@@ -187,7 +186,7 @@ public class Dial extends CancelableOperations {
 	 */
 	private Boolean handleHangup(ChannelHangupRequest hangup) {
 		// notice when a channel leaves a bridge after a hang up occurred
-		getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (channelLeft) -> {
+		getArity().addFutureEvent(ChannelLeftBridge.class, (channelLeft) -> {
 			if (conferences.size() == 1 && conferences.get(0).getChannelsInConf().size() == 0) {
 				logger.info("1 conference with no participents. remove it");
 				conferences.remove(0);
