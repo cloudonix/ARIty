@@ -39,7 +39,8 @@ public abstract class CallController implements Runnable {
 	 *            ARITY
 	 */
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(), getChannelTechnology(ss.getChannel()));
+		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(),
+				getChannelTechnology(ss.getChannel()));
 	}
 
 	/**
@@ -87,6 +88,12 @@ public abstract class CallController implements Runnable {
 	 */
 	public Play play(String file) {
 		return new Play(this, file);
+	}
+	
+	public Play playRecording (String file) {
+		Play playRecording = new Play(this, file);
+		playRecording.playRecording();
+		return playRecording;
 	}
 
 	/**
@@ -156,18 +163,20 @@ public abstract class CallController implements Runnable {
 		conferences = dial.getConferences();
 		return dial;
 	}
-	
+
 	/**
 	 * the method created new Dial operation
 	 * 
 	 * @param number
 	 *            the number of the endpoint (who are we calling to)
-	 * @param headers headers that we want to add to the channel we are calling to (the callee)
+	 * @param headers
+	 *            headers that we want to add to the channel we are calling to (the
+	 *            callee)
 	 * @param confName
 	 *            name of the conference (bridge)
 	 * @return
 	 */
-	public Dial dial(String number, Map<String,String>headers) {
+	public Dial dial(String number, Map<String, String> headers) {
 		Dial dial = new Dial(this, number, headers);
 		conferences = dial.getConferences();
 		return dial;
@@ -182,7 +191,7 @@ public abstract class CallController implements Runnable {
 	public Conference conference() {
 		return new Conference(UUID.randomUUID().toString(), callState.getArity(), callState.getAri());
 	}
-	
+
 	/**
 	 * the method verifies that the call is always hangs up, even if an error
 	 * occurred during any operation
@@ -208,33 +217,32 @@ public abstract class CallController implements Runnable {
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
-		return this
-				.<Variable>futureFromAriCallBack(
-						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", cb))
-				.thenApply(v -> {
+		return this.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.getChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", cb)).thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
 					logger.fine("unable to find header: " + headerName);
 					return null;
 				});
 	}
+
 	/**
 	 * add header to a channel
 	 * 
-	 * @param headerName name of the new header
-	 * @param headerValue value of the new header
+	 * @param headerName
+	 *            name of the new header
+	 * @param headerValue
+	 *            value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> addHeader(String headerName, String headerValue) {
-		return this
-				.<Void>futureFromAriCallBack(
-						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), headerName ,headerValue, cb))
-				.exceptionally(t -> {
+		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelID(), headerName, headerValue, cb)).exceptionally(t -> {
 					logger.fine("unable to add header: " + headerName);
 					return null;
 				});
-	}	
-	
+	}
+
 	/**
 	 * get the value of a specific PJSIP header
 	 * 
@@ -245,8 +253,8 @@ public abstract class CallController implements Runnable {
 	 */
 	public CompletableFuture<String> getPJSipHeader(String headerName) {
 		return this
-				.<Variable>futureFromAriCallBack(
-						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
+				.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
+						.getChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -254,23 +262,24 @@ public abstract class CallController implements Runnable {
 					return null;
 				});
 	}
-	
+
 	/**
 	 * add pjsip header to a channel
 	 * 
-	 * @param headerName name of the new header
-	 * @param headerValue value of the new header
+	 * @param headerName
+	 *            name of the new header
+	 * @param headerValue
+	 *            value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
-		return this
-				.<Void>futureFromAriCallBack(
-						cb -> callState.getAri().channels().setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")",headerValue, cb))
+		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
 				.exceptionally(t -> {
 					logger.fine("unable to find header: " + headerName);
 					return null;
 				});
-	}	
+	}
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
@@ -341,6 +350,7 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * get the channel of the call
+	 * 
 	 * @return
 	 */
 	public Channel getChannel() {
@@ -349,13 +359,13 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * the method return the extension from the dialplan
+	 * 
 	 * @return
 	 */
-	public String getExtension () {
+	public String getExtension() {
 		return callState.getChannel().getDialplan().getExten();
 	}
-	
-	
+
 	/**
 	 * return account code of the channel (information about the channel)
 	 * 
@@ -401,7 +411,6 @@ public abstract class CallController implements Runnable {
 		return callState.getChannel().getCreationtime().toString();
 	}
 
-
 	/**
 	 * return dialplan context (for example: ari-context)
 	 * 
@@ -422,13 +431,16 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * get the dialplan priority
+	 * 
 	 * @return
 	 */
 	public long getPriority() {
 		return callState.getChannel().getDialplan().getPriority();
 	}
+
 	/**
 	 * get the channel technology (ex: SIP or PJSIP)
+	 * 
 	 * @param channel
 	 * @return
 	 */
@@ -437,40 +449,83 @@ public abstract class CallController implements Runnable {
 		String[] technology = chanName.split("/");
 		return technology[0];
 	}
-	
+
 	/**
 	 * add data about the call
 	 * 
-	 * @param dataName name of the data we are adding
-	 * @param dataContent object that contains the content of the data
+	 * @param dataName
+	 *            name of the data we are adding
+	 * @param dataContent
+	 *            object that contains the content of the data
 	 */
-	public void put (String dataName, Object dataContent) {
+	public void put(String dataName, Object dataContent) {
 		callState.put(dataName, dataContent);
 	}
-	
+
 	/**
 	 * get data about the call
 	 * 
-	 * @param dataName name of the data we asking for
-	 * @param class1 class that represents the content we are asking for
+	 * @param dataName
+	 *            name of the data we asking for
+	 * @param class1
+	 *            class that represents the content we are asking for
 	 */
-	public  <T> T get(String dataName, Class<T> class1) {
+	public <T> T get(String dataName, Class<T> class1) {
 		return callState.get(dataName, class1);
 	}
-	
+
 	/**
 	 * get callState of the current CallContorller
+	 * 
 	 * @return
 	 */
 	public CallState getCallState() {
 		return callState;
 	}
-	
+
+	/**
+	 * create new record operation
+	 * 
+	 * @param name Recording's filename
+	 * @param fileFormat Format to encode audio in (wav, gsm..)
+	 * @return
+	 */
+	public Record record(String name, String format) {
+		return new Record(this, name, format);
+	}
+
+	/**
+	 * create record operation with more settings
+	 * 
+	 * @param callController
+	 *            instant representing the call
+	 * @param name
+	 *            Recording's filename
+	 * @param fileFormat
+	 *            Format to encode audio in (wav, gsm..)
+	 * @param maxDuration
+	 *            Maximum duration of the recording, in seconds. 0 for no limit
+	 * @param maxSilenceSeconds
+	 *            Maximum duration of silence, in seconds. 0 for no limit
+	 * @param beep
+	 *            true if we want to play beep when recording begins, false
+	 *            otherwise
+	 * @param terminateOnKey
+	 *            DTMF input to terminate recording (allowed values: none, any, *,
+	 *            #)
+	 * @return
+	 */
+	public Record record(String name, String format, int maxDuration, int maxSilence, boolean beep, String termKey) {
+		return new Record(this, name, format, maxDuration, maxSilence, beep, termKey);
+	}
+
 	/**
 	 * transfer CallController to the next CallCOntroller
-	 * @param nextCallController CallController that we are getting the data from
+	 * 
+	 * @param nextCallController
+	 *            CallController that we are getting the data from
 	 */
-	public void execute (CallController nextCallController) {
+	public void execute(CallController nextCallController) {
 		nextCallController.callState = callState;
 		nextCallController.conferences = conferences;
 		nextCallController.run();
