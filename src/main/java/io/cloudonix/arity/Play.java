@@ -24,7 +24,6 @@ public class Play extends CancelableOperations {
 	private String uriScheme = "sound:";
 	private Playback playback;
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
-	private CompletableFuture<Play> compFuturePlayback;
 
 	/**
 	 * constructor
@@ -36,9 +35,8 @@ public class Play extends CancelableOperations {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		this.playFileName = fileName;
-		compFuturePlayback = new CompletableFuture<>();
 	}
-
+	
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
@@ -70,7 +68,7 @@ public class Play extends CancelableOperations {
 						@Override
 						public void onFailure(RestException e) {
 							logger.warning("failed in playing playback " + e.getMessage());
-							compFuturePlayback.completeExceptionally(new PlaybackException(fullPath, e));
+							compPlaybackItr.completeExceptionally(new PlaybackException(fullPath, e));
 						}
 						@Override
 						public void onSuccess(Playback resultM) {
@@ -100,10 +98,7 @@ public class Play extends CancelableOperations {
 				return compPlaybackItr.thenCompose(x -> run());
 			}
 		}
-		return compPlaybackItr.thenCompose(pb -> {
-			compFuturePlayback.complete(this);
-			return compFuturePlayback;
-		});
+		return compPlaybackItr.thenApply(pb ->this);
 	}
 
 	/**
