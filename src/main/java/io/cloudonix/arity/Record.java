@@ -69,8 +69,9 @@ public class Record extends Operation {
 					liveRecFuture.complete(record.getRecording());
 					return true;
 				});
+				// wait x seconds and then hangup the call
 				try {
-					Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+					Thread.sleep(TimeUnit.SECONDS.toMillis(maxDuration));
 					getAri().recordings().stop(name);
 					logger.info("record "+name+" stoped");
 				} catch (InterruptedException | RestException e) {
