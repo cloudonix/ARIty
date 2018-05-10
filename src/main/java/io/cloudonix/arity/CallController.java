@@ -99,7 +99,7 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new Answer operation to answer the call
 	 * 
-	 * @return Answer
+	 * @return 
 	 */
 	public Answer answer() {
 		return new Answer(this);
@@ -108,7 +108,7 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new HangUp operation to hang up the call
 	 * 
-	 * @return HangUp
+	 * @return 
 	 */
 	public Hangup hangup() {
 		return new Hangup(this);
@@ -116,17 +116,18 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * the method creates a new receivedDTMF object
-	 * 
-	 * @return ReceivedDTMF
+	 * @param terminatingKey 
+	 * @param inputLenght
+	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey) {
-		return new ReceivedDTMF(this, terminatingKey);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght) {
+		return new ReceivedDTMF(this, terminatingKey, inputLenght);
 	}
 
 	/**
-	 * the method creates a new receivedDTMF operation
+	 * the method creates a new receivedDTMF operation with default values
 	 * 
-	 * @return Gather
+	 * @return 
 	 */
 	public ReceivedDTMF receivedDTMF() {
 		return new ReceivedDTMF(this);

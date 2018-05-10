@@ -15,26 +15,26 @@ import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
  */
 public class ReceivedDTMF extends Operation {
 	
-	private CompletableFuture<ReceivedDTMF> compFuture;
-	private String userInput = "";
+	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
+	private String userInput = "#";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
-	private List<CancelableOperations> nestedOperations;
+	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
 	private String terminatingKey;
 	private CancelableOperations currOpertation = null;
+	private int inputLenght = -1;
 
 	/**
 	 * Constructor
 	 * 
 	 * @param callController
 	 * @param termKey
-	 *            - define terminating key (otherwise '#' is the default)
+	 *            define terminating key (otherwise '#' is the default)
+	 * @param lenght lenght of the input we are expecting to get from the caller. for no limitation -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey) {
+	public ReceivedDTMF(CallController callController, String termKey, int lenght) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		compFuture = new CompletableFuture<>();
-		userInput = "";
 		terminatingKey = termKey;
-		nestedOperations = new ArrayList<>();
+		inputLenght = lenght;
 	}
 
 	/**
@@ -44,10 +44,6 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		compFuture = new CompletableFuture<>();
-		userInput = "";
-		terminatingKey = "#";
-		nestedOperations = new ArrayList<>();
 	}
 
 	/**
@@ -73,13 +69,11 @@ public class ReceivedDTMF extends Operation {
 
 		}
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
-			if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
+			if (!(dtmf.getChannel().getId().equals(getChannelId())))
 				return false;
-			}
 
-			if (dtmf.getDigit().equals(terminatingKey)) {
-				logger.info("the terminating key is: " + terminatingKey);
-				logger.info("all input: " + userInput);
+			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
+				logger.info("done gathering. all input: " + userInput);
 				if (Objects.nonNull(currOpertation))
 					// cancel the current operation because the gather is finished
 					currOpertation.cancel();
@@ -90,7 +84,6 @@ public class ReceivedDTMF extends Operation {
 			}
 			userInput = userInput + dtmf.getDigit();
 			return false;
-
 		});
 
 		return compFuture;
