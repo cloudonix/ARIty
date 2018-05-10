@@ -16,7 +16,7 @@ import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 public class ReceivedDTMF extends Operation {
 	
 	private CompletableFuture<ReceivedDTMF> compFuture;
-	private String userInput;
+	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
 	private List<CancelableOperations> nestedOperations;
 	private String terminatingKey;
@@ -131,7 +131,7 @@ public class ReceivedDTMF extends Operation {
 	 * @param termKey
 	 * @return
 	 */
-	public ReceivedDTMF termKey(String termKey) {
+	public ReceivedDTMF setTerminatingKey(String termKey) {
 		terminatingKey = termKey;
 		return this;
 	}
