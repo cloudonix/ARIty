@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
  *
  */
 public class ReceivedDTMF extends Operation {
+	
 	private CompletableFuture<ReceivedDTMF> compFuture;
 	private String userInput;
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
@@ -57,7 +58,6 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<? extends Operation> run() {
-		// if the list of verbs is not empty, execute them one by one
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
 
