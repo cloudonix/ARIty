@@ -52,23 +52,23 @@ public class Record extends Operation {
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
 		this.terminateOnKey = terminateOnKey;
-		if(beep)
+		if (beep)
 			this.callController = callController;
 	}
 
 	@Override
 	public CompletableFuture<Record> run() {
-		if(beep) {
+		if (beep) {
 			logger.info("play beep before recording");
-			callController.play("beep.alaw").run().thenAccept(res-> startRecording());
-		}
-		else
+			callController.play("beep.alaw").run().thenAccept(res -> startRecording());
+		} else
 			startRecording();
 		return liveRecFuture.thenApply(res -> this);
 	}
 
 	/**
-	 * start recording 
+	 * start recording
+	 * 
 	 * @param liveRecFuture
 	 */
 	private void startRecording() {
@@ -90,7 +90,7 @@ public class Record extends Operation {
 							return true;
 						});
 						Timer timer = new Timer("Timer");
-						
+
 						getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 							if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
 								return false;
@@ -102,21 +102,22 @@ public class Record extends Operation {
 							}
 							return false;
 						});
-						
-						 TimerTask task = new TimerTask() {
+
+						TimerTask task = new TimerTask() {
 							@Override
 							public void run() {
 								stopRecording();
 							}
-						 };
-						 timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
+						};
+						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 					}
+
 					private void stopRecording() {
 						try {
 							getAri().recordings().stop(name);
 							logger.info("record " + name + " stoped");
 						} catch (RestException e) {
-							logger.info("can't stop recording " +name+" "+ ErrorStream.fromThrowable(e));
+							logger.info("can't stop recording " + name + " " + ErrorStream.fromThrowable(e));
 						}
 
 					}
