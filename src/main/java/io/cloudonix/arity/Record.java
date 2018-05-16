@@ -53,7 +53,7 @@ public class Record extends Operation {
 	}
 
 	@Override
-	public CompletableFuture<? extends Operation> run() {
+	public CompletableFuture<Record> run() {
 		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 
 		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, "overwrite", beep,
