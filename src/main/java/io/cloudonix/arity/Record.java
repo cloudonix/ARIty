@@ -24,7 +24,9 @@ public class Record extends Operation {
 	private boolean beep = false;
 	private String terminateOnKey = "";
 	private LiveRecording recording;
+	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
+	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 
 	/**
 	 * constructor with default values
@@ -50,12 +52,26 @@ public class Record extends Operation {
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
 		this.terminateOnKey = terminateOnKey;
+		if(beep)
+			this.callController = callController;
 	}
 
 	@Override
 	public CompletableFuture<Record> run() {
-		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
+		if(beep) {
+			logger.info("play beep before recording");
+			callController.play("beep.alaw").run().thenAccept(res-> startRecording());
+		}
+		else
+			startRecording();
+		return liveRecFuture.thenApply(res -> this);
+	}
 
+	/**
+	 * start recording 
+	 * @param liveRecFuture
+	 */
+	private void startRecording() {
 		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, "overwrite", beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
 
@@ -95,7 +111,6 @@ public class Record extends Operation {
 						 };
 						 timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 					}
-
 					private void stopRecording() {
 						try {
 							getAri().recordings().stop(name);
@@ -111,7 +126,6 @@ public class Record extends Operation {
 						liveRecFuture.completeExceptionally(new RecordingException(name, e));
 					}
 				});
-		return liveRecFuture.thenApply(res -> this);
 	}
 
 	/**
