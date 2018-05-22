@@ -89,8 +89,8 @@ public abstract class CallController implements Runnable {
 	public Play play(String file) {
 		return new Play(this, file);
 	}
-	
-	public Play playRecording (String file) {
+
+	public Play playRecording(String file) {
 		Play playRecording = new Play(this, file);
 		playRecording.playRecording();
 		return playRecording;
@@ -99,7 +99,7 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new Answer operation to answer the call
 	 * 
-	 * @return 
+	 * @return
 	 */
 	public Answer answer() {
 		return new Answer(this);
@@ -108,7 +108,7 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new HangUp operation to hang up the call
 	 * 
-	 * @return 
+	 * @return
 	 */
 	public Hangup hangup() {
 		return new Hangup(this);
@@ -116,7 +116,8 @@ public abstract class CallController implements Runnable {
 
 	/**
 	 * the method creates a new receivedDTMF object
-	 * @param terminatingKey 
+	 * 
+	 * @param terminatingKey
 	 * @param inputLenght
 	 * @return
 	 */
@@ -127,7 +128,7 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new receivedDTMF operation with default values
 	 * 
-	 * @return 
+	 * @return
 	 */
 	public ReceivedDTMF receivedDTMF() {
 		return new ReceivedDTMF(this);
@@ -260,6 +261,25 @@ public abstract class CallController implements Runnable {
 					return v.getValue();
 				}).exceptionally(t -> {
 					logger.fine("unable to find header: " + headerName);
+					return null;
+				});
+	}
+
+	/**
+	 * get the value of a channel variable
+	 * 
+	 * @param varName
+	 *            name of the channel variable we are asking for
+	 * @return
+	 */
+	public CompletableFuture<String> getVariable(String varName) {
+		return this
+				.<Variable>futureFromAriCallBack(
+						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), varName, cb))
+				.thenApply(v -> {
+					return v.getValue();
+				}).exceptionally(t -> {
+					logger.fine("unable to find variable: " + varName);
 					return null;
 				});
 	}
@@ -487,8 +507,10 @@ public abstract class CallController implements Runnable {
 	/**
 	 * create new record operation
 	 * 
-	 * @param name Recording's filename
-	 * @param fileFormat Format to encode audio in (wav, gsm..)
+	 * @param name
+	 *            Recording's filename
+	 * @param fileFormat
+	 *            Format to encode audio in (wav, gsm..)
 	 * @return
 	 */
 	public Record record(String name, String format) {
