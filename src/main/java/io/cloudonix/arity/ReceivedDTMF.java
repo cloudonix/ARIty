@@ -22,6 +22,7 @@ public class ReceivedDTMF extends Operation {
 	private String terminatingKey;
 	private CancelableOperations currOpertation = null;
 	private int inputLenght = -1;
+	private boolean termKeyWasPressed = false;
 
 	/**
 	 * Constructor
@@ -136,6 +137,13 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public String getInput() {
 		return userInput;
+	}
+	/**
+	 * check if the terminating key was pressed- true if yes, false otherwise
+	 * @return
+	 */
+	public boolean isTermKeyWasPressed() {
+		return termKeyWasPressed;
 	}
 
 }
