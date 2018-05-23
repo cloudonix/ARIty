@@ -442,15 +442,6 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * get the dialplan extention (the dialed number)
-	 * 
-	 * @return
-	 */
-	public String getDialplanExten() {
-		return callState.getChannel().getDialplan().getExten();
-	}
-
-	/**
 	 * get the dialplan priority
 	 * 
 	 * @return
