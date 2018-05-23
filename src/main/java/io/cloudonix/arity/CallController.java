@@ -134,34 +134,31 @@ public abstract class CallController implements Runnable {
 		return new ReceivedDTMF(this);
 	}
 
+	
 	/**
-	 * the method created new Dial operation
-	 * 
-	 * @param number
-	 *            the number of the endpoint (who are we calling to)
+	 * 	the method created new Dial operation
+	 *
+	 * @param number destination number
+	 * @param callerId id of the caller
+	 * @param bridgeName name of the bridge
 	 * @return
 	 */
-	public Dial dial(String number) {
-		Dial dial = new Dial(this, number);
+	public Dial dial(String number, String callerId) {
+		Dial dial = new Dial(this, callerId, number);
 		conferences = dial.getConferences();
 		return dial;
-
 	}
-
+	
 	/**
-	 * the method created new Dial operation
-	 * 
-	 * @param number
-	 *            the number of the endpoint (who are we calling to)
-	 * @param conf
-	 *            the call will be available for a conference call (true if yes,
-	 *            otherwise if false)
-	 * @param confName
-	 *            name of the conference (bridge)
+	 * 	the method created new Dial operation
+	 *
+	 * @param number destination number
+	 * @param callerId id of the caller
+	 * @param bridgeName name of the bridge
 	 * @return
 	 */
-	public Dial dial(String number, String confName) {
-		Dial dial = new Dial(this, number, confName);
+	public Dial dial(String number, String callerId, String bridgeName) {
+		Dial dial = new Dial(this, callerId, number, bridgeName);
 		conferences = dial.getConferences();
 		return dial;
 	}
@@ -178,12 +175,12 @@ public abstract class CallController implements Runnable {
 	 *            name of the conference (bridge)
 	 * @return
 	 */
-	public Dial dial(String number, Map<String, String> headers) {
-		Dial dial = new Dial(this, number, headers);
+	public Dial dial(String callerId, String number, Map<String, String> headers) {
+		Dial dial = new Dial(this, callerId, number, headers);
 		conferences = dial.getConferences();
 		return dial;
 	}
-
+	
 	/**
 	 * the method creates a new Conference
 	 * 
