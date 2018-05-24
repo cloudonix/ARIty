@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
+import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
 
 /**
  * The class represents the RecivedDTMF operation (collects/gather the input from the user)
@@ -23,6 +23,8 @@ public class ReceivedDTMF extends Operation {
 	private CancelableOperations currOpertation = null;
 	private int inputLenght = -1;
 	private boolean termKeyWasPressed = false;
+	// duration of talking to the channel in milliseconds
+	private int channelTalkDuration = 0;
 
 	/**
 	 * Constructor
@@ -69,6 +71,7 @@ public class ReceivedDTMF extends Operation {
 			}
 
 		}
+		// stop receiving DTMF when terminating key was pressed or when talking in the channel has finished
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChannelId())))
 				return false;
@@ -76,7 +79,6 @@ public class ReceivedDTMF extends Operation {
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
 				logger.info("done gathering. all input: " + userInput);
 				if (Objects.nonNull(currOpertation))
-					// cancel the current operation because the gather is finished
 					currOpertation.cancel();
 
 				compFuture.complete(this);
@@ -84,6 +86,19 @@ public class ReceivedDTMF extends Operation {
 
 			}
 			userInput = userInput + dtmf.getDigit();
+			return false;
+		});
+		
+		getArity().addFutureEvent(ChannelTalkingFinished.class, speech->{
+			if(Objects.equals(speech.getChannel().getId(), getChannelId())) {
+				logger.info("talking to the channel is finished, stop gathering");
+				channelTalkDuration = speech.getDuration();
+				if (Objects.nonNull(currOpertation))
+					currOpertation.cancel();
+
+				compFuture.complete(this);
+				return true;
+			}
 			return false;
 		});
 
@@ -144,6 +159,13 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public boolean isTermKeyWasPressed() {
 		return termKeyWasPressed;
+	}
+	/**
+	 * get time of talking in the channel in milliseconds
+	 * @return
+	 */
+	public int getChannelTalkDuration() {
+		return channelTalkDuration;
 	}
 
 }
