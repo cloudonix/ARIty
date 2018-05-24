@@ -58,7 +58,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
 		if (!nestedOperations.isEmpty()) {
-			logger.info("there are verbs in the nested verb list");
+			logger.info("there are verbs in the nested operation list");
 
 			currOpertation = nestedOperations.get(0);
 			CompletableFuture<? extends Operation> future = nestedOperations.get(0).run();
@@ -77,7 +77,7 @@ public class ReceivedDTMF extends Operation {
 				return false;
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
-				logger.info("done gathering. all input: " + userInput);
+				logger.info("done receiving DTMF. all input: " + userInput);
 				if (Objects.nonNull(currOpertation))
 					currOpertation.cancel();
 
@@ -91,7 +91,7 @@ public class ReceivedDTMF extends Operation {
 		
 		getArity().addFutureEvent(ChannelTalkingFinished.class, speech->{
 			if(Objects.equals(speech.getChannel().getId(), getChannelId())) {
-				logger.info("talking to the channel is finished, stop gathering");
+				logger.info("talking to the channel is finished, stop receiving DTMF");
 				channelTalkDuration = speech.getDuration();
 				if (Objects.nonNull(currOpertation))
 					currOpertation.cancel();
