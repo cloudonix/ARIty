@@ -56,7 +56,7 @@ public class ReceivedDTMF extends Operation {
 	 *            - the digit that stops the gathering
 	 * @return
 	 */
-	public CompletableFuture<? extends Operation> run() {
+	public CompletableFuture<ReceivedDTMF> run() {
 		if (!nestedOperations.isEmpty()) {
 			logger.info("there are verbs in the nested verb list");
 
