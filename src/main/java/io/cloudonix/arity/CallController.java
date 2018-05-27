@@ -119,10 +119,11 @@ public abstract class CallController implements Runnable {
 	 * 
 	 * @param terminatingKey
 	 * @param inputLenght
+	 * @param maxDuration
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght) {
-		return new ReceivedDTMF(this, terminatingKey, inputLenght);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght, int maxDuration) {
+		return new ReceivedDTMF(this, terminatingKey, inputLenght, maxDuration);
 	}
 
 	/**
@@ -140,7 +141,6 @@ public abstract class CallController implements Runnable {
 	 *
 	 * @param number destination number
 	 * @param callerId id of the caller
-	 * @param bridgeName name of the bridge
 	 * @return
 	 */
 	public Dial dial(String number, String callerId) {
@@ -263,6 +263,23 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
+	 * add pjsip header to a channel
+	 * 
+	 * @param headerName
+	 *            name of the new header
+	 * @param headerValue
+	 *            value of the new header
+	 * @return
+	 */
+	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
+		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
+				.exceptionally(t -> {
+					logger.fine("unable to find header: " + headerName);
+					return null;
+				});
+	}
+	/**
 	 * get the value of a channel variable
 	 * 
 	 * @param varName
@@ -280,24 +297,24 @@ public abstract class CallController implements Runnable {
 					return null;
 				});
 	}
-
+	
 	/**
-	 * add pjsip header to a channel
-	 * 
-	 * @param headerName
-	 *            name of the new header
-	 * @param headerValue
-	 *            value of the new header
+	 * change setting regarding to talking to the channel
+	 * @param varName 'set' or 'remove'
+	 * @param varValue threshold in milliseconds or empty string for no threshold
 	 * @return
 	 */
-	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
+	public CompletableFuture<Void> setTalkingInChannel(String varName, String varValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
+				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")", varValue, cb))
 				.exceptionally(t -> {
-					logger.fine("unable to find header: " + headerName);
+					logger.fine("unable to " + varName +" with value " +varValue);
 					return null;
 				});
+		
 	}
+
+
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
