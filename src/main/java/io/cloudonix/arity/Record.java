@@ -93,7 +93,6 @@ public class Record extends Operation {
 						Timer timer = new Timer("Timer");
 
 						getArity().addFutureEvent(RecordingFinished.class, (record) -> { 
-							logger.info("finished recording");
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return false;
 							recording = result;
@@ -120,16 +119,6 @@ public class Record extends Operation {
 							}
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
-					}
-
-					private void stopRecording() {
-						try {
-							getAri().recordings().stop(name);
-							logger.info("record " + name + " stoped");
-						} catch (RestException e) {
-							logger.warning("can't stop recording " + name);
-						}
-
 					}
 
 					@Override
@@ -166,6 +155,15 @@ public class Record extends Operation {
 	 */
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public void stopRecording() {
+		try {
+			getAri().recordings().stop(name);
+			logger.info("record " + name + " stoped");
+		} catch (RestException e) {
+			logger.warning("can't stop recording " + name);
+		}		
 	}
 
 }

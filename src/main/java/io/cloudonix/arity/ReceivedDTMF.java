@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
 
@@ -50,7 +49,7 @@ public class ReceivedDTMF extends Operation {
 		inputLenght = lenght;
 		this.callController = callController;
 		this.maxDuration = maxDuration;
-		this.callController.setTalkingInChannel("set", "120000,60000");
+		this.callController.setTalkingInChannel("set", "120000,1000");
 	}
 
 	/**
@@ -61,7 +60,7 @@ public class ReceivedDTMF extends Operation {
 	public ReceivedDTMF(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.callController = callController;
-		callController.setTalkingInChannel("set", "120000,60000");
+		callController.setTalkingInChannel("set", "120000,1000");
 	}
 
 	/**
@@ -105,23 +104,25 @@ public class ReceivedDTMF extends Operation {
 			userInput = userInput + dtmf.getDigit();
 			return false;
 		});
-		
+
 		getArity().addFutureEvent(ChannelTalkingStarted.class, talk -> {
 			logger.info("recognized tallking in the channel");
-			if (Objects.equals(talk.getChannel().getId(), getChannelId()) && !dtmfWasPressed) {
+			if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
 				recordName = UUID.randomUUID().toString();
 				Record record = null;
 				if (maxDuration == 0)
 					record = callController.record(recordName, "wav");
 				else
 					record = callController.record(recordName, "wav", maxDuration, 0, false, "#");
-				
+
 				record.run().thenAccept(recRes -> {
-					logger.info("talking to the channel was finished, stop receiving DTMF");
-					channelTalkDuration = recRes.getRecording().getTalking_duration();
-					compFuture.complete(this);
-					});
-				
+					if (!dtmfWasPressed) {
+						logger.info("talking to the channel was finished, stop receiving DTMF");
+						channelTalkDuration = recRes.getRecording().getTalking_duration();
+						compFuture.complete(this);
+					}
+				});
+
 				return true;
 			}
 			return false;
