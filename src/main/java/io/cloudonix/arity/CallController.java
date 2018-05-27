@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -306,9 +307,9 @@ public abstract class CallController implements Runnable {
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String varName, String varValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")=", varValue, cb))
+				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")", varValue, cb))
 				.exceptionally(t -> {
-					logger.fine("unable to " + varName +" with value " +varValue);
+					logger.info("unable to " + varName +" with value " +varValue+ ": "+ErrorStream.fromThrowable(t));
 					return null;
 				});
 		
