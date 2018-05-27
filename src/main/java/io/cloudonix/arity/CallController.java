@@ -306,7 +306,7 @@ public abstract class CallController implements Runnable {
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String varName, String varValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")", varValue, cb))
+				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")=", varValue, cb))
 				.exceptionally(t -> {
 					logger.fine("unable to " + varName +" with value " +varValue);
 					return null;
