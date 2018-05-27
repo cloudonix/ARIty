@@ -12,7 +12,6 @@ import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.RecordingException;
 
 public class Record extends Operation {
@@ -91,16 +90,17 @@ public class Record extends Operation {
 							return;
 						recording = result;
 						logger.info("recording started! recording name: " + name);
+						Timer timer = new Timer("Timer");
 
-						getArity().addFutureEvent(RecordingFinished.class, (record) -> {
+						getArity().addFutureEvent(RecordingFinished.class, (record) -> { 
+							logger.info("finished recording");
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return false;
 							recording = result;
 							liveRecFuture.complete(record.getRecording());
 							return true;
 						});
-						Timer timer = new Timer("Timer");
-
+						
 						getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 							if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
 								return false;
@@ -127,7 +127,7 @@ public class Record extends Operation {
 							getAri().recordings().stop(name);
 							logger.info("record " + name + " stoped");
 						} catch (RestException e) {
-							logger.info("can't stop recording " + name + " " + ErrorStream.fromThrowable(e));
+							logger.warning("can't stop recording " + name);
 						}
 
 					}
@@ -138,6 +138,7 @@ public class Record extends Operation {
 					}
 				});
 	}
+	
 
 	/**
 	 * get the recording
