@@ -3,10 +3,12 @@ package io.cloudonix.arity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
+import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
 
 /**
  * The class represents the RecivedDTMF operation (collects/gather the input from the user)
@@ -16,15 +18,18 @@ import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
 public class ReceivedDTMF extends Operation {
 	
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
-	private String userInput = "#";
+	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
 	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
-	private String terminatingKey;
+	private String terminatingKey = "#";
 	private CancelableOperations currOpertation = null;
 	private int inputLenght = -1;
 	private boolean termKeyWasPressed = false;
 	// duration of talking to the channel in milliseconds
 	private int channelTalkDuration = 0;
+	private CallController callController;
+	private String recordName = "";
+	private int maxDuration = 0;
 
 	/**
 	 * Constructor
@@ -32,12 +37,15 @@ public class ReceivedDTMF extends Operation {
 	 * @param callController
 	 * @param termKey
 	 *            define terminating key (otherwise '#' is the default)
-	 * @param lenght lenght of the input we are expecting to get from the caller. for no limitation -1
+	 * @param lenght length of the input we are expecting to get from the caller. for no limitation -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int lenght) {
+	public ReceivedDTMF(CallController callController, String termKey, int lenght, int maxDuration) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		terminatingKey = termKey;
 		inputLenght = lenght;
+		this.callController = callController;
+		this.maxDuration = maxDuration;
+		callController.setTalkingInChannel("set", "");
 	}
 
 	/**
@@ -47,6 +55,8 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		this.callController = callController;
+		callController.setTalkingInChannel("set", "");
 	}
 
 	/**
@@ -72,6 +82,34 @@ public class ReceivedDTMF extends Operation {
 
 		}
 		// stop receiving DTMF when terminating key was pressed or when talking in the channel has finished
+		getArity().addFutureEvent(ChannelTalkingStarted.class, talk->{
+			if(Objects.equals(talk.getChannel().getId(), getChannelId())) {
+				recordName = UUID.randomUUID().toString();
+				if(maxDuration==0)
+				callController.record(recordName, "wav").run().thenAccept(res->logger.fine("recording talking"));
+				else
+					callController.record(recordName,"wav",maxDuration,0,false,"#").run().thenAccept(res->logger.fine("recording talking"));
+				return true;
+			}
+			return false;
+
+		});
+
+		
+		getArity().addFutureEvent(ChannelTalkingFinished.class, talk->{
+			if(Objects.equals(talk.getChannel().getId(), getChannelId())) {
+				logger.info("talking to the channel is finished, stop receiving DTMF");
+				channelTalkDuration = talk.getDuration();
+				if (Objects.nonNull(currOpertation))
+					currOpertation.cancel();
+
+				compFuture.complete(this);
+				return true;
+			}
+			return false;
+		});
+
+		
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			if (!(dtmf.getChannel().getId().equals(getChannelId())))
 				return false;
@@ -89,19 +127,7 @@ public class ReceivedDTMF extends Operation {
 			return false;
 		});
 		
-		getArity().addFutureEvent(ChannelTalkingFinished.class, speech->{
-			if(Objects.equals(speech.getChannel().getId(), getChannelId())) {
-				logger.info("talking to the channel is finished, stop receiving DTMF");
-				channelTalkDuration = speech.getDuration();
-				if (Objects.nonNull(currOpertation))
-					currOpertation.cancel();
-
-				compFuture.complete(this);
-				return true;
-			}
-			return false;
-		});
-
+		
 		return compFuture;
 	}
 
@@ -166,6 +192,14 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public int getChannelTalkDuration() {
 		return channelTalkDuration;
+	}
+	
+	/**
+	 * get the name of the recording of dtmf talking
+	 * @return
+	 */
+	public String getRecordName() {
+		return recordName;
 	}
 
 }
