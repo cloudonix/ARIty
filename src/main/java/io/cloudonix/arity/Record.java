@@ -31,6 +31,9 @@ public class Record extends Operation {
 	/**
 	 * constructor with default values
 	 * 
+	 * @param callController
+	 * @param name
+	 * @param fileFormat
 	 */
 	public Record(CallController callController, String name, String fileFormat) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
@@ -38,10 +41,17 @@ public class Record extends Operation {
 		this.fileFormat = fileFormat;
 	}
 
-	/**
-	 * constructor with extended settings for the recording
-	 * 
-	 */
+/**
+* constructor with extended settings for the recording
+* 
+ * @param callController
+ * @param name
+ * @param fileFormat
+ * @param maxDuration
+ * @param maxSilenceSeconds
+ * @param beep
+ * @param terminateOnKey
+ */
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
 			boolean beep, String terminateOnKey) {
