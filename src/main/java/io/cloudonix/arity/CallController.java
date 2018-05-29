@@ -302,7 +302,8 @@ public abstract class CallController implements Runnable {
 	/**
 	 * change setting regarding to talking to the channel
 	 * @param varName 'set' or 'remove'
-	 * @param varValue threshold in milliseconds or empty string for no threshold
+	 * @param varValue 'threshold1,threshold2' such that threshold 1 is the time in milliseconds before which a user is considered silent.
+ 		and threshold 2 is the time in milliseconds after which a user is considered talking. use the empty string for no threshold
 	 * @return
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String varName, String varValue) {
