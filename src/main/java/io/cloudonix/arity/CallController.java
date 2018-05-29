@@ -136,12 +136,13 @@ public abstract class CallController implements Runnable {
 		return new ReceivedDTMF(this);
 	}
 
-	
 	/**
-	 * 	the method created new Dial operation
+	 * the method created new Dial operation
 	 *
-	 * @param number destination number
-	 * @param callerId id of the caller
+	 * @param number
+	 *            destination number
+	 * @param callerId
+	 *            id of the caller
 	 * @return
 	 */
 	public Dial dial(String number, String callerId) {
@@ -149,13 +150,16 @@ public abstract class CallController implements Runnable {
 		conferences = dial.getConferences();
 		return dial;
 	}
-	
+
 	/**
-	 * 	the method created new Dial operation
+	 * the method created new Dial operation
 	 *
-	 * @param number destination number
-	 * @param callerId id of the caller
-	 * @param bridgeName name of the bridge
+	 * @param number
+	 *            destination number
+	 * @param callerId
+	 *            id of the caller
+	 * @param bridgeName
+	 *            name of the bridge
 	 * @return
 	 */
 	public Dial dial(String number, String callerId, String bridgeName) {
@@ -181,7 +185,7 @@ public abstract class CallController implements Runnable {
 		conferences = dial.getConferences();
 		return dial;
 	}
-	
+
 	/**
 	 * the method creates a new Conference
 	 * 
@@ -280,6 +284,7 @@ public abstract class CallController implements Runnable {
 					return null;
 				});
 	}
+
 	/**
 	 * get the value of a channel variable
 	 * 
@@ -294,29 +299,55 @@ public abstract class CallController implements Runnable {
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
-					logger.fine("unable to find variable: " + varName);
+					logger.fine("unable to find variable: " + varName + " :" + ErrorStream.fromThrowable(t));
 					return null;
 				});
 	}
-	
+
 	/**
-	 * change setting regarding to talking to the channel
-	 * @param varName 'set' or 'remove'
-	 * @param varValue 'threshold1,threshold2' such that threshold 1 is the time in milliseconds before which a user is considered silent.
- 		and threshold 2 is the time in milliseconds after which a user is considered talking. use the empty string for no threshold
+	 * change setting regarding to TALK_DETECT function
+	 * 
+	 * @param action
+	 *            'set' or 'remove'
+	 * @param actionValue
+	 *            if set action is used, action value will be in the form:
+	 *            'threshold1,threshold2' such that threshold 1 is the time in
+	 *            milliseconds before which a user is considered silent. and
+	 *            threshold 2 is the time in milliseconds after which a user is
+	 *            considered talking. use the empty string for no threshold
 	 * @return
 	 */
-	public CompletableFuture<Void> setTalkingInChannel(String varName, String varValue) {
+	public CompletableFuture<Void> setTalkingInChannel(String action, String actionValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + varName + ")", varValue, cb))
+				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + action + ")", actionValue, cb))
 				.exceptionally(t -> {
-					logger.info("unable to " + varName +" with value " +varValue+ ": "+ErrorStream.fromThrowable(t));
+					logger.info(
+							"unable to " + action + " with value " + actionValue + ": " + ErrorStream.fromThrowable(t));
 					return null;
 				});
-		
+
 	}
 
-
+	/**
+	 * changes setting regarding to CONFBRIDGE function
+	 * 
+	 * @param type
+	 *            'bridge' or 'menu' or 'user'
+	 * @param value
+	 *            value to set (for example: yes)
+	 * @param options
+	 *            option to set (for example: admin)
+	 * @return
+	 */
+	public CompletableFuture<Void> setConfBridge(String type, String value, String options) {
+		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelID(), "CONFBRIDGE(" + type + "," + options + ")", value, cb))
+				.exceptionally(t -> {
+					logger.info("unable to execute CONFBRIDGE function with (" + type + "," + options + ") : "
+							+ ErrorStream.fromThrowable(t));
+					return null;
+				});
+	}
 
 	/**
 	 * helper method for getSipHeader in order to have AriCallback
