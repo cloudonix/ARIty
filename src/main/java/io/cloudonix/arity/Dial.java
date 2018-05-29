@@ -115,7 +115,7 @@ public class Dial extends CancelableOperations {
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
 								null, callerId, -1, headers, endPointChannelId, null, getChannelId(), "", cf))
-				.thenAccept(v -> {
+				.thenAccept(channel -> {
 					logger.info("dial succeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
