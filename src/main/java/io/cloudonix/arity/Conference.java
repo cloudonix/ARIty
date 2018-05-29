@@ -52,6 +52,11 @@ public class Conference extends CancelableOperations {
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
+		try {
+			confBridge = ari.bridges().create("mixing");
+		} catch (RestException e) {
+			logger.severe("unable to create conference bridge: "+ErrorStream.fromThrowable(e));
+		}
 	}
 
 	@Override
