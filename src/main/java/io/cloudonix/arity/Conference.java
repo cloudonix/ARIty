@@ -60,7 +60,7 @@ public class Conference extends CancelableOperations {
 	}
 
 	@Override
-	public CompletableFuture<? extends Operation> run() {
+	public CompletableFuture<Conference> run() {
 		if (Objects.equals(currState, ConferenceState.Ready)) {
 			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
 				for (int i = 0; i < channelsInConf.size(); i++) {
@@ -76,8 +76,7 @@ public class Conference extends CancelableOperations {
 							if (channelsInConf.contains(chanLeftBridge.getChannel()) || isAdded) {
 								removeChannelFromConf(chanLeftBridge.getChannel());
 								if (channelsInConf.size() < 2) {
-									logger.info(
-											"conference must contain at least 2 participantes. closing the conference");
+									logger.info("conference must contain at least 2 participantes. closing the conference");
 									// update the list of active conferences
 									currState = ConferenceState.Destroying;
 									List<Conference> conferences = getArity().getCallSupplier().get().getConferences();
