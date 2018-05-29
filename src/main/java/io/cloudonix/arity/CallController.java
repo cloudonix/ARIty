@@ -333,13 +333,13 @@ public abstract class CallController implements Runnable {
 	 * 
 	 * @param type
 	 *            'bridge' or 'menu' or 'user'
-	 * @param value
-	 *            value to set (for example: yes)
 	 * @param options
 	 *            option to set (for example: admin)
+	 * @param value
+	 *            value to set (for example: yes)
 	 * @return
 	 */
-	public CompletableFuture<Void> setConfBridge(String type, String value, String options) {
+	public CompletableFuture<Void> setConfBridge(String type, String options, String value) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
 				.setChannelVar(callState.getChannelID(), "CONFBRIDGE(" + type + "," + options + ")", value, cb))
 				.exceptionally(t -> {
