@@ -14,7 +14,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
 
-public class Record extends Operation {
+public class Record extends CancelableOperations {
 
 	private String name;
 	private String fileFormat;
@@ -115,7 +115,7 @@ public class Record extends Operation {
 						TimerTask task = new TimerTask() {
 							@Override
 							public void run() {
-								stopRecording();
+								cancel();
 							}
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
@@ -157,13 +157,14 @@ public class Record extends Operation {
 		this.name = name;
 	}
 
-	public void stopRecording() {
+	@Override
+	void cancel() {
 		try {
 			getAri().recordings().stop(name);
 			logger.info("record " + name + " stoped");
 		} catch (RestException e) {
 			logger.warning("can't stop recording " + name);
-		}		
+		}				
 	}
 
 }
