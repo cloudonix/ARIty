@@ -151,6 +151,15 @@ public class Record extends Operation {
 	}
 
 	/**
+	 * return terminating key
+	 * 
+	 * @return
+	 */
+	public String getTerminatingKey() {
+		return terminateOnKey;
+	}
+
+	/**
 	 * set the name of the recording
 	 * 
 	 * @param name
