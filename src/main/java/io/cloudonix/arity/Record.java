@@ -24,6 +24,7 @@ public class Record extends Operation {
 	private String terminateOnKey = "";
 	private LiveRecording recording;
 	private CallController callController;
+	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
 	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 
@@ -98,6 +99,7 @@ public class Record extends Operation {
 							}
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("terminating key was pressed, stop recording");
+								isTermKeyWasPressed = true;
 								timer.cancel();
 								return true;
 							}
@@ -136,6 +138,16 @@ public class Record extends Operation {
 	 */
 	public String getName() {
 		return name;
+	}
+
+	/**
+	 * return true if terminating key was pressed to stop the recording, false
+	 * otherwise
+	 * 
+	 * @return
+	 */
+	public boolean isTermKeyWasPressed() {
+		return isTermKeyWasPressed;
 	}
 
 	/**
