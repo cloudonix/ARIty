@@ -3,7 +3,6 @@ package io.cloudonix.arity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -23,8 +22,10 @@ public class CallState {
 	private Channel channel;
 	private String channelTechnology;
 	private Map<String, Object> metaData;
+	private Map<String, String> conferenceBridgeIds;
 
-	public CallState(StasisStart callStasisStart, ARI ari,ARIty arity, String channelID, Channel channel, String channelTechnology) {
+	public CallState(StasisStart callStasisStart, ARI ari, ARIty arity, String channelID, Channel channel,
+			String channelTechnology) {
 		this.ari = ari;
 		this.arity = arity;
 		this.channelID = channelID;
@@ -32,8 +33,9 @@ public class CallState {
 		this.channelTechnology = channelTechnology;
 		this.callStasisStart = callStasisStart;
 		this.metaData = new HashMap<>();
+		this.conferenceBridgeIds = new HashMap<>();
 	}
-	
+
 	public StasisStart getCallStasisStart() {
 		return callStasisStart;
 	}
@@ -87,13 +89,35 @@ public class CallState {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * get channel technology. ex: SIP, PJSIP
+	 * 
 	 * @return
 	 */
 	public String getChannelTechnology() {
 		return channelTechnology;
 	}
 
+	/**
+	 * add new bridge to the list of conferences
+	 * 
+	 * @param confName
+	 *            conference name
+	 * @param id
+	 *            id of the bridge represents the conference
+	 */
+	public void addConference(String confName, String id) {
+		conferenceBridgeIds.put(confName, id);
+	}
+
+	/**
+	 * remove conference from active conferences
+	 * 
+	 * @param confName
+	 *            name of the conference we want to remove
+	 */
+	public void removeConference(String confName) {
+		conferenceBridgeIds.remove(confName);
+	}
 }
