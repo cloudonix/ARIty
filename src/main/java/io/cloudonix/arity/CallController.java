@@ -194,7 +194,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Conference conference(String confName) {
-		return new Conference(callState.getChannelID(), callState.getArity(), callState.getAri(), confName);
+		return new Conference(this, confName);
 	}
 
 	/**

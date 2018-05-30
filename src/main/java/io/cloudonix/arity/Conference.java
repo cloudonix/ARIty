@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-
-import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -33,9 +30,10 @@ public class Conference extends CancelableOperations {
 	private Bridge confBridge;
 	private String confName;
 	private int count = 0;
-	private List<Channel> channelsInConf;
-	private Channel newChannel = null;
-	private boolean isAdded = false;
+	// channel id's of all channels in the conference
+	private List<String> channelIdsInConf;
+	private String channelId;
+	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 
 	/**
@@ -50,65 +48,55 @@ public class Conference extends CancelableOperations {
 	 * @param name
 	 *            name of the conference
 	 */
-	public Conference(String channeId, ARIty arity, ARI ari, String name) {
-		super(channeId, arity, ari);
-		channelsInConf = new ArrayList<>();
+	public Conference(CallController callController, String name) {
+		super(callController.getCallState().getChannelID(), callController.getCallState().getArity(),
+				callController.getCallState().getAri());
+		this.channelId = callController.getCallState().getChannelID();
+		this.callController = callController;
+		channelIdsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
-		ari.bridges().create("mixing", confName, new AriCallback<Bridge>() {
+		callController.getCallState().getAri().bridges().create("mixing", confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
 				confBridge = result;
 				currState = ConferenceState.Ready;
-				logger.fine("conference: " + confName + "is ready");
+				logger.info("conference: " + confName + "is ready");
 			}
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.warning("failed creating bridge for conference " + e.toString());
+				logger.warning("failed creating bridge for conference " + ErrorStream.fromThrowable(e));
 			}
 		});
 	}
 
 	@Override
 	public CompletableFuture<Conference> run() {
-
 		if (Objects.equals(currState, ConferenceState.Ready)) {
-			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
-				for (int i = 0; i < channelsInConf.size(); i++) {
-					getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-						// if the caller's channel was not added to the conference and an hung up
-						// request arrived, cancel the addition to the conference
-						if (Objects.equals(hangup.getChannel().getId(), newChannel.getId()) && !isAdded) {
-							logger.info("cancel adding channel to conference");
-							cancel();
-							return false;
-						}
-						// notice when a channel left a conference bridge
-						getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
-							if (channelsInConf.contains(chanLeftBridge.getChannel()) || isAdded) {
-								removeChannelFromConf(chanLeftBridge.getChannel());
-								if (channelsInConf.size() < 2) {
-									logger.info(
-											"conference must contain at least 2 participantes. closing the conference");
-									// update the list of active conferences
-									currState = ConferenceState.Destroying;
-									List<Conference> conferences = getArity().getCallSupplier().get().getConferences();
-									conferences.remove(this);
-									getArity().getCallSupplier().get().setConferences(conferences);
-									compFuture.complete(this);
-								}
-								return true;
-							}
-							return false;
-						});
-						return true;
+			return this.<Void>toFuture(addChannel -> addChannelToConf(channelId)).thenAccept(v -> {
+				for (int i = 0; i < channelIdsInConf.size(); i++) {
 
+					getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
+						if (channelIdsInConf.contains(hangup.getChannel().getId())) {
+
+							getArity().addFutureEvent(ChannelLeftBridge_impl_ari_2_0_0.class, (chanLeftBridge) -> {
+								if (channelIdsInConf.contains(chanLeftBridge.getChannel().getId())) {
+									removeChannelFromConf(chanLeftBridge.getChannel().getId());
+									if (count == 0)
+										compFuture.complete(this);
+									return true;
+								}
+								return false;
+							});
+							return true;
+						}
+						return false;
 					});
 				}
 			}).thenCompose(v -> compFuture);
 		}
-		logger.severe("cannot join conference that is not ready");
+		logger.severe("cannot join to conference that is not ready");
 		return null;
 	}
 
@@ -119,16 +107,6 @@ public class Conference extends CancelableOperations {
 	 */
 	public ConferenceState getCurrState() {
 		return currState;
-	}
-
-	/**
-	 * set conference state
-	 * 
-	 * @param currState
-	 *            update sate of conference
-	 */
-	public void setCurrState(ConferenceState currState) {
-		this.currState = currState;
 	}
 
 	/**
@@ -190,8 +168,8 @@ public class Conference extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	public List<Channel> getChannelsInConf() {
-		return channelsInConf;
+	public List<String> getChannelsInConf() {
+		return channelIdsInConf;
 	}
 
 	/**
@@ -199,57 +177,84 @@ public class Conference extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	public void setChannelsInConf(List<Channel> channelsInConf) {
-		this.channelsInConf = channelsInConf;
-	}
-
-	/**
-	 * get the channel we want to add to the conference
-	 * 
-	 * @return
-	 */
-	public Channel getNewChannel() {
-		return newChannel;
-	}
-
-	/**
-	 * set the channel we want to add to the conference
-	 * 
-	 * @param newChannel
-	 */
-	public void setNewChannel(Channel newChannel) {
-		this.newChannel = newChannel;
+	public void setChannelsInConf(List<String> channelsInConf) {
+		this.channelIdsInConf = channelsInConf;
 	}
 
 	/**
 	 * add channel to the conference
 	 * 
-	 * @param channel
-	 * @param cc
+	 * @param newChannelId
+	 *            id of the new channel that we want to add to add to the conference
 	 */
-	public void addChannelToConf(Channel channel) {
-		try {
-			getAri().bridges().addChannel(confBridge.getId(), channel.getId(), "join");
-		} catch (RestException e) {
-			logger.severe("unable to add channel to conference " + ErrorStream.fromThrowable(e));
+	public void addChannelToConf(String newChannelId) {
+
+		if (!currState.equals(ConferenceState.Ready)) {
+			logger.severe("cannot join to conference that is not ready");
 			return;
 		}
-		isAdded = true;
-		channelsInConf.add(channel);
-		count++;
 
-		if (count == 1) {
-			logger.info("channel joined to conference and it is the only in it");
-			// new Play(arity.getCallSupplier().get(), "conf-onlyperson").run();
-		} else {
-			logger.info("channel joined to conference");
-			// play to all channels in the bridge- new PlayBridge class and in run method:
-			// getAri().bridges().play(getBridgeId(), fullPath,
-			// callStasisStart.getChannel().getLanguage(), 0, 0,playbackId, new
-			// AriCallback<Playback>() {
+		getAri().bridges().addChannel(confBridge.getId(), newChannelId, "join", new AriCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				logger.info("channel was added to conference");
+				channelIdsInConf.add(newChannelId);
+				count++;
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("channel was not added to the conference: " + ErrorStream.fromThrowable(e));
+			}
+		});
+
+		if (count == 1)
+			callController.play("conf-onlyperson").run().thenAccept(res -> startMusicOnHold(newChannelId));
+
+		if (count >= 2) {
+			logger.fine("there at least 2 channels in the conference");
+			stoptMusicOnHold(newChannelId);
 		}
-		if (count == 2)
-			currState = ConferenceState.Ready;
+	}
+
+	/**
+	 * play music on hold to a channel that is alone in the conference
+	 * 
+	 * @param newChannelId
+	 *            id of the channel
+	 */
+	private void startMusicOnHold(String newChannelId) {
+		getAri().channels().startMoh(newChannelId, "default", new AriCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				logger.fine("playing music on hold to channel: " + newChannelId);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.fine("unable to play music on hold to channel: " + ErrorStream.fromThrowable(e));
+			}
+		});
+	}
+
+	/**
+	 * stop playing music on hold to the channel
+	 * 
+	 * @param newChannelId
+	 *            id of the channel
+	 */
+	private void stoptMusicOnHold(String newChannelId) {
+		getAri().channels().stopMoh(newChannelId, new AriCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				logger.fine("stoped music on hold to channel " + newChannelId);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.fine("unable to stop music to channel " + newChannelId + " " + ErrorStream.fromThrowable(e));
+			}
+		});
 	}
 
 	/**
@@ -257,21 +262,48 @@ public class Conference extends CancelableOperations {
 	 * 
 	 * @param channel
 	 */
-	public void removeChannelFromConf(Channel channel) {
-		count--;
-		channelsInConf.remove(channel);
-		// conference can't contain less than 2 participants
-		if (count < 2) {
-			currState = ConferenceState.Destroying;
-			compFuture.complete(this);
-		}
+	public void removeChannelFromConf(String newChannelId) {
+
+		getAri().bridges().removeChannel(confBridge.getId(), newChannelId, new AriCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				count--;
+				channelIdsInConf.remove(newChannelId);
+				if (count == 1) {
+					// play music on hold
+				}
+
+				if (count == 0) {
+					logger.info("conference is empty, closing conference");
+					currState = ConferenceState.Destroying;
+					getAri().bridges().destroy(confBridge.getId(), new AriCallback<Void>() {
+						@Override
+						public void onSuccess(Void result) {
+							logger.info("closed conference " + confName);
+
+						}
+
+						@Override
+						public void onFailure(RestException e) {
+							logger.warning("unable to close conference: " + ErrorStream.fromThrowable(e));
+						}
+					});
+				}
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("unable to remove channel from conference " + ErrorStream.fromThrowable(e));
+			}
+		});
+
 	}
 
 	@Override
 	void cancel() {
 		try {
 			// hang up the call of the channel that asked to join to the conference
-			getAri().channels().hangup(newChannel.getId(), "normal");
+			getAri().channels().hangup(channelId, "normal");
 			logger.info("hang up the caller's call");
 			compFuture.complete(this);
 
