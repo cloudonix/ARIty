@@ -12,7 +12,9 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
 
 /**
- * The class represents a Play operation (plays a playback and cancels the playback if needed)
+ * The class represents a Play operation (plays a playback and cancels the
+ * playback if needed)
+ * 
  * @author naamag
  *
  */
@@ -28,15 +30,17 @@ public class Play extends CancelableOperations {
 	/**
 	 * constructor
 	 * 
-	 * @param callController call main logic object
-	 * @param fileName name of the file to be played
+	 * @param callController
+	 *            call main logic object
+	 * @param fileName
+	 *            name of the file to be played
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		callStasisStart = callController.getCallStasisStart();
 		this.playFileName = fileName;
 	}
-	
+
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
@@ -53,37 +57,32 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		// create a "local" completable future in order to connect it to the global
-		// completable future. we want the local to end before starting a new one
 		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme + playFileName;
-
 			getAri().channels().play(getChannelId(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
 					playbackId, new AriCallback<Playback>() {
-
 						@Override
 						public void onFailure(RestException e) {
 							logger.warning("failed in playing playback " + e.getMessage());
 							compPlaybackItr.completeExceptionally(new PlaybackException(fullPath, e));
 						}
+
 						@Override
 						public void onSuccess(Playback resultM) {
 							if (!(resultM instanceof Playback))
 								return;
-							// save the playback
 							playback = resultM;
-							logger.info("playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
+							logger.info("playback started! Playing: " + playFileName + " and playback id is: "
+									+ playback.getId());
 
-							// add a playback finished future event to the futureEvent list
 							getArity().addFutureEvent(PlaybackFinished.class, (playb) -> {
 								if (!(playb.getPlayback().getId().equals(playbackId)))
 									return false;
 								logger.info("playbackFinished id is the same as playback id.  ID is: " + playbackId);
-								// if it is play back finished with the same id, handle it here
 								compPlaybackItr.complete(playb.getPlayback());
 								return true;
 
@@ -98,7 +97,7 @@ public class Play extends CancelableOperations {
 				return compPlaybackItr.thenCompose(x -> run());
 			}
 		}
-		return compPlaybackItr.thenApply(pb ->this);
+		return compPlaybackItr.thenApply(pb -> this);
 	}
 
 	/**
@@ -114,6 +113,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * Get the playback
+	 * 
 	 * @return
 	 */
 	public Playback getPlayback() {
@@ -131,9 +131,10 @@ public class Play extends CancelableOperations {
 			logger.info("playback is not playing at the moment : " + e);
 		}
 	}
-	
+
 	/**
 	 * get the name of the file to play
+	 * 
 	 * @return
 	 */
 	public String getPlayFileName() {
@@ -142,6 +143,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * set the file to be played
+	 * 
 	 * @param playFileName
 	 */
 	public void setPlayFileName(String playFileName) {
