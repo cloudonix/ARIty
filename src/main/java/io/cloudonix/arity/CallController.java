@@ -189,11 +189,12 @@ public abstract class CallController implements Runnable {
 	/**
 	 * the method creates a new Conference
 	 * 
-	 *
+	 * @param confName
+	 *            name of the conference
 	 * @return
 	 */
-	public Conference conference() {
-		return new Conference(UUID.randomUUID().toString(), callState.getArity(), callState.getAri());
+	public Conference conference(String confName) {
+		return new Conference(callState.getChannelID(), callState.getArity(), callState.getAri(), confName);
 	}
 
 	/**

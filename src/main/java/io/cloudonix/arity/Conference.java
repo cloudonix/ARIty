@@ -11,6 +11,7 @@ import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.HangUpException;
@@ -40,33 +41,45 @@ public class Conference extends CancelableOperations {
 	/**
 	 * COnstructor
 	 * 
-	 * @param id
-	 *            id of the conference
+	 * @param channeId
+	 *            id of the channel
 	 * @param arity
 	 *            instance of ARIty
 	 * @param ari
 	 *            instance of ARI
+	 * @param name
+	 *            name of the conference
 	 */
-	public Conference(String id, ARIty arity, ARI ari) {
-		super(id, arity, ari);
+	public Conference(String channeId, ARIty arity, ARI ari, String name) {
+		super(channeId, arity, ari);
 		channelsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
-		try {
-			confBridge = ari.bridges().create("mixing");
-		} catch (RestException e) {
-			logger.severe("unable to create conference bridge: "+ErrorStream.fromThrowable(e));
-		}
+		ari.bridges().create("mixing", confName, new AriCallback<Bridge>() {
+			@Override
+			public void onSuccess(Bridge result) {
+				confBridge = result;
+				currState = ConferenceState.Ready;
+				logger.fine("conference: " + confName + "is ready");
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("failed creating bridge for conference " + e.toString());
+			}
+		});
 	}
 
 	@Override
 	public CompletableFuture<Conference> run() {
+
 		if (Objects.equals(currState, ConferenceState.Ready)) {
 			return this.<Void>toFuture(addChannel -> addChannelToConf(newChannel)).thenAccept(v -> {
 				for (int i = 0; i < channelsInConf.size(); i++) {
 					getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-						//if the caller's channel was not added to the conference and an hung up request arrived, cancel the addition to the conference
-						if(Objects.equals(hangup.getChannel().getId(),newChannel.getId()) && !isAdded) {
+						// if the caller's channel was not added to the conference and an hung up
+						// request arrived, cancel the addition to the conference
+						if (Objects.equals(hangup.getChannel().getId(), newChannel.getId()) && !isAdded) {
 							logger.info("cancel adding channel to conference");
 							cancel();
 							return false;
@@ -76,7 +89,8 @@ public class Conference extends CancelableOperations {
 							if (channelsInConf.contains(chanLeftBridge.getChannel()) || isAdded) {
 								removeChannelFromConf(chanLeftBridge.getChannel());
 								if (channelsInConf.size() < 2) {
-									logger.info("conference must contain at least 2 participantes. closing the conference");
+									logger.info(
+											"conference must contain at least 2 participantes. closing the conference");
 									// update the list of active conferences
 									currState = ConferenceState.Destroying;
 									List<Conference> conferences = getArity().getCallSupplier().get().getConferences();
@@ -264,7 +278,7 @@ public class Conference extends CancelableOperations {
 		} catch (RestException e) {
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
-		
+
 	}
 
 }
