@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
@@ -119,5 +120,22 @@ public class CallState {
 	 */
 	public void removeConference(String confName) {
 		conferenceBridgeIds.remove(confName);
+	}
+
+	/**
+	 * get conference id by conference name
+	 * 
+	 * @param confName
+	 *            name of the conference
+	 * @return
+	 */
+	public String getConfBridgeId(String confName) {
+		if (conferenceBridgeIds.containsKey(confName)) {
+			for (Entry<String, String> entry : conferenceBridgeIds.entrySet()) {
+				if (Objects.equals(confName, entry.getKey()))
+					return entry.getValue();
+			}
+		}
+		return null;
 	}
 }
