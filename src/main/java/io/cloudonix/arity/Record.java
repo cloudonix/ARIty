@@ -42,14 +42,6 @@ public class Record extends Operation {
 
 	/**
 	 * constructor with extended settings for the recording
-	 * 
-	 * @param callController
-	 * @param name
-	 * @param fileFormat
-	 * @param maxDuration
-	 * @param maxSilenceSeconds
-	 * @param beep
-	 * @param terminateOnKey
 	 */
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
