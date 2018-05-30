@@ -14,7 +14,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
 
-public class Record extends CancelableOperations {
+public class Record extends Operation {
 
 	private String name;
 	private String fileFormat;
@@ -40,17 +40,17 @@ public class Record extends CancelableOperations {
 		this.fileFormat = fileFormat;
 	}
 
-/**
-* constructor with extended settings for the recording
-* 
- * @param callController
- * @param name
- * @param fileFormat
- * @param maxDuration
- * @param maxSilenceSeconds
- * @param beep
- * @param terminateOnKey
- */
+	/**
+	 * constructor with extended settings for the recording
+	 * 
+	 * @param callController
+	 * @param name
+	 * @param fileFormat
+	 * @param maxDuration
+	 * @param maxSilenceSeconds
+	 * @param beep
+	 * @param terminateOnKey
+	 */
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
 			boolean beep, String terminateOnKey) {
@@ -92,14 +92,14 @@ public class Record extends CancelableOperations {
 						logger.info("recording started! recording name: " + name);
 						Timer timer = new Timer("Timer");
 
-						getArity().addFutureEvent(RecordingFinished.class, (record) -> { 
+						getArity().addFutureEvent(RecordingFinished.class, (record) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return false;
 							recording = result;
 							liveRecFuture.complete(record.getRecording());
 							return true;
 						});
-						
+
 						getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 							if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
 								return false;
@@ -115,7 +115,7 @@ public class Record extends CancelableOperations {
 						TimerTask task = new TimerTask() {
 							@Override
 							public void run() {
-								cancel();
+								stopRecording();
 							}
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
@@ -127,7 +127,6 @@ public class Record extends CancelableOperations {
 					}
 				});
 	}
-	
 
 	/**
 	 * get the recording
@@ -157,14 +156,13 @@ public class Record extends CancelableOperations {
 		this.name = name;
 	}
 
-	@Override
-	void cancel() {
+	public void stopRecording() {
 		try {
 			getAri().recordings().stop(name);
 			logger.info("record " + name + " stoped");
 		} catch (RestException e) {
 			logger.warning("can't stop recording " + name);
-		}				
+		}
 	}
 
 }
