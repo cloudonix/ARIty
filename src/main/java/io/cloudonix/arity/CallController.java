@@ -3,11 +3,9 @@ package io.cloudonix.arity;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -81,18 +79,53 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * The method creates a new Play operation with the file to be played
+	 * play media to a channel
 	 * 
 	 * @param file
 	 *            file to be played
-	 * @return Play
+	 * @return
 	 */
 	public Play play(String file) {
 		return new Play(this, file);
 	}
 
-	public Play playRecording(String file) {
-		Play playRecording = new Play(this, file);
+	/**
+	 * play stored recording to a channel
+	 * 
+	 * @param recName
+	 *            recording name to play
+	 * @return
+	 */
+	public Play playRecording(String recName) {
+		Play playRecording = new Play(this, recName);
+		playRecording.playRecording();
+		return playRecording;
+	}
+
+	/**
+	 * play file to all channels in the bridge
+	 * 
+	 * @param bridgeName
+	 *            name of the bridge we want to play media to
+	 * @param file
+	 *            file to play
+	 * @return
+	 */
+	public PlayToBridge play(String bridgeName, String file) {
+		return new PlayToBridge(this, bridgeName, file);
+	}
+
+	/**
+	 * play stored recording to a channel
+	 * 
+	 * @param bridgeName
+	 *            name of the bridge we want to play the recording into
+	 * @param recName
+	 *            recording name to play
+	 * @return
+	 */
+	public PlayToBridge playRecording(String bridgeName, String recName) {
+		PlayToBridge playRecording = new PlayToBridge(this, bridgeName, recName);
 		playRecording.playRecording();
 		return playRecording;
 	}
