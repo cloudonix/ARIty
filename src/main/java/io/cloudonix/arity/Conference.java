@@ -56,7 +56,7 @@ public class Conference extends Operation {
 		channelIdsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
-		callController.getCallState().getAri().bridges().create("mixing", confName, new AriCallback<Bridge>() {
+		callController.getAri().bridges().create("mixing", confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
 				confBridge = result;
