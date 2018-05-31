@@ -174,30 +174,10 @@ public abstract class CallController implements Runnable {
 	 *
 	 * @param number
 	 *            destination number
-	 * @param callerId
-	 *            id of the caller
 	 * @return
 	 */
-	public Dial dial(String number, String callerId) {
-		Dial dial = new Dial(this, callerId, number);
-		conferences = dial.getConferences();
-		return dial;
-	}
-
-	/**
-	 * the method created new Dial operation
-	 *
-	 * @param number
-	 *            destination number
-	 * @param callerId
-	 *            id of the caller
-	 * @param bridgeName
-	 *            name of the bridge
-	 * @return
-	 */
-	public Dial dial(String number, String callerId, String bridgeName) {
-		Dial dial = new Dial(this, callerId, number, bridgeName);
-		conferences = dial.getConferences();
+	public Dial dial(String number) {
+		Dial dial = new Dial(this, number);
 		return dial;
 	}
 
@@ -209,12 +189,10 @@ public abstract class CallController implements Runnable {
 	 * @param headers
 	 *            headers that we want to add to the channel we are calling to (the
 	 *            callee)
-	 * @param confName
-	 *            name of the conference (bridge)
 	 * @return
 	 */
-	public Dial dial(String callerId, String number, Map<String, String> headers) {
-		Dial dial = new Dial(this, callerId, number, headers);
+	public Dial dial(String number, Map<String, String> headers) {
+		Dial dial = new Dial(this, number, headers);
 		conferences = dial.getConferences();
 		return dial;
 	}
