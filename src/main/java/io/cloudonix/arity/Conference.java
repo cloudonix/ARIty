@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
@@ -34,6 +35,7 @@ public class Conference extends Operation {
 	private String channelId;
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
+	private String bridgeId = UUID.randomUUID().toString();
 
 	/**
 	 * Constructor
@@ -56,7 +58,7 @@ public class Conference extends Operation {
 		channelIdsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
-		callController.getAri().bridges().create("mixing", confName, new AriCallback<Bridge>() {
+		callController.getAri().bridges().create("mixing",bridgeId, confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
 				confBridge = result;
