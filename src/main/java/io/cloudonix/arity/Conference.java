@@ -52,6 +52,7 @@ public class Conference extends Operation {
 				callController.getCallState().getAri());
 		this.channelId = callController.getCallState().getChannelID();
 		this.callController = callController;
+		this.confName = name;
 		channelIdsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
