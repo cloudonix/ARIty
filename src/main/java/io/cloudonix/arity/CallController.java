@@ -363,27 +363,6 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * changes setting regarding to CONFBRIDGE function
-	 * 
-	 * @param type
-	 *            'bridge' or 'menu' or 'user'
-	 * @param options
-	 *            option to set (for example: admin)
-	 * @param value
-	 *            value to set (for example: yes)
-	 * @return
-	 */
-	public CompletableFuture<Void> setConfBridge(String type, String options, String value) {
-		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "CONFBRIDGE(" + type + "," + options + ")", value, cb))
-				.exceptionally(t -> {
-					logger.info("unable to execute CONFBRIDGE function with (" + type + "," + options + ") : "
-							+ ErrorStream.fromThrowable(t));
-					return null;
-				});
-	}
-
-	/**
 	 * helper method for getSipHeader in order to have AriCallback
 	 * 
 	 * @param consumer
