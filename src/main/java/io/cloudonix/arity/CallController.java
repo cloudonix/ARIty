@@ -177,8 +177,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Dial dial(String number) {
-		Dial dial = new Dial(this, number);
-		return dial;
+		return new Dial(this, number);
 	}
 
 	/**
@@ -192,8 +191,7 @@ public abstract class CallController implements Runnable {
 	 * @return
 	 */
 	public Dial dial(String number, Map<String, String> headers) {
-		Dial dial = new Dial(this, number, headers);
-		return dial;
+		return new Dial(this, number, headers);
 	}
 
 	/**
