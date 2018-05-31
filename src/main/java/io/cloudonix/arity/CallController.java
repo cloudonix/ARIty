@@ -193,7 +193,6 @@ public abstract class CallController implements Runnable {
 	 */
 	public Dial dial(String number, Map<String, String> headers) {
 		Dial dial = new Dial(this, number, headers);
-		conferences = dial.getConferences();
 		return dial;
 	}
 
