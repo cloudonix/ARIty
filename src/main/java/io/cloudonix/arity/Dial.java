@@ -30,9 +30,8 @@ public class Dial extends CancelableOperations {
 	private Instant mediaLenStart;
 	private boolean isCanceled = false;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private List<Conference> conferences = new ArrayList<>();
 	private String dialStatus;
-
+	
 	/**
 	 * Constructor
 	 * 
@@ -137,24 +136,6 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * get list of conferences
-	 * 
-	 * @return
-	 */
-	public List<Conference> getConferences() {
-		return conferences;
-	}
-
-	/**
-	 * set list of confernces
-	 * 
-	 * @param conferences
-	 */
-	public void setConferences(List<Conference> conferences) {
-		this.conferences = conferences;
-	}
-
-	/**
 	 * get the number we are calling to
 	 * 
 	 * @return
@@ -170,6 +151,14 @@ public class Dial extends CancelableOperations {
 	 */
 	public void setEndPointNumber(String endPointNumber) {
 		this.endPoint = endPointNumber;
+	}
+	
+	/**
+	 * get dial status of the call
+	 * @return
+	 */
+	public String getDialStatus() {
+		return dialStatus;
 	}
 
 }
