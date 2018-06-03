@@ -181,20 +181,6 @@ public abstract class CallController implements Runnable {
 	}
 
 	/**
-	 * the method created new Dial operation
-	 * 
-	 * @param number
-	 *            the number of the endpoint (who are we calling to)
-	 * @param headers
-	 *            headers that we want to add to the channel we are calling to (the
-	 *            callee)
-	 * @return
-	 */
-	public Dial dial(String number, Map<String, String> headers) {
-		return new Dial(this, number, headers);
-	}
-
-	/**
 	 * the method creates a new Conference
 	 * 
 	 * @param confName

@@ -33,23 +33,6 @@ public class Dial extends CancelableOperations {
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private List<Conference> conferences = new ArrayList<>();
 	private String dialStatus;
-	private Map<String, String> headers;
-
-	/**
-	 * Constructor
-	 * 
-	 * @param callController
-	 *            an instance that represents a call
-	 * @param destination
-	 *            the number we are calling to (the endpoint)
-	 * @param headers
-	 *            headers that we want to add when dialing
-	 */
-	public Dial(CallController callController, String destination, Map<String, String> headers) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.endPoint = destination;
-		this.headers = headers;
-	}
 
 	/**
 	 * Constructor for conference case
