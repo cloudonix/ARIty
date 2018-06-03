@@ -34,7 +34,7 @@ public class Dial extends CancelableOperations {
 	private String dialStatus;
 
 	/**
-	 * Constructor for conference case
+	 * Constructor
 	 * 
 	 * @param callController
 	 *            an instance that represents a call
