@@ -65,7 +65,6 @@ public class Conference extends Operation {
 				currState = ConferenceState.Ready;
 				logger.info("conference: " + confName + "is ready");
 				callController.getCallState().addConference(confName, result.getId());
-				channelIdsInConf.add(result.getId());
 			}
 
 			@Override
