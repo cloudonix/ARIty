@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelLeftBridge_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -58,7 +59,7 @@ public class Conference extends Operation {
 		channelIdsInConf = new ArrayList<>();
 		compFuture = new CompletableFuture<>();
 		currState = ConferenceState.Creating;
-		callController.getAri().bridges().create("mixing",bridgeId, confName, new AriCallback<Bridge>() {
+		callController.getAri().bridges().create("mixing", bridgeId, confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
 				confBridge = result;
@@ -243,8 +244,7 @@ public class Conference extends Operation {
 						pb = callController.play(callController.getCallState().getConfBridgeId(confName),
 								"conf-hasleft");
 					pb.run();
-				}).thenAccept(v -> logger.info("done announcing channel in conference"))
-				.exceptionally(t -> {
+				}).thenAccept(v -> logger.info("done announcing channel in conference")).exceptionally(t -> {
 					logger.info("unable to announce channel in conference: " + ErrorStream.fromThrowable(t));
 					return null;
 				});
@@ -333,4 +333,24 @@ public class Conference extends Operation {
 
 	}
 
+	/**
+	 * create new channel in order to add it to conference
+	 * 
+	 * @param localChannelId
+	 */
+	public void createChannel(String localChannelId) {
+		getAri().channels().create(confName, getArity().getAppName(), null, localChannelId, null, getChannelId(), null,
+				new AriCallback<Channel>() {
+
+					@Override
+					public void onSuccess(Channel result) {
+						logger.fine("channel was created");
+					}
+
+					@Override
+					public void onFailure(RestException e) {
+						logger.warning("failed creating new channel: " + ErrorStream.fromThrowable(e));
+					}
+				});
+	}
 }
