@@ -4,6 +4,7 @@ import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
@@ -121,8 +122,10 @@ public class ARIty implements AriCallback<Message> {
 			return new CallController() {
 
 				@Override
-				public void run() {
-					cc.accept(this);
+				public CompletableFuture<Void> run() {
+					return CompletableFuture.runAsync(()->{
+						cc.accept(this);
+					});
 				}
 			};
 		};
@@ -139,13 +142,13 @@ public class ARIty implements AriCallback<Message> {
 	protected CallController hangupDefault() {
 		return new CallController() {
 
-			public void run() {
-				hangup().run();
-
-				if (Objects.isNull(lastException))
-					logger.severe("Your Application is not registered!");
-
-				logger.severe("Invalid application!");
+			public CompletableFuture<Void> run() {
+				return hangup().run()
+				.thenAccept(hangup->{
+					if (Objects.isNull(lastException))
+						logger.severe("Your Application is not registered!");
+					logger.severe("Invalid application!");
+				});
 			}
 		};
 	}
@@ -171,7 +174,12 @@ public class ARIty implements AriCallback<Message> {
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
 			try {
-				cc.run();
+				cc.run()
+				.exceptionally(t->{
+					logger.severe("Completation error while running the application " +ErrorStream.fromThrowable(t));
+					cc.hangup().run();
+					return null;
+				});
 			} catch (Throwable t) {
 				logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
 				cc.hangup().run();
