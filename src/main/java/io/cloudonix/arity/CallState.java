@@ -83,12 +83,8 @@ public class CallState {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T get(String dataName, Class<T> class1) {
-		for (Map.Entry<String, Object> entry : metaData.entrySet()) {
-			if (Objects.equals(dataName, entry.getKey()))
-				return (T) entry.getValue();
-		}
-		return null;
+	public <T> T get(String dataName) {
+		return (T) metaData.get(dataName);
 	}
 
 	/**
