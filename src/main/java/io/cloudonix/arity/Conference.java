@@ -145,11 +145,14 @@ public class Conference extends Operation {
 						// record name of the added channel and announce on it
 						callController.play("priv-recordintro").run()
 								.thenCompose(res -> callController.record(newChannelId, "wav").run())
-								.thenAccept(res -> annouceUser(newChannelId, "joined"));
+								.thenAccept(record -> annouceUser(newChannelId, "joined"));
 
-						if (count == 1)
+						if (count == 1) {
+							logger.info("1 person in the conference");
 							callController.play("conf-onlyperson").run()
 									.thenAccept(res -> startMusicOnHold(newChannelId));
+							return;
+						}
 
 						if (count >= 2) {
 							logger.fine("there at least 2 channels in the conference");
@@ -255,16 +258,10 @@ public class Conference extends Operation {
 	 * @param localChannelId
 	 * @param otherChannelId
 	 */
-	public CompletableFuture<Void> createAndConnectChannel(String localChannelId, String otherChannelId) {
+	public CompletableFuture<Channel> createtChannel(String localChannelId, String otherChannelId) {
 		return this
-				.<Channel>toFuture(cb -> getAri().channels().create("SIP/" +confName, getArity().getAppName(), null,
-						localChannelId, null, otherChannelId, null, cb))
-				.thenAccept(channel -> logger.info("channel was created"))
-				.thenAccept(v -> addChannelToConf(localChannelId))
-				.exceptionally(t -> {
-					logger.fine("unable to create new channel" + ErrorStream.fromThrowable(t));
-					return null;
-				});
+				.<Channel>toFuture(cb -> getAri().channels().create("Local/" +confName, getArity().getAppName(), null,
+						localChannelId, null, otherChannelId, null, cb));
 
 	}
 
