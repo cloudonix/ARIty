@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import static org.junit.Assert.fail;
 
 import java.net.URISyntaxException;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import org.junit.ClassRule;
@@ -17,10 +18,10 @@ public class ARItyTest {
 		public boolean isSucceeded = false;
 		
 		@Override
-		public void run() {
+		public CompletableFuture<Void> run() {
 			isSucceeded = false;
 			// call scenario - voice application
-			answer().run().thenCompose(v -> play("hello-world").loop(2).run()).thenCompose(pb -> {
+			return answer().run().thenCompose(v -> play("hello-world").loop(2).run()).thenCompose(pb -> {
 				logger.info("finished playback! id: " + pb.getPlayback().getId());
 				return hangup().run();
 			}).handle(this::endCall).thenRun(() ->{
