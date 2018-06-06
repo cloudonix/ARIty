@@ -1,7 +1,6 @@
 package io.cloudonix.arity;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -21,7 +20,7 @@ import io.cloudonix.arity.errors.ErrorStream;
  * @author naamag
  *
  */
-public abstract class CallController implements Runnable {
+public abstract class CallController{
 
 	private CallState callState;
 	private final static Logger logger = Logger.getLogger(CallController.class.getName());
@@ -500,11 +499,9 @@ public abstract class CallController implements Runnable {
 	 * 
 	 * @param dataName
 	 *            name of the data we asking for
-	 * @param class1
-	 *            class that represents the content we are asking for
 	 */
-	public <T> T get(String dataName, Class<T> class1) {
-		return callState.get(dataName, class1);
+	public <T> T get(String dataName) {
+		return callState.get(dataName);
 	}
 
 	/**
@@ -560,9 +557,11 @@ public abstract class CallController implements Runnable {
 	 * @param nextCallController
 	 *            CallController that we are getting the data from
 	 */
-	public void execute(CallController nextCallController) {
+	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
 		nextCallController.conferences = conferences;
-		nextCallController.run();
+		return nextCallController.run();
 	}
+	
+	public abstract CompletableFuture<Void> run();
 }
