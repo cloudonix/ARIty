@@ -126,11 +126,10 @@ public class CallState {
 	 * @return
 	 */
 	public String getConfBridgeId(String confName) {
-		if (conferenceBridgeIds.containsKey(confName)) {
-			for (Entry<String, String> entry : conferenceBridgeIds.entrySet()) {
-				if (Objects.equals(confName, entry.getKey()))
-					return entry.getValue();
-			}
+
+		for (Entry<String, String> entry : conferenceBridgeIds.entrySet()) {
+			if (Objects.equals(confName, entry.getKey()))
+				return entry.getValue();
 		}
 		return null;
 	}
