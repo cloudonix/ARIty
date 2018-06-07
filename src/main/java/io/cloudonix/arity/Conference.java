@@ -1,10 +1,10 @@
 package io.cloudonix.arity;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.Channel;
@@ -30,9 +30,8 @@ public class Conference extends Operation {
 	private ConferenceState currState;
 	private Bridge confBridge;
 	private String confName;
-	private int count = 0;
 	// channel id's of all channels in the conference
-	private List<String> channelIdsInConf;
+	private List<String> channelIdsInConf = new CopyOnWriteArrayList<>();
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = UUID.randomUUID().toString();
@@ -50,7 +49,6 @@ public class Conference extends Operation {
 				callController.getCallState().getAri());
 		this.callController = callController;
 		this.confName = name;
-		channelIdsInConf = new ArrayList<>();
 		currState = ConferenceState.Creating;
 	}
 
@@ -116,52 +114,50 @@ public class Conference extends Operation {
 
 		if (!currState.equals(ConferenceState.Ready)) {
 			logger.severe("Can not join channel to a conference that is not ready to use");
-			return CompletableFuture.completedFuture(null);
+			CompletableFuture<Void> future = new CompletableFuture<Void>();
+			future.completeExceptionally(new Exception());
+			return future;
 		}
+		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(confBridge.getId(), newChannelId, "join", cb))
+				.thenAccept(v -> {
+					logger.fine("Channel was added to the bridge");
+					channelIdsInConf.add(newChannelId);
 
-		return this.<Void>toFuture(
-				res -> getAri().bridges().addChannel(confBridge.getId(), newChannelId, "join", new AriCallback<Void>() {
-					@Override
-					public void onSuccess(Void result) {
-						logger.fine("Channel was added to the bridge");
-						channelIdsInConf.add(newChannelId);
-						count++;
-
-						getArity().addFutureEvent(ChannelHangupRequest.class, (hangup) -> {
-							if (channelIdsInConf.contains(hangup.getChannel().getId())) {
-								removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v -> {
-									logger.info("Channel left conference");
-									if (count == 0) {
-										closeConference().thenAccept(v3 -> {
-											logger.info("Nobody in the conference, closing the conference");
-										});
-									}
-								});
-								return true;
-							}
-							return false;
-						});
-
-						annouceUser(newChannelId, "joined").thenAccept(pb -> {
-							if (count == 1) {
-								logger.info("1 person in the conference");
-								callController.play("conf-onlyperson").run()
-										.thenAccept(res -> startMusicOnHold(newChannelId));
-							}
-
-							if (count >= 2) {
-								logger.fine("There are at least 2 channels in the conference");
-								stoptMusicOnHold(newChannelId);
-							}
-						});
-
+					getArity().addFutureEvent(ChannelHangupRequest.class, this::closeConfIfEmpty);
+				}).thenAccept(v -> annouceUser(newChannelId, "joined")).thenCompose(pb -> {
+					if (channelIdsInConf.size() == 1) {
+						return callController.play("conf-onlyperson").run()
+								.thenAccept(v2 -> logger.info("1 person in the conference"));
+						/*
+						 * .thenAccept(res -> startMusicOnHold(newChannelId))
+						 * .thenAccept(v->logger.info("playing music on hold to the bridge "+
+						 * bridgeId));
+						 */
 					}
 
-					@Override
-					public void onFailure(RestException e) {
-						logger.warning("Channel was not added to the conference: " + ErrorStream.fromThrowable(e));
-					}
-				}));
+					logger.fine("There are " + channelIdsInConf.size() + " channels in the conference");
+					/*
+					 * stoptMusicOnHold(newChannelId)
+					 * .thenAccept(v->logger.info("stoped playing music on hold to the channel"));
+					 */
+					return CompletableFuture.completedFuture(null);
+				});
+
+	}
+
+	private boolean closeConfIfEmpty(ChannelHangupRequest hangup) {
+		if (!channelIdsInConf.contains(hangup.getChannel().getId()))
+			return false;
+
+		removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v2 -> {
+			logger.info("Channel left conference");
+			if (channelIdsInConf.isEmpty()) {
+				closeConference().thenAccept(v3 -> {
+					logger.info("Nobody in the conference, closed the conference");
+				});
+			}
+		});
+		return true;
 	}
 
 	/**
@@ -189,7 +185,7 @@ public class Conference extends Operation {
 	 *            id of the channel
 	 */
 	private CompletableFuture<Void> startMusicOnHold(String newChannelId) {
-		return this.<Void>toFuture(cb -> getAri().channels().startMoh(newChannelId, "default", cb)).exceptionally(t -> {
+		return this.<Void>toFuture(cb -> getAri().bridges().startMoh(bridgeId, "", cb)).exceptionally(t -> {
 			logger.fine(
 					"Unable to start music on hold to channel " + newChannelId + " " + ErrorStream.fromThrowable(t));
 			return null;
@@ -221,13 +217,12 @@ public class Conference extends Operation {
 				cb -> getAri().bridges().removeChannel(confBridge.getId(), newChannelId, new AriCallback<Void>() {
 					@Override
 					public void onSuccess(Void result) {
-						count--;
 						channelIdsInConf.remove(newChannelId);
 						callController.getCallState().removeConference(confName);
 						annouceUser(newChannelId, "left").thenAccept(v -> logger.info("Announced that channel "
 								+ newChannelId + " " + "has left the conference " + confName));
 
-						if (count == 1)
+						if (channelIdsInConf.size() == 1)
 							startMusicOnHold(newChannelId)
 									.thenAccept(v -> logger.fine("Start music on hold to channel " + newChannelId));
 					}
@@ -306,17 +301,9 @@ public class Conference extends Operation {
 	 * @return
 	 */
 	public int getCount() {
-		return count;
+		return channelIdsInConf.size();
 	}
 
-	/**
-	 * set number of channels in conference
-	 * 
-	 * @return
-	 */
-	public void setCount(int count) {
-		this.count = count;
-	}
 
 	/**
 	 * get list of channels connected to the conference bridge
