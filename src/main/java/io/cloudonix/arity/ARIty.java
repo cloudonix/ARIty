@@ -157,14 +157,13 @@ public class ARIty implements AriCallback<Message> {
 	public void onSuccess(Message event) {
 
 		if (event instanceof StasisStart) {
-			logger.info("asterisk id: " + event.getAsterisk_id());
-
 			StasisStart ss = (StasisStart) event;
 			
 			if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
 				logger.info("ignore h");
 				return;
 			}
+			logger.info("asterisk id: " + event.getAsterisk_id());
 			// if the list contains the stasis start event with this channel id, remove it and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
@@ -242,12 +241,12 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * ignore Stasis start from this channel
+	 * ignore Stasis start from this channel (package private method)
 	 * 
 	 * @param id
 	 *            channel id to ignore
 	 */
-	public void ignoreChannel(String id) {
+	void ignoreChannel(String id) {
 		ignoredChannelIds.add(id);
 	}
 
