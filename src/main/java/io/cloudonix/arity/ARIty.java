@@ -162,7 +162,7 @@ public class ARIty implements AriCallback<Message> {
 			StasisStart ss = (StasisStart) event;
 			
 			if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
-				logger.fine("ignore h");
+				logger.info("ignore h");
 				return;
 			}
 			// if the list contains the stasis start event with this channel id, remove it and continue
@@ -184,6 +184,7 @@ public class ARIty implements AriCallback<Message> {
 				logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
 				cc.hangup().run();
 			}
+			return;
 		}
 		// look for a future event in the event list
 		Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
