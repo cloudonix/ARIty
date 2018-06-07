@@ -260,7 +260,7 @@ public class Conference extends Operation {
 	 */
 	public CompletableFuture<Channel> createtChannel(String localChannelId, String otherChannelId) {
 		return this
-				.<Channel>toFuture(cb -> getAri().channels().create("Local/" +confName, getArity().getAppName(), null,
+				.<Channel>toFuture(cb -> getAri().channels().create("Local/" +localChannelId, getArity().getAppName(), null,
 						localChannelId, null, otherChannelId, null, cb));
 
 	}
