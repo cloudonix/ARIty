@@ -23,7 +23,7 @@ import io.cloudonix.arity.errors.ErrorStream;
 public abstract class CallController{
 
 	private CallState callState;
-	private final static Logger logger = Logger.getLogger(CallController.class.getName());
+	private Logger logger = Logger.getLogger(getClass().getName());
 	private List<Conference> conferences = null;
 
 	/**
@@ -39,6 +39,7 @@ public abstract class CallController{
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
 		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(),
 				getChannelTechnology(ss.getChannel()));
+		logger = Logger.getLogger(getClass().getName()+":"+ss.getChannel().getId());
 	}
 
 	/**
@@ -97,34 +98,6 @@ public abstract class CallController{
 	 */
 	public Play playRecording(String recName) {
 		Play playRecording = new Play(this, recName);
-		playRecording.playRecording();
-		return playRecording;
-	}
-
-	/**
-	 * play file to all channels in the bridge
-	 * 
-	 * @param bridgeName
-	 *            name of the bridge we want to play media to
-	 * @param file
-	 *            file to play
-	 * @return
-	 */
-	public PlayToBridge play(String bridgeName, String file) {
-		return new PlayToBridge(this, bridgeName, file);
-	}
-
-	/**
-	 * play stored recording to a channel
-	 * 
-	 * @param bridgeName
-	 *            name of the bridge we want to play the recording into
-	 * @param recName
-	 *            recording name to play
-	 * @return
-	 */
-	public PlayToBridge playRecording(String bridgeName, String recName) {
-		PlayToBridge playRecording = new PlayToBridge(this, bridgeName, recName);
 		playRecording.playRecording();
 		return playRecording;
 	}
@@ -564,4 +537,18 @@ public abstract class CallController{
 	}
 	
 	public abstract CompletableFuture<Void> run();
+	
+	
+	public void fatal(String msg) {
+		logger.severe(msg);
+	}
+
+	public void info(String msg) {
+		logger.info(msg);
+	}
+
+	public void debug(String msg) {
+		logger.fine(msg);
+	}
+	
 }
