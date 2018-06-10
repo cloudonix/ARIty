@@ -7,7 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -252,18 +251,6 @@ public class Conference extends Operation {
 					return null;
 				});
 
-	}
-
-	/**
-	 * create new channel in order to add it to conference
-	 * 
-	 * @param localChannelId
-	 * @param otherChannelId
-	 */
-	public CompletableFuture<Channel> createtChannel(String localChannelId, String otherChannelId) {
-		getArity().ignoreChannel(localChannelId);
-		return this.<Channel>toFuture(cb -> getAri().channels().create("Local/" + localChannelId,
-				getArity().getAppName(), null, localChannelId, null, otherChannelId, null, cb));
 	}
 
 	/**
