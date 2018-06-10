@@ -126,7 +126,7 @@ public class Conference extends Operation {
 	 *            id of the new channel that we want to add to add to the conference
 	 */
 	public CompletableFuture<Void> addChannelToConf(String newChannelId) {
-
+		
 		if (!currState.equals(ConferenceState.Ready)) {
 			logger.severe("Can not join channel to a conference that is not ready to use");
 			CompletableFuture<Void> future = new CompletableFuture<Void>();
@@ -139,7 +139,8 @@ public class Conference extends Operation {
 					channelIdsInConf.add(newChannelId);
 
 					getArity().addFutureEvent(ChannelHangupRequest.class, this::closeConfIfEmpty);
-				}).thenAccept(v -> annouceUser(newChannelId, "joined")).thenCompose(pb -> {
+				}).thenAccept(v -> annouceUser(newChannelId, "joined"))
+				.thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
 						return callController.play("conf-onlyperson").run()
 								.thenAccept(v2 -> logger.info("1 person in the conference"));
@@ -229,7 +230,7 @@ public class Conference extends Operation {
 	 */
 	public CompletableFuture<Void> removeChannelFromConf(String newChannelId) {
 		return this.<Void>toFuture(
-				cb -> getAri().bridges().removeChannel(confBridge.getId(), newChannelId, new AriCallback<Void>() {
+				cb -> getAri().bridges().removeChannel(bridgeId, newChannelId, new AriCallback<Void>() {
 					@Override
 					public void onSuccess(Void result) {
 						channelIdsInConf.remove(newChannelId);
