@@ -55,7 +55,7 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<Conference> run() {
 
-		return createConferenceBridge().thenCompose(confBridge -> {
+		return createOrConnectConference().thenCompose(confBridge -> {
 			if (!Objects.equals(currState, ConferenceState.Ready)) {
 				logger.severe("Conference that is not ready");
 				return null;
@@ -81,9 +81,24 @@ public class Conference extends Operation {
 	 * 
 	 * @return
 	 */
-	private CompletableFuture<Bridge> createConferenceBridge() {
+	private CompletableFuture<Bridge> createOrConnectConference() {
 		CompletableFuture<Bridge> bridgeFuture = new CompletableFuture<Bridge>();
 
+		try {
+			List<Bridge> bridges = getAri().bridges().list();
+			if (!bridges.isEmpty()) {
+				for (Bridge bridge : bridges) {
+					if (bridge.getId().equals(bridgeId)) {
+						logger.info("Conference " + confName + " already exists");
+						return CompletableFuture.completedFuture(null);
+					}
+				}
+			}
+		} catch (RestException e1) {
+			logger.fine("Unable to get list of asterisk bridges " + ErrorStream.fromThrowable(e1));
+		}
+
+		logger.info("Creating conference " + confName);
 		getAri().bridges().create("mixing", bridgeId, confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
@@ -118,7 +133,7 @@ public class Conference extends Operation {
 			future.completeExceptionally(new Exception());
 			return future;
 		}
-		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(confBridge.getId(), newChannelId, "join", cb))
+		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(confBridge.getId(), newChannelId, "ConfUser", cb))
 				.thenAccept(v -> {
 					logger.fine("Channel was added to the bridge");
 					channelIdsInConf.add(newChannelId);
@@ -303,7 +318,6 @@ public class Conference extends Operation {
 	public int getCount() {
 		return channelIdsInConf.size();
 	}
-
 
 	/**
 	 * get list of channels connected to the conference bridge
