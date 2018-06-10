@@ -538,17 +538,4 @@ public abstract class CallController{
 	
 	public abstract CompletableFuture<Void> run();
 	
-	
-	public void fatal(String msg) {
-		logger.severe(msg);
-	}
-
-	public void info(String msg) {
-		logger.info(msg);
-	}
-
-	public void debug(String msg) {
-		logger.fine(msg);
-	}
-	
 }
