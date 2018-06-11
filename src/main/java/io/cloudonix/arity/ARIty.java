@@ -289,4 +289,8 @@ public class ARIty implements AriCallback<Message> {
 		this.callSupplier = callSupplier;
 	}
 	
+	public ARI getAri() {
+		return ari;
+	}
+	
 }
