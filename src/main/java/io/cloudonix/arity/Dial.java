@@ -11,7 +11,6 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.HangUpException;
 
 /**
