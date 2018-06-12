@@ -1,10 +1,13 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -29,20 +32,45 @@ public class Dial extends CancelableOperations {
 	private boolean isCanceled = false;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private String dialStatus;
+	private Map<String, String> headers;
+	private String callerId;
 	
 	/**
 	 * Constructor
 	 * 
 	 * @param callController
 	 *            an instance that represents a call
+	 * @param callerId
+	 *            caller id
 	 * @param destination
 	 *            the number we are calling to (the endpoint)
 	 * @return
 	 */
-	public Dial(CallController callController,String destination) {
+	public Dial(CallController callController,String callerId, String destination) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		endPoint = destination;
+		this.endPoint = destination;
+		this.callerId = callerId;
 	}
+	
+	/**
+	 * Constructor
+	 * 
+	 * @param callController
+	 *            an instance that represents a call
+	 * @param callerId
+	 *            caller id
+	 * @param destination
+	 *            the number we are calling to (the endpoint)
+	 * @param headers
+	 *            headers that we want to add when dialing
+	 */
+	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		this.endPoint = destination;
+		this.headers = headers;
+		this.callerId = callerId;
+	}
+	
 	/**
 	 * The method dials to a number (a sip number for now)
 	 * 
@@ -66,18 +94,14 @@ public class Dial extends CancelableOperations {
 		});
 		logger.info("future event of Dial was added");
 		
-		try {
-			getAri().channels().create(endPoint, getArity().getAppName(), null, endPointChannelId, null, null, null);
-			
-			return this.<Void>toFuture(dial -> getAri().channels().dial(endPointChannelId, getChannelId(), 60000, dial))
-					.thenAccept(v -> {
-						logger.info("dial succeded!");
-						dialStart = Instant.now().toEpochMilli();
-					}).thenCompose(v ->compFuture);
-		} catch (RestException e) {
-			logger.info("failed dailing " + e);
-			return completedExceptionally(new DialException(e));
-		}
+		return this
+				.<Channel>toFuture(
+						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
+								null, callerId, -1, headers, endPointChannelId, null, getChannelId(), "", cf))
+				.thenAccept(channel -> {
+					logger.info("dial succeded!");
+					dialStart = Instant.now().toEpochMilli();
+				}).thenCompose(v -> compFuture);
 	}
 
 	/**

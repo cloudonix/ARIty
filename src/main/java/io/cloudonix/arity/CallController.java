@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -148,9 +149,21 @@ public abstract class CallController{
 	 *            destination number
 	 * @return
 	 */
-	public Dial dial(String number) {
-		return new Dial(this, number);
+	public Dial dial(String number, String callerId) {
+		return new Dial(this, callerId, number);
 	}
+	
+	/**
+	 * the method created new Dial operation
+	 *
+	 * @param number
+	 *            destination number
+	 * @return
+	 */
+	public Dial dial(String number, String callerId, Map<String,String> headers) {
+		return new Dial(this, callerId, number,headers);
+	}
+	
 
 	/**
 	 * the method creates a new Conference
