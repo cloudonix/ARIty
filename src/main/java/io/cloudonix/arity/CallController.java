@@ -21,7 +21,7 @@ import io.cloudonix.arity.errors.ErrorStream;
  * @author naamag
  *
  */
-public abstract class CallController{
+public abstract class CallController {
 
 	private CallState callState;
 	private Logger logger = Logger.getLogger(getClass().getName());
@@ -40,7 +40,7 @@ public abstract class CallController{
 	public void init(StasisStart ss, ARI a, ARIty ARIty) {
 		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(),
 				getChannelTechnology(ss.getChannel()));
-		logger = Logger.getLogger(getClass().getName()+":"+ss.getChannel().getId());
+		logger = Logger.getLogger(getClass().getName() + ":" + ss.getChannel().getId());
 	}
 
 	/**
@@ -152,7 +152,7 @@ public abstract class CallController{
 	public Dial dial(String number, String callerId) {
 		return new Dial(this, callerId, number);
 	}
-	
+
 	/**
 	 * the method created new Dial operation
 	 *
@@ -160,10 +160,9 @@ public abstract class CallController{
 	 *            destination number
 	 * @return
 	 */
-	public Dial dial(String number, String callerId, Map<String,String> headers) {
-		return new Dial(this, callerId, number,headers);
+	public Dial dial(String number, String callerId, Map<String, String> headers) {
+		return new Dial(this, callerId, number, headers);
 	}
-	
 
 	/**
 	 * the method creates a new Conference
@@ -213,15 +212,19 @@ public abstract class CallController{
 	/**
 	 * add header to a channel
 	 * 
+	 * @param channelId
+	 *            id of the channel we want to add header to
 	 * @param headerName
 	 *            name of the new header
 	 * @param headerValue
 	 *            value of the new header
 	 * @return
 	 */
-	public CompletableFuture<Void> addHeader(String headerName, String headerValue) {
-		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), headerName, headerValue, cb)).exceptionally(t -> {
+	public CompletableFuture<Void> addHeader(String channelId, String headerName, String headerValue) {
+		return this
+				.<Void>futureFromAriCallBack(
+						cb -> callState.getAri().channels().setChannelVar(channelId, headerName, headerValue, cb))
+				.exceptionally(t -> {
 					logger.fine("unable to add header: " + headerName);
 					return null;
 				});
@@ -548,7 +551,7 @@ public abstract class CallController{
 		nextCallController.conferences = conferences;
 		return nextCallController.run();
 	}
-	
+
 	public abstract CompletableFuture<Void> run();
-	
+
 }
