@@ -96,7 +96,7 @@ public class Dial extends CancelableOperations {
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, -1, headers, endPointChannelId, null, getChannelId(), "", cf))
+								null, callerId, -1, headers, endPointChannelId, null, null, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeded!");
 					dialStart = Instant.now().toEpochMilli();
@@ -111,8 +111,6 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleHangup(ChannelHangupRequest hangup) {
-		// notice when a channel leaves a bridge after a hang up occurred
-
 		if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 			if (Objects.equals(dialStatus, "ANSWER")) {
 				cancel();
