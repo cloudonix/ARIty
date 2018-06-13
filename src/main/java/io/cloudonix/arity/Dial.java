@@ -23,7 +23,7 @@ public class Dial extends CancelableOperations {
 
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();;
 	private String endPoint;
-	private String endPointChannelId;
+	private String endPointChannelId = "";
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
@@ -33,7 +33,8 @@ public class Dial extends CancelableOperations {
 	private String dialStatus;
 	private Map<String, String> headers;
 	private String callerId;
-	
+	private String otherChannelId = null;
+
 	/**
 	 * Constructor
 	 * 
@@ -45,12 +46,12 @@ public class Dial extends CancelableOperations {
 	 *            the number we are calling to (the endpoint)
 	 * @return
 	 */
-	public Dial(CallController callController,String callerId, String destination) {
+	public Dial(CallController callController, String callerId, String destination) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.endPoint = destination;
 		this.callerId = callerId;
 	}
-	
+
 	/**
 	 * Constructor
 	 * 
@@ -69,14 +70,30 @@ public class Dial extends CancelableOperations {
 		this.headers = headers;
 		this.callerId = callerId;
 	}
-	
+
+	/**
+	 * method sets channel id's for creation of local channels
+	 * 
+	 * @param channelId
+	 *            id of other channel we are creating for dial
+	 * @param otherChannelId
+	 *            other channel id when using local channels
+	 * @return
+	 */
+	public CompletableFuture<Dial> localChannelDial(String channelId, String otherChannelId) {
+		endPointChannelId = channelId;
+		this.otherChannelId = otherChannelId;
+		return run();
+	}
+
 	/**
 	 * The method dials to a number (a sip number for now)
 	 * 
 	 * @return
 	 */
 	public CompletableFuture<Dial> run() {
-		endPointChannelId = UUID.randomUUID().toString();
+		if (Objects.equals(endPointChannelId, ""))
+			endPointChannelId = UUID.randomUUID().toString();
 
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
@@ -92,11 +109,11 @@ public class Dial extends CancelableOperations {
 			return true;
 		});
 		logger.info("future event of Dial was added");
-		
+
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, -1, headers, endPointChannelId, null, null, "", cf))
+								null, callerId, -1, headers, endPointChannelId, null, otherChannelId, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeded!");
 					dialStart = Instant.now().toEpochMilli();
@@ -122,7 +139,7 @@ public class Dial extends CancelableOperations {
 			return false;
 		}
 
-		if (!(hangup.getChannel().getId().equals(endPointChannelId))) 
+		if (!(hangup.getChannel().getId().equals(endPointChannelId)))
 			return false;
 
 		if (!isCanceled || Objects.equals(dialStatus, "ANSWER")) {
@@ -171,9 +188,10 @@ public class Dial extends CancelableOperations {
 	public void setEndPointNumber(String endPointNumber) {
 		this.endPoint = endPointNumber;
 	}
-	
+
 	/**
 	 * get dial status of the call
+	 * 
 	 * @return
 	 */
 	public String getDialStatus() {
