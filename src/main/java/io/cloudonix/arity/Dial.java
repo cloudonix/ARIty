@@ -115,7 +115,7 @@ public class Dial extends CancelableOperations {
 					this.<Void>toFuture(cb->getAri().channels().hangup(getChannelId(), "normal",cb));
 				}
 				if(TimeUnit.MILLISECONDS.toSeconds(dialStart)>timeout) {
-					logger.info("Timout was reached and the callee did not answer the call, hanging up the call");
+					logger.info("Timeout was reached and the callee did not answer the call, hanging up the call");
 					isCanceled = true;
 					cancel();
 				}
@@ -131,7 +131,7 @@ public class Dial extends CancelableOperations {
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
 								null, callerId, -1, headers, endPointChannelId, null, otherChannelId, "", cf))
 				.thenAccept(channel -> {
-					logger.info("dial succeded!");
+					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
 	}
