@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.sql.Time;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
