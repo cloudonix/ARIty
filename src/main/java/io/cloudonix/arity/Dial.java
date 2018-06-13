@@ -107,15 +107,22 @@ public class Dial extends CancelableOperations {
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
-			if (TimeUnit.MILLISECONDS.toSeconds(dialStart) < timeout) {
-				dialStatus = dial.getDialstatus();
-				logger.info("dial status is: " + dialStatus);
-				if (!dialStatus.equals("ANSWER"))
-					return false;
-				mediaLenStart = Instant.now();
-				return true;
+			dialStatus = dial.getDialstatus();
+			logger.info("dial status is: " + dialStatus);
+			if (!dialStatus.equals("ANSWER")) {
+				if(Objects.equals(dialStatus, "BUSY")) {
+					logger.info("The calle can not answer the call, hanguing up the call");
+					this.<Void>toFuture(cb->getAri().channels().hangup(getChannelId(), "normal",cb));
+				}
+				if(TimeUnit.MILLISECONDS.toSeconds(dialStart)>timeout) {
+					logger.info("Timout was reached and the callee did not answer the call, hanging up the call");
+					isCanceled = true;
+					cancel();
+				}
+				return false;
 			}
-			return false;
+			mediaLenStart = Instant.now();
+			return true;
 		});
 		logger.info("future event of Dial was added");
 
