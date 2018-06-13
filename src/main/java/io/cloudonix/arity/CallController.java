@@ -158,6 +158,10 @@ public abstract class CallController {
 	 *
 	 * @param number
 	 *            destination number
+	 * @param callerId
+	 *            id of the caller
+	 * @param headers
+	 *            headers to add to the other channel we are dialing to
 	 * @return
 	 */
 	public Dial dial(String number, String callerId, Map<String, String> headers) {
