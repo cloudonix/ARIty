@@ -1,10 +1,12 @@
 package io.cloudonix.arity;
 
+import java.sql.Time;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -34,6 +36,7 @@ public class Dial extends CancelableOperations {
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
+	private int timeout;
 
 	/**
 	 * Constructor
@@ -63,12 +66,16 @@ public class Dial extends CancelableOperations {
 	 *            the number we are calling to (the endpoint)
 	 * @param headers
 	 *            headers that we want to add when dialing
+	 * @param timeout
+	 *            the time we wait until for the callee to answer
 	 */
-	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers) {
+	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers,
+			int timeout) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.endPoint = destination;
 		this.headers = headers;
 		this.callerId = callerId;
+		this.timeout = timeout;
 	}
 
 	/**
@@ -101,12 +108,15 @@ public class Dial extends CancelableOperations {
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
-			dialStatus = dial.getDialstatus();
-			logger.info("dial status is: " + dialStatus);
-			if (!dialStatus.equals("ANSWER"))
-				return false;
-			mediaLenStart = Instant.now();
-			return true;
+			if (TimeUnit.MILLISECONDS.toSeconds(dialStart) < timeout) {
+				dialStatus = dial.getDialstatus();
+				logger.info("dial status is: " + dialStatus);
+				if (!dialStatus.equals("ANSWER"))
+					return false;
+				mediaLenStart = Instant.now();
+				return true;
+			}
+			return false;
 		});
 		logger.info("future event of Dial was added");
 

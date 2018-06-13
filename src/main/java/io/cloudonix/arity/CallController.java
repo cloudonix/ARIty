@@ -162,10 +162,11 @@ public abstract class CallController {
 	 *            id of the caller
 	 * @param headers
 	 *            headers to add to the other channel we are dialing to
+	 *  @param timeout the time we wait until the callee to answer the call
 	 * @return
 	 */
-	public Dial dial(String number, String callerId, Map<String, String> headers) {
-		return new Dial(this, callerId, number, headers);
+	public Dial dial(String number, String callerId, Map<String, String> headers, int timeout) {
+		return new Dial(this, callerId, number, headers, timeout);
 	}
 
 	/**
