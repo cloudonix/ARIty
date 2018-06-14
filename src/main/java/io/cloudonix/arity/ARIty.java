@@ -16,11 +16,9 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Message_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -236,6 +234,11 @@ public class ARIty implements AriCallback<Message> {
 	@Override
 	public void onFailure(RestException e) {
 		logger.warning(e.getMessage());
+	}
+	
+	private void setEventChannelId(String channelId, Message event) {
+		//TODO: find the event in future event list and set it's channel id to real channel id (the method will be called from Dial for example)
+		
 	}
 
 	/**
