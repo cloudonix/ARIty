@@ -10,12 +10,12 @@ import ch.loway.oss.ari4java.generated.Message;
  * @author naamag
  *
  */
-public class Pair {
+public class SavedEventPair {
 
 	private Function<Message, Boolean> func;
 	private String channelId;
 
-	public Pair(String channelId, Function<Message, Boolean> func) {
+	public SavedEventPair(String channelId, Function<Message, Boolean> func) {
 		this.channelId = channelId;
 		this.func = func;
 	}
