@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -107,24 +106,20 @@ public class Dial extends CancelableOperations {
 		logger.info("future event of ChannelHangupRequest was added");
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
+
 			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 			if (!dialStatus.equals("ANSWER")) {
-				if(Objects.equals(dialStatus, "BUSY")) {
+				if (Objects.equals(dialStatus, "BUSY")) {
 					logger.info("The calle can not answer the call, hanguing up the call");
-					this.<Void>toFuture(cb->getAri().channels().hangup(getChannelId(), "normal",cb));
-				}
-				if(TimeUnit.MILLISECONDS.toSeconds(dialStart)>timeout) {
-					logger.info("Timeout was reached and the callee did not answer the call, hanging up the call");
-					isCanceled = true;
-					cancel();
+					this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb));
 				}
 				return false;
 			}
 			mediaLenStart = Instant.now();
 			return true;
 		});
-		logger.info("future event of Dial was added");
+		logger.fine("future event of Dial was added");
 
 		return this
 				.<Channel>toFuture(
