@@ -85,10 +85,10 @@ public class Dial extends CancelableOperations {
 	 *            other channel id when using local channels
 	 * @return
 	 */
-	public CompletableFuture<Dial> localChannelDial(String channelId, String otherChannelId) {
+	public Dial localChannelDial(String channelId, String otherChannelId) {
 		endPointChannelId = channelId;
 		this.otherChannelId = otherChannelId;
-		return run();
+		return this;
 	}
 
 	/**
