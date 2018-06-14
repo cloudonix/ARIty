@@ -91,12 +91,9 @@ public class Record extends Operation {
 							recording = result;
 							liveRecFuture.complete(record.getRecording());
 							return true;
-						});
+						}, getChannelId());
 
 						getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
-							if (!(dtmf.getChannel().getId().equals(getChannelId()))) {
-								return false;
-							}
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
@@ -104,7 +101,7 @@ public class Record extends Operation {
 								return true;
 							}
 							return false;
-						});
+						} , getChannelId());
 
 						TimerTask task = new TimerTask() {
 							@Override

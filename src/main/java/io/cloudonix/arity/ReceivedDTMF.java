@@ -25,7 +25,6 @@ public class ReceivedDTMF extends Operation {
 	private String terminatingKey = "#";
 	private CancelableOperations currOpertation = null;
 	private int inputLenght = -1;
-	private boolean termKeyWasPressed = false;
 	// duration of talking to the channel in milliseconds
 	private int channelTalkDuration = 0;
 	private CallController callController;
@@ -89,8 +88,6 @@ public class ReceivedDTMF extends Operation {
 		// channel has finished
 		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
 			dtmfWasPressed = true;
-			if (!(dtmf.getChannel().getId().equals(getChannelId())))
-				return false;
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
 				logger.info("done receiving DTMF. all input: " + userInput);
@@ -103,7 +100,7 @@ public class ReceivedDTMF extends Operation {
 			}
 			userInput = userInput + dtmf.getDigit();
 			return false;
-		});
+		}, getChannelId());
 
 		getArity().addFutureEvent(ChannelTalkingStarted.class, talk -> {
 			logger.info("recognized tallking in the channel");
@@ -127,7 +124,7 @@ public class ReceivedDTMF extends Operation {
 			}
 			return false;
 
-		});
+		},getChannelId());
 
 		return compFuture;
 	}
@@ -180,15 +177,6 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public String getInput() {
 		return userInput;
-	}
-
-	/**
-	 * check if the terminating key was pressed- true if yes, false otherwise
-	 * 
-	 * @return
-	 */
-	public boolean isTermKeyWasPressed() {
-		return termKeyWasPressed;
 	}
 
 	/**
