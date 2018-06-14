@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.HangUpException;
@@ -100,16 +101,18 @@ public class Dial extends CancelableOperations {
 		if (Objects.equals(endPointChannelId, ""))
 			endPointChannelId = UUID.randomUUID().toString();
 
+		logger.info("channel id:"+getChannelId());
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
-		getArity().addFutureEvent(ChannelHangupRequest.class, this::handleHangup);
-		logger.info("future event of ChannelHangupRequest was added");
+		getArity().addFutureEvent(ChannelHangupRequest.class, this::handleHangup, getChannelId());
+		getArity().addFutureEvent(ChannelStateChange.class, this::handleChannelStateChanged,getChannelId());
 
-		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, (dial) -> {
-
+		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class,(dial) -> {
+			logger.info("dial event channel id: "+ dial.getCaller().getId());
 			dialStatus = dial.getDialstatus();
 			logger.info("dial status is: " + dialStatus);
 			if (!dialStatus.equals("ANSWER")) {
+				
 				if (Objects.equals(dialStatus, "BUSY")) {
 					logger.info("The calle can not answer the call, hanguing up the call");
 					this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb));
@@ -118,7 +121,7 @@ public class Dial extends CancelableOperations {
 			}
 			mediaLenStart = Instant.now();
 			return true;
-		});
+		} ,getChannelId());
 		logger.fine("future event of Dial was added");
 
 		return this
@@ -132,10 +135,11 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handler hangup event
+	 * handler hang up event
 	 * 
 	 * @param hangup
 	 *            ChannelHangupRequest event
+	 * @param channelId id of end point channel
 	 * @return
 	 */
 	private Boolean handleHangup(ChannelHangupRequest hangup) {
@@ -149,10 +153,7 @@ public class Dial extends CancelableOperations {
 			cancel();
 			return false;
 		}
-
-		if (!(hangup.getChannel().getId().equals(endPointChannelId)))
-			return false;
-
+		
 		if (!isCanceled || Objects.equals(dialStatus, "ANSWER")) {
 			// end call timer
 			Instant end = Instant.now();
@@ -162,6 +163,12 @@ public class Dial extends CancelableOperations {
 			logger.info("media lenght of the call: " + mediaLength + " ms");
 		}
 		compFuture.complete(this);
+		return true;
+	}
+	
+	private Boolean handleChannelStateChanged (ChannelStateChange channelState) {
+		//if(channelState.getChannel().getState().equals("Up"))
+			
 		return true;
 	}
 
@@ -181,6 +188,7 @@ public class Dial extends CancelableOperations {
 			compFuture.completeExceptionally(new HangUpException(e));
 		}
 	}
+	
 
 	/**
 	 * get the number we are calling to
