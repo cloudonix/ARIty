@@ -31,6 +31,7 @@ public class ReceivedDTMF extends Operation {
 	private String recordName = "";
 	private int maxDuration = 0;
 	private boolean dtmfWasPressed = false;
+	private boolean termKeyWasPressed = false;
 
 	/**
 	 * Constructor
@@ -91,6 +92,10 @@ public class ReceivedDTMF extends Operation {
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
 				logger.info("done receiving DTMF. all input: " + userInput);
+				
+				if(dtmf.getDigit().equals(terminatingKey))
+					termKeyWasPressed  = true;
+				
 				if (Objects.nonNull(currOpertation))
 					currOpertation.cancel();
 
@@ -195,6 +200,10 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public String getRecordName() {
 		return recordName;
+	}
+	
+	public boolean isTermKeyWasPressed() {
+		return termKeyWasPressed;
 	}
 
 }
