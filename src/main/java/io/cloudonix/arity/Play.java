@@ -86,7 +86,7 @@ public class Play extends CancelableOperations {
 								compPlaybackItr.complete(playb.getPlayback());
 								return true;
 
-							}, getChannelId());
+							});
 							logger.info("future event of playbackFinished was added");
 						}
 

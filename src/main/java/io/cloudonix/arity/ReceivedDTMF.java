@@ -105,7 +105,7 @@ public class ReceivedDTMF extends Operation {
 			}
 			userInput = userInput + dtmf.getDigit();
 			return false;
-		}, getChannelId());
+		});
 
 		getArity().addFutureEvent(ChannelTalkingStarted.class, talk -> {
 			logger.info("recognized tallking in the channel");
@@ -129,7 +129,7 @@ public class ReceivedDTMF extends Operation {
 			}
 			return false;
 
-		},getChannelId());
+		});
 
 		return compFuture;
 	}

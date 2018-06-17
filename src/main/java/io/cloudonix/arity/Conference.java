@@ -137,7 +137,7 @@ public class Conference extends Operation {
 					logger.fine("Channel was added to the bridge");
 					channelIdsInConf.add(newChannelId);
 
-					getArity().addFutureEvent(ChannelHangupRequest.class, this::closeConfIfEmpty, newChannelId);
+					getArity().addFutureEvent(ChannelHangupRequest.class, this::closeConfIfEmpty);
 				}).thenAccept(v -> annouceUser(newChannelId, "joined"))
 				.thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
