@@ -87,7 +87,7 @@ public class ReceivedDTMF extends Operation {
 		}
 		// stop receiving DTMF when terminating key was pressed or when talking in the
 		// channel has finished
-		getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
+		getArity().addFutureEvent(ChannelDtmfReceived.class,getChannelId(), dtmf -> {
 			dtmfWasPressed = true;
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
@@ -107,7 +107,7 @@ public class ReceivedDTMF extends Operation {
 			return false;
 		});
 
-		getArity().addFutureEvent(ChannelTalkingStarted.class, talk -> {
+		getArity().addFutureEvent(ChannelTalkingStarted.class,getChannelId(), talk -> {
 			logger.info("recognized tallking in the channel");
 			if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
 				recordName = UUID.randomUUID().toString();

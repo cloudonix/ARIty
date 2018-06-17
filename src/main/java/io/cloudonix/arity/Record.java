@@ -85,7 +85,7 @@ public class Record extends Operation {
 						logger.info("recording started! recording name: " + name);
 						Timer timer = new Timer("Timer");
 
-						getArity().addFutureEvent(RecordingFinished.class, (record) -> {
+						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return false;
 							recording = result;
@@ -93,7 +93,7 @@ public class Record extends Operation {
 							return true;
 						});
 
-						getArity().addFutureEvent(ChannelDtmfReceived.class, dtmf -> {
+						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
