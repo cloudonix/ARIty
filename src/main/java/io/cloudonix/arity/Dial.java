@@ -105,7 +105,6 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangup);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangup);
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateChanged);
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
 			dialStatus = dial.getDialstatus();
@@ -189,6 +188,15 @@ public class Dial extends CancelableOperations {
 			return true;
 		}
 		return false;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public Dial whenConnect() {
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateChanged);
+		return this;
 	}
 
 	/**
