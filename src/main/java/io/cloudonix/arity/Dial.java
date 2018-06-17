@@ -3,8 +3,11 @@ package io.cloudonix.arity;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -176,13 +179,13 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handle channel state changed event
+	 * handle channel state is 'Up'
 	 * 
 	 * @param channelState
 	 *            instance in type of ChannelStateChange
 	 * @return
 	 */
-	private Boolean handleChannelStateChanged(ChannelStateChange channelState) {
+	private Boolean handleChannelStateUp(ChannelStateChange channelState) {
 		if (channelState.getChannel().getState().equals("Up")) {
 			channelStateFuture.complete(channelState);
 			return true;
@@ -191,12 +194,44 @@ public class Dial extends CancelableOperations {
 	}
 	
 	/**
-	 * 
+	 * register the channel to channelStateChanged events
 	 * @return
 	 */
 	public Dial whenConnect() {
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateChanged);
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateUp);
 		return this;
+	}
+	
+	/**
+	 * register the channel to channelStateChanged events
+	 * @return
+	 */
+	public Dial whenRinging() {
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateRinging);
+		return this;
+	}
+	
+	/**
+	 * handle channel state is 'Ringing'
+	 * 
+	 * @param channelState
+	 *            instance in type of ChannelStateChange
+	 * @return
+	 */
+	private Boolean handleChannelStateRinging(ChannelStateChange channelState) {
+		if (channelState.getChannel().getState().equals("Ringing")) {
+			Timer timer = new Timer("Timer");
+
+			TimerTask task = new TimerTask() {
+				@Override
+				public void run() {
+					//TODO: check if channel state of stateFuture is 'up'- if no, return
+				}
+			};
+			timer.schedule(task, TimeUnit.SECONDS.toMillis(10));
+			return true;
+		}
+		return false;
 	}
 
 	/**
