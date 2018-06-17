@@ -36,6 +36,7 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout;
+	private CompletableFuture<ChannelStateChange> channelStateFuture = new CompletableFuture<ChannelStateChange>();
 
 	/**
 	 * Constructor
@@ -144,15 +145,18 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleHangup(ChannelHangupRequest hangup) {
-		
+
 		if (hangup.getChannel().getId().equals(endPointChannelId) && Objects.equals(dialStatus, "ANSWER")) {
-			this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb))
-			.thenAccept(v->logger.info("calle has hangup the call"));
+			this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb)).thenAccept(v -> {
+				logger.info("calle has hangup the call");
+				getArity().stopListeningToEvents(endPointChannelId);
+			});
 		}
-		
+
 		if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
 			if (Objects.equals(dialStatus, "ANSWER")) {
 				claculateDurations();
+				getArity().stopListeningToEvents(getChannelId());
 			}
 			isCanceled = true;
 			cancel();
@@ -176,12 +180,16 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * handle channel state changed event
-	 * @param channelState instance in type of ChannelStateChange
+	 * 
+	 * @param channelState
+	 *            instance in type of ChannelStateChange
 	 * @return
 	 */
 	private Boolean handleChannelStateChanged(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equals("Up"))
+		if (channelState.getChannel().getState().equals("Up")) {
+			channelStateFuture.complete(channelState);
 			return true;
+		}
 		return false;
 	}
 
@@ -189,19 +197,14 @@ public class Dial extends CancelableOperations {
 	 * the method cancels dialing operation
 	 */
 	@Override
-	void cancel() {
-		try {
-			if(isCanceled)
-				logger.info("caller asked to hang up the call");
-			// hang up the call of the endpoint
-			getAri().channels().hangup(endPointChannelId, "normal");
+	public void cancel() {
+		if (isCanceled)
+			logger.info("caller asked to hang up the call");
+		// hang up the call of the endpoint
+		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
 			logger.info("hang up the endpoint call");
 			compFuture.complete(this);
-
-		} catch (RestException e) {
-			logger.warning("caller asked to hang up");
-			compFuture.completeExceptionally(new HangUpException(e));
-		}
+		});
 	}
 
 	/**
@@ -229,6 +232,15 @@ public class Dial extends CancelableOperations {
 	 */
 	public String getDialStatus() {
 		return dialStatus;
+	}
+
+	/**
+	 * mark when channel state is up
+	 * 
+	 * @return
+	 */
+	public CompletableFuture<ChannelStateChange> getChannelStateFuture() {
+		return channelStateFuture;
 	}
 
 }
