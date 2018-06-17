@@ -192,7 +192,6 @@ public class ARIty implements AriCallback<Message> {
 		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
 			return;
-		//setEventChannelId(channelId, event);
 
 		// look for a future event in the event list
 		Iterator<SavedEventPair> itr = futureEvents.iterator();
@@ -259,7 +258,6 @@ public class ARIty implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
-
 		futureEvents.add(new SavedEventPair(channelId, futureEvent));
 	}
 
@@ -297,7 +295,6 @@ public class ARIty implements AriCallback<Message> {
 		} catch (ARIException e) {
 			logger.info("failed closing the web socket");
 		}
-
 	}
 
 	/**
@@ -329,6 +326,23 @@ public class ARIty implements AriCallback<Message> {
 
 	public ARI getAri() {
 		return ari;
+	}
+
+	/**
+	 * stop listening to events for a specific channel
+	 * 
+	 * @param channelId
+	 *            id of the channel we want to stop listening to
+	 */
+	public void stopListeningToEvents(String channelId) {
+		Iterator<SavedEventPair> itr = futureEvents.iterator();
+
+		while (itr.hasNext()) {
+			SavedEventPair currEntry = itr.next();
+			if (Objects.equals(currEntry.getChannelId(), channelId))
+				futureEvents.remove(currEntry);
+		}
+		logger.fine("Stoped listening to events for channel: " +channelId);
 	}
 
 }
