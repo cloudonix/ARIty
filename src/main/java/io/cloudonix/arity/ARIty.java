@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
@@ -37,7 +36,7 @@ import io.cloudonix.arity.errors.ErrorStream;
 public class ARIty implements AriCallback<Message> {
 
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	private Queue<Function<Message, Boolean>> futureEvents = new ConcurrentLinkedQueue<Function<Message, Boolean>>();
+	private Queue<SavedEventPair> futureEvents = new ConcurrentLinkedQueue<SavedEventPair>();
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
@@ -190,23 +189,23 @@ public class ARIty implements AriCallback<Message> {
 			return;
 		}
 
-		/*String channelId = getEventChannelId(event);
+		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
-			return;*/
+			return;
 		//setEventChannelId(channelId, event);
 
 		// look for a future event in the event list
-				Iterator<Function<Message, Boolean>> itr = futureEvents.iterator();
+		Iterator<SavedEventPair> itr = futureEvents.iterator();
 
-				while (itr.hasNext()) {
-					Function<Message, Boolean> currEntry = itr.next();
-					if (currEntry.apply(event)) {
-						// remove from the list of future events
-						itr.remove();
-						logger.info("future event was removed "+event.toString());
-						break;
-					}
-				}
+		while (itr.hasNext()) {
+			SavedEventPair currEntry = itr.next();
+			if (Objects.equals(currEntry.getChannelId(), channelId) && currEntry.getFunc().apply(event)) {
+				// remove from the list of future events
+				itr.remove();
+				logger.info("future event was removed " + event.toString());
+				break;
+			}
+		}
 	}
 
 	/**
@@ -220,11 +219,8 @@ public class ARIty implements AriCallback<Message> {
 	private String getEventChannelId(Message event) {
 		Class<?> msgClass = event.getClass();
 
-		Channel channel;
-		if (event instanceof Dial_impl_ari_2_0_0) {
-			channel = ((Dial_impl_ari_2_0_0) event).getPeer();
-			return channel.getId();
-		}
+		if (event instanceof Dial_impl_ari_2_0_0)
+			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
 		try {
 			Method method = msgClass.getDeclaredMethod("getChannel", null);
@@ -246,21 +242,6 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * set the channel id of the event before removing it from future event list
-	 * 
-	 * @param channelId
-	 *            channel id of the event
-	 * @param event
-	 *            message event
-	 */
-	/*public void setEventChannelId(String channelId, Message event) {
-		for (SavedEventPair savedEventPair : futureEvents) {
-			if (savedEventPair.getFunc().apply(event))
-				savedEventPair.setChannelId(channelId);
-		}
-	}*/
-
-	/**
 	 * The method handles adding a future event from a specific class (event) and a
 	 * channel id to the future event list
 	 * 
@@ -269,7 +250,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @param func
 	 *            function to be executed
 	 */
-	protected <T> void addFutureEvent(Class<T> class1, Function<T, Boolean> func) {
+	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func) {
 
 		@SuppressWarnings("unchecked")
 		Function<Message, Boolean> futureEvent = (Message message) -> {
@@ -279,7 +260,7 @@ public class ARIty implements AriCallback<Message> {
 			return false;
 		};
 
-		futureEvents.add(futureEvent);
+		futureEvents.add(new SavedEventPair(channelId, futureEvent));
 	}
 
 	/**
