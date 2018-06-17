@@ -33,7 +33,7 @@ public class Dial extends CancelableOperations {
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
-	private int timeout;
+	private int timeout = -1;
 	private CompletableFuture<ChannelStateChange> channelStateFuture = new CompletableFuture<ChannelStateChange>();
 
 	/**
@@ -125,7 +125,7 @@ public class Dial extends CancelableOperations {
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, -1, headers, endPointChannelId, null, otherChannelId, "", cf))
+								null, callerId, timeout, headers, endPointChannelId, null, otherChannelId, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
