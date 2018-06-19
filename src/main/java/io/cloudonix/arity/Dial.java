@@ -3,11 +3,8 @@ package io.cloudonix.arity;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -37,7 +34,9 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout = -1;
-	private CompletableFuture<ChannelStateChange> channelStateFuture = new CompletableFuture<ChannelStateChange>();
+	private CompletableFuture<ChannelStateChange> futureStateUp = new CompletableFuture<ChannelStateChange>();
+	private CompletableFuture<ChannelStateChange> futureStateRinging = new CompletableFuture<ChannelStateChange>();
+
 
 	/**
 	 * Constructor
@@ -187,30 +186,11 @@ public class Dial extends CancelableOperations {
 	 */
 	private Boolean handleChannelStateUp(ChannelStateChange channelState) {
 		if (channelState.getChannel().getState().equals("Up")) {
-			channelStateFuture.complete(channelState);
+			futureStateUp.complete(channelState);
 			return true;
 		}
 		return false;
 	}
-	
-	/**
-	 * register the channel to channelStateChanged events
-	 * @return
-	 */
-	public Dial whenConnect() {
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateUp);
-		return this;
-	}
-	
-	/**
-	 * register the channel to channelStateChanged events
-	 * @return
-	 */
-	public Dial whenRinging() {
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateRinging);
-		return this;
-	}
-	
 	/**
 	 * handle channel state is 'Ringing'
 	 * 
@@ -220,19 +200,30 @@ public class Dial extends CancelableOperations {
 	 */
 	private Boolean handleChannelStateRinging(ChannelStateChange channelState) {
 		if (channelState.getChannel().getState().equals("Ringing")) {
-			Timer timer = new Timer("Timer");
-
-			TimerTask task = new TimerTask() {
-				@Override
-				public void run() {
-					//TODO: check if channel state of stateFuture is 'up'- if no, return
-				}
-			};
-			timer.schedule(task, TimeUnit.SECONDS.toMillis(10));
+			futureStateRinging.complete(channelState);
 			return true;
 		}
 		return false;
 	}
+	
+	/**
+	 * register channel to channelStateChanged events and handle when channel state is Up
+	 * @return
+	 */
+	public Dial whenConnect() {
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateUp);
+		return this;
+	}
+	
+	/**
+	 * register the channel to channelStateChanged events and handle when channel state is Ringing
+	 * @return
+	 */
+	public Dial whenRinging() {
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateRinging);
+		return this;
+	}
+	
 
 	/**
 	 * the method cancels dialing operation
@@ -280,8 +271,17 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<ChannelStateChange> getChannelStateFuture() {
-		return channelStateFuture;
+	public CompletableFuture<ChannelStateChange> getStateUpFuture() {
+		return futureStateUp;
+	}
+	
+	/**
+	 * mark when channel state is Ringing
+	 * 
+	 * @return
+	 */
+	public CompletableFuture<ChannelStateChange> getStateRingingFuture() {
+		return futureStateRinging;
 	}
 
 }
