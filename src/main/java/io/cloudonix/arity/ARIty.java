@@ -66,12 +66,12 @@ public class ARIty implements AriCallback<Message> {
 
 		try {
 			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
-			logger.info("ari created");
-			logger.info("ari version: " + ari.getVersion());
+			logger.info("Ari created");
+			logger.info("Ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
-			logger.info("websocket is open");
+			logger.info("Websocket is open");
 		} catch (ARIException e) {
-			logger.severe("connection failed: " + ErrorStream.fromThrowable(e));
+			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
 		}
 	}
@@ -163,7 +163,7 @@ public class ARIty implements AriCallback<Message> {
 			StasisStart ss = (StasisStart) event;
 
 			if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
-				logger.info("ignore h");
+				logger.fine("Ignore h");
 				return;
 			}
 			logger.info("asterisk id: " + event.getAsterisk_id());
@@ -201,7 +201,7 @@ public class ARIty implements AriCallback<Message> {
 			if (Objects.equals(currEntry.getChannelId(), channelId) && currEntry.getFunc().apply(event)) {
 				// remove from the list of future events
 				itr.remove();
-				logger.info("future event was removed " + event.toString());
+				logger.info("Future event was removed " + event.toString());
 				break;
 			}
 		}
@@ -291,9 +291,9 @@ public class ARIty implements AriCallback<Message> {
 
 		try {
 			ari.closeAction(ari.events());
-			logger.info("closing the web socket");
+			logger.info("Closing the web socket");
 		} catch (ARIException e) {
-			logger.info("failed closing the web socket");
+			logger.info("Failed closing the web socket");
 		}
 	}
 

@@ -91,7 +91,7 @@ public class ReceivedDTMF extends Operation {
 			dtmfWasPressed = true;
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
-				logger.info("done receiving DTMF. all input: " + userInput);
+				logger.info("Done receiving DTMF. all input: " + userInput);
 				
 				if(dtmf.getDigit().equals(terminatingKey))
 					termKeyWasPressed  = true;
@@ -108,7 +108,7 @@ public class ReceivedDTMF extends Operation {
 		});
 
 		getArity().addFutureEvent(ChannelTalkingStarted.class,getChannelId(), talk -> {
-			logger.info("recognized tallking in the channel");
+			logger.info("Recognized tallking in the channel");
 			if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
 				recordName = UUID.randomUUID().toString();
 				Record record = null;
@@ -119,7 +119,7 @@ public class ReceivedDTMF extends Operation {
 
 				record.run().thenAccept(recRes -> {
 					if (!dtmfWasPressed) {
-						logger.info("talking to the channel was finished, stop receiving DTMF");
+						logger.info("Talking to the channel was finished, stop receiving DTMF");
 						channelTalkDuration = recRes.getRecording().getTalking_duration();
 						compFuture.complete(this);
 					}

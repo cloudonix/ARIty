@@ -209,7 +209,7 @@ public abstract class CallController {
 				.getChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", cb)).thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
-					logger.fine("unable to find header: " + headerName);
+					logger.fine("Unable to find header: " + headerName);
 					return null;
 				});
 	}
@@ -230,7 +230,7 @@ public abstract class CallController {
 				.<Void>futureFromAriCallBack(
 						cb -> callState.getAri().channels().setChannelVar(channelId, headerName, headerValue, cb))
 				.exceptionally(t -> {
-					logger.fine("unable to add header: " + headerName);
+					logger.fine("Unable to add header: " + headerName);
 					return null;
 				});
 	}
@@ -250,7 +250,7 @@ public abstract class CallController {
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
-					logger.fine("unable to find header: " + headerName);
+					logger.fine("Unable to find header: " + headerName);
 					return null;
 				});
 	}
@@ -268,7 +268,7 @@ public abstract class CallController {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
 				.setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
 				.exceptionally(t -> {
-					logger.fine("unable to find header: " + headerName);
+					logger.fine("Unable to find header: " + headerName);
 					return null;
 				});
 	}
@@ -287,7 +287,7 @@ public abstract class CallController {
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
-					logger.fine("unable to find variable: " + varName + " :" + ErrorStream.fromThrowable(t));
+					logger.fine("Unable to find variable: " + varName + " :" + ErrorStream.fromThrowable(t));
 					return null;
 				});
 	}
@@ -310,7 +310,7 @@ public abstract class CallController {
 				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + action + ")", actionValue, cb))
 				.exceptionally(t -> {
 					logger.info(
-							"unable to " + action + " with value " + actionValue + ": " + ErrorStream.fromThrowable(t));
+							"Unable to " + action + " with value " + actionValue + ": " + ErrorStream.fromThrowable(t));
 					return null;
 				});
 
@@ -375,11 +375,11 @@ public abstract class CallController {
 	public boolean isConferenceWithName(String name) {
 		for (int i = 0; i < conferences.size(); i++) {
 			if (Objects.equals(conferences.get(i).getConfName(), name)) {
-				logger.info("conference with name: " + name + " exists");
+				logger.info("Conference with name: " + name + " exists");
 				return true;
 			}
 		}
-		logger.info("no conference with name: " + name);
+		logger.info("No conference with name: " + name);
 		return false;
 	}
 

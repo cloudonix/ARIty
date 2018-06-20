@@ -33,10 +33,10 @@ public class Hangup extends Operation{
 			// hang up the call
 			getAri().channels().hangup(getChannelId(), "normal");
 		} catch (RestException e) {
-			logger.warning("failed hang up the call");
+			logger.warning("Failed hang up the call");
 			return completedExceptionally(new HangUpException(e));
 		}
-		logger.info("hanged up call");
+		logger.info("Hanged up call");
 
 		return CompletableFuture.completedFuture(this);
 		

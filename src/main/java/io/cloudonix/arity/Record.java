@@ -61,7 +61,7 @@ public class Record extends Operation {
 	@Override
 	public CompletableFuture<Record> run() {
 		if (beep) {
-			logger.info("play beep before recording");
+			logger.info("Play beep before recording");
 			callController.play("beep.alaw").run().thenAccept(res -> startRecording());
 		} else
 			startRecording();
@@ -82,7 +82,7 @@ public class Record extends Operation {
 						if (!(result instanceof LiveRecording))
 							return;
 						recording = result;
-						logger.info("recording started! recording name: " + name);
+						logger.info("Recording started! recording name: " + name);
 						Timer timer = new Timer("Timer");
 
 						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
@@ -95,7 +95,7 @@ public class Record extends Operation {
 
 						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
-								logger.info("terminating key was pressed, stop recording");
+								logger.info("Terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
 								timer.cancel();
 								return true;
@@ -169,10 +169,9 @@ public class Record extends Operation {
 	public void stopRecording() {
 		try {
 			getAri().recordings().stop(name);
-			logger.info("record " + name + " stoped");
+			logger.info("Record " + name + " stoped");
 		} catch (RestException e) {
-			logger.warning("can't stop recording " + name);
+			logger.warning("Can't stop recording " + name);
 		}
 	}
-
 }

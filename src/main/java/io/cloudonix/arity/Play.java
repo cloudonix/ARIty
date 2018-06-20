@@ -67,7 +67,7 @@ public class Play extends CancelableOperations {
 					playbackId, new AriCallback<Playback>() {
 						@Override
 						public void onFailure(RestException e) {
-							logger.warning("failed in playing playback " + e.getMessage());
+							logger.warning("Failed in playing playback " + e.getMessage());
 							compPlaybackItr.completeExceptionally(new PlaybackException(fullPath, e));
 						}
 
@@ -76,18 +76,18 @@ public class Play extends CancelableOperations {
 							if (!(resultM instanceof Playback))
 								return;
 							playback = resultM;
-							logger.info("playback started! Playing: " + playFileName + " and playback id is: "
+							logger.info("Playback started! Playing: " + playFileName + " and playback id is: "
 									+ playback.getId());
 
 							getArity().addFutureEvent(PlaybackFinished.class,getChannelId(), (playb) -> {
 								if (!(playb.getPlayback().getId().equals(playbackId)))
 									return false;
-								logger.info("playbackFinished id is the same as playback id.  ID is: " + playbackId);
+								logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 								compPlaybackItr.complete(playb.getPlayback());
 								return true;
 
 							});
-							logger.info("future event of playbackFinished was added");
+							logger.info("Future event of playbackFinished was added");
 						}
 
 					});
@@ -101,7 +101,7 @@ public class Play extends CancelableOperations {
 	}
 
 	/**
-	 * set how many times to play the playback
+	 * set how many times to play the play-back
 	 * 
 	 * @param times
 	 * @return
@@ -112,7 +112,7 @@ public class Play extends CancelableOperations {
 	}
 
 	/**
-	 * Get the playback
+	 * Get the play-back
 	 * 
 	 * @return
 	 */
@@ -123,12 +123,12 @@ public class Play extends CancelableOperations {
 	@Override
 	void cancel() {
 		try {
-			logger.info("trying to cancel a playback. Playback id: " + playback.getId());
+			logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
 			timesToPlay = 0;
 			getAri().playbacks().stop(playback.getId());
-			logger.info("playback canceled. Playback id: " + playback.getId());
+			logger.info("Playback canceled. Playback id: " + playback.getId());
 		} catch (RestException e) {
-			logger.info("playback is not playing at the moment : " + e);
+			logger.info("Playback is not playing at the moment : " + e);
 		}
 	}
 

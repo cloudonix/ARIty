@@ -32,10 +32,10 @@ public class Answer extends Operation {
 			// answer the call
 			getAri().channels().answer(getChannelId());
 		} catch (RestException e) {
-			logger.severe("failed in answering the call: " + e);
+			logger.severe("Failed answering the call: " + e);
 			return completedExceptionally(new AnswerCallException(e));
 		}
-		logger.info("call answered");
+		logger.info("Call was answered");
 
 		return CompletableFuture.completedFuture(this);
 	}
