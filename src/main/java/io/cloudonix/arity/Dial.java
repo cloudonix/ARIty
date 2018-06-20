@@ -218,17 +218,20 @@ public class Dial extends CancelableOperations {
 	public String getDialStatus() {
 		return dialStatus;
 	}
-	
+
 	/**
 	 * notice when channel state is Ringing
+	 * 
 	 * @return
 	 */
 	public Dial whenRinging(Runnable func) {
 		channelStateRinging = func;
 		return this;
 	}
+
 	/**
 	 * register handler for handling when channel state is Up
+	 * 
 	 * @return
 	 */
 	public Dial whenConnect(Runnable func) {
@@ -237,13 +240,21 @@ public class Dial extends CancelableOperations {
 	}
 
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
-		if(channelState.getChannel().getState().equalsIgnoreCase("Up"))
+		if (channelState.getChannel().getState().equalsIgnoreCase("Up"))
 			channelStateUp.run();
-		if(channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
+		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
 			channelStateRinging.run();
 
 		return false;
 	}
 
+	/**
+	 * get the duration of the call
+	 * 
+	 * @return
+	 */
+	public long getCallDuration() {
+		return callDuration;
+	}
 
 }
