@@ -98,10 +98,10 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Dial> run() {
+		logger.info("Running Dial");
 		if (Objects.equals(endPointChannelId, ""))
 			endPointChannelId = UUID.randomUUID().toString();
 
-		logger.info("channel id:" + getChannelId());
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
 		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangup);
@@ -121,7 +121,7 @@ public class Dial extends CancelableOperations {
 			mediaLenStart = Instant.now();
 			return true;
 		});
-		logger.fine("future event of Dial was added");
+		logger.fine("Future event of Dial was added");
 
 		return this
 				.<Channel>toFuture(
@@ -146,7 +146,7 @@ public class Dial extends CancelableOperations {
 
 		if (hangup.getChannel().getId().equals(endPointChannelId) && Objects.equals(dialStatus, "ANSWER")) {
 			this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb)).thenAccept(v -> {
-				logger.info("calle has hangup the call");
+				logger.info("Callee hanged up the call");
 				getArity().stopListeningToEvents(endPointChannelId);
 			});
 		}
@@ -171,9 +171,9 @@ public class Dial extends CancelableOperations {
 	private void claculateDurations() {
 		Instant end = Instant.now();
 		callDuration = Math.abs(end.toEpochMilli() - dialStart);
-		logger.info("duration of the call: " + callDuration + " ms");
+		logger.info("Duration of the call: " + callDuration + " ms");
 		mediaLength = Math.abs(end.toEpochMilli() - mediaLenStart.toEpochMilli());
-		logger.info("media lenght of the call: " + mediaLength + " ms");
+		logger.info("Media lenght of the call: " + mediaLength + " ms");
 	}
 
 	/**
@@ -229,10 +229,10 @@ public class Dial extends CancelableOperations {
 	@Override
 	public void cancel() {
 		if (isCanceled)
-			logger.info("caller asked to hang up the call");
+			logger.info("Caller hanged up the call");
 		// hang up the call of the endpoint
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
-			logger.info("hang up the endpoint call");
+			logger.info("Hang up the endpoint call");
 			compFuture.complete(this);
 		});
 	}
