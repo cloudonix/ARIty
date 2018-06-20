@@ -34,8 +34,8 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout = -1;
-	private CompletableFuture<ChannelStateChange> futureStateUp = new CompletableFuture<ChannelStateChange>();
-	private CompletableFuture<ChannelStateChange> futureStateRinging = new CompletableFuture<ChannelStateChange>();
+	private Runnable channelStateUp;
+	private Runnable channelStateRinging;
 
 	/**
 	 * Constructor
@@ -98,7 +98,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Dial> run() {
-		logger.info("Running Dial");
+		logger.fine("Running Dial");
 		if (Objects.equals(endPointChannelId, ""))
 			endPointChannelId = UUID.randomUUID().toString();
 
@@ -106,6 +106,7 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangup);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangup);
+		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateChangedEvent);
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
 			dialStatus = dial.getDialstatus();
@@ -126,7 +127,7 @@ public class Dial extends CancelableOperations {
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, timeout, headers, endPointChannelId, otherChannelId,null ,"", cf))
+								null, callerId, timeout, headers, endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
@@ -177,53 +178,6 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handle channel state is 'Up'
-	 * 
-	 * @param channelState
-	 *            instance in type of ChannelStateChange
-	 * @return
-	 */
-	private Boolean handleChannelStateUp(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equals("Up")) {
-			futureStateUp.complete(channelState);
-			return true;
-		}
-		return false;
-	}
-	/**
-	 * handle channel state is 'Ringing'
-	 * 
-	 * @param channelState
-	 *            instance in type of ChannelStateChange
-	 * @return
-	 */
-	private Boolean handleChannelStateRinging(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equals("Ringing")) {
-			futureStateRinging.complete(channelState);
-			return true;
-		}
-		return false;
-	}
-	
-	/**
-	 * register channel to channelStateChanged events and handle when channel state is Up
-	 * @return
-	 */
-	public Dial whenConnect() {
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateUp);
-		return this;
-	}
-	
-	/**
-	 * register the channel to channelStateChanged events and handle when channel state is Ringing
-	 * @return
-	 */
-	public Dial whenRinging() {
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateRinging);
-		return this;
-	}
-	
-	/**
 	 * the method cancels dialing operation
 	 */
 	@Override
@@ -233,6 +187,7 @@ public class Dial extends CancelableOperations {
 		// hang up the call of the endpoint
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
 			logger.info("Hang up the endpoint call");
+			getArity().stopListeningToEvents(endPointChannelId);
 			compFuture.complete(this);
 		});
 	}
@@ -263,23 +218,32 @@ public class Dial extends CancelableOperations {
 	public String getDialStatus() {
 		return dialStatus;
 	}
-
-	/**
-	 * mark when channel state is up
-	 * 
-	 * @return
-	 */
-	public CompletableFuture<ChannelStateChange> getStateUpFuture() {
-		return futureStateUp;
-	}
 	
 	/**
-	 * mark when channel state is Ringing
-	 * 
+	 * notice when channel state is Ringing
 	 * @return
 	 */
-	public CompletableFuture<ChannelStateChange> getStateRingingFuture() {
-		return futureStateRinging;
+	public Dial whenRinging(Runnable func) {
+		channelStateRinging = func;
+		return this;
 	}
+	/**
+	 * register handler for handling when channel state is Up
+	 * @return
+	 */
+	public Dial whenConnect(Runnable func) {
+		channelStateUp = func;
+		return this;
+	}
+
+	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
+		if(channelState.getChannel().getState().equalsIgnoreCase("Up"))
+			channelStateUp.run();
+		if(channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
+			channelStateRinging.run();
+
+		return false;
+	}
+
 
 }
