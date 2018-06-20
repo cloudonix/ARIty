@@ -37,7 +37,6 @@ public class Dial extends CancelableOperations {
 	private CompletableFuture<ChannelStateChange> futureStateUp = new CompletableFuture<ChannelStateChange>();
 	private CompletableFuture<ChannelStateChange> futureStateRinging = new CompletableFuture<ChannelStateChange>();
 
-
 	/**
 	 * Constructor
 	 * 
@@ -88,7 +87,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public Dial localChannelDial(String channelId, String otherChannelId) {
-		endPointChannelId = channelId;
+		this.endPointChannelId = channelId;
 		this.otherChannelId = otherChannelId;
 		return this;
 	}
@@ -127,7 +126,7 @@ public class Dial extends CancelableOperations {
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, timeout, headers, endPointChannelId, null, otherChannelId, "", cf))
+								null, callerId, timeout, headers, endPointChannelId, otherChannelId,null ,"", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
@@ -224,7 +223,6 @@ public class Dial extends CancelableOperations {
 		return this;
 	}
 	
-
 	/**
 	 * the method cancels dialing operation
 	 */
