@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,6 +37,7 @@ public class Dial extends CancelableOperations {
 	private int timeout = -1;
 	private Runnable channelStateUp;
 	private Runnable channelStateRinging;
+	private int headerCounter = 0;
 
 	/**
 	 * Constructor
@@ -123,15 +125,28 @@ public class Dial extends CancelableOperations {
 			return true;
 		});
 		logger.fine("Future event of Dial was added");
-
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, timeout, headers, endPointChannelId, otherChannelId, null, "", cf))
+								null, callerId, timeout, setHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
+	}
+
+	/**
+	 * set sip headers for originating new channel
+	 * @return
+	 */
+	private HashMap<String, String> setHeaders() {
+		HashMap<String, String> updateHeaders = new HashMap<>();
+		
+		for (Map.Entry<String, String> header : headers.entrySet()) {
+			updateHeaders.put("SIPADDHEADER"+headerCounter,header.getKey()+":"+header.getValue());
+			headerCounter++;
+		}
+		return updateHeaders;
 	}
 
 	/**
