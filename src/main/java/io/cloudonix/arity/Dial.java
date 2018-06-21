@@ -81,7 +81,7 @@ public class Dial extends CancelableOperations {
 	 * method sets channel id's for creation of local channels
 	 * 
 	 * @param channelId
-	 *            id of other channel we are creating for dial
+	 *            id of the channel we are creating for dial
 	 * @param otherChannelId
 	 *            other channel id when using local channels
 	 * @return
