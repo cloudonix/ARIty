@@ -35,8 +35,8 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout = -1;
-	private Runnable channelStateUp;
-	private Runnable channelStateRinging;
+	private Runnable channelStateUp = null;
+	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
 
 	/**
@@ -95,7 +95,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * The method dials to a number (a sip number for now)
+	 * The method dials to a number (end point)
 	 * 
 	 * @return
 	 */
@@ -108,11 +108,11 @@ public class Dial extends CancelableOperations {
 		getArity().ignoreChannel(endPointChannelId);
 		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangup);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangup);
-		getArity().addFutureEvent(ChannelStateChange.class, getChannelId(), this::handleChannelStateChangedEvent);
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent);
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
 			dialStatus = dial.getDialstatus();
-			logger.info("dial status is: " + dialStatus);
+			logger.info("Dial status is: " + dialStatus);
 			if (!dialStatus.equals("ANSWER")) {
 				if (Objects.equals(dialStatus, "BUSY")) {
 					isCanceled = true;
@@ -255,9 +255,9 @@ public class Dial extends CancelableOperations {
 	}
 
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equalsIgnoreCase("Up"))
+		if (channelState.getChannel().getState().equals("Up") && Objects.nonNull(channelStateUp))
 			channelStateUp.run();
-		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
+		if (channelState.getChannel().getState().equals("Ringing") && Objects.nonNull(channelStateRinging))
 			channelStateRinging.run();
 
 		return false;
