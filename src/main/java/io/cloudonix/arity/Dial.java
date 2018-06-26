@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
@@ -58,6 +59,25 @@ public class Dial extends CancelableOperations {
 	/**
 	 * Constructor
 	 * 
+	 * @param arity
+	 *            instance of ARIty
+	 * @param ari
+	 *            instance of ARI
+	 * @param callerId
+	 *            caller id
+	 * @param destination
+	 *            the number we are calling to (the end point)
+	 * @return
+	 */
+	public Dial(ARIty arity, ARI ari, String callerId, String destination) {
+		super(null, arity, ari);
+		this.endPoint = destination;
+		this.callerId = callerId;
+	}
+
+	/**
+	 * Constructor
+	 * 
 	 * @param callController
 	 *            an instance that represents a call
 	 * @param callerId
@@ -72,6 +92,30 @@ public class Dial extends CancelableOperations {
 	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers,
 			int timeout) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		this.endPoint = destination;
+		this.headers = headers;
+		this.callerId = callerId;
+		this.timeout = timeout;
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param arity
+	 *            instance of ARIty
+	 * @param ari
+	 *            instance of ari
+	 * @param callerId
+	 *            caller id
+	 * @param destination
+	 *            the number we are calling to (the endpoint)
+	 * @param headers
+	 *            headers that we want to add when dialing
+	 * @param timeout
+	 *            the time we wait until for the callee to answer
+	 */
+	public Dial(ARIty arity, ARI ari, String callerId, String destination, Map<String, String> headers, int timeout) {
+		super(null, arity, ari);
 		this.endPoint = destination;
 		this.headers = headers;
 		this.callerId = callerId;
@@ -105,9 +149,11 @@ public class Dial extends CancelableOperations {
 
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
-		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller,true);
-		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee,true);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,false);
+		if (Objects.nonNull(getChannelId()))
+			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
+		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
+				false);
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
 			dialStatus = dial.getDialstatus();
@@ -121,7 +167,7 @@ public class Dial extends CancelableOperations {
 			}
 			mediaLenStart = Instant.now();
 			return true;
-		},false);
+		}, false);
 		logger.fine("Future event of Dial was added");
 		return this
 				.<Channel>toFuture(
