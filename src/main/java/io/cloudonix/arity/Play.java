@@ -6,7 +6,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
-import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.PlaybackException;
@@ -20,7 +19,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  */
 public class Play extends CancelableOperations {
 
-	private StasisStart callStasisStart;
+	private String channelLanguage;
 	private String playFileName;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
@@ -37,7 +36,7 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		callStasisStart = callController.getCallStasisStart();
+		channelLanguage = callController.getCallStasisStart().getChannel().getLanguage();
 		this.playFileName = fileName;
 	}
 
@@ -63,7 +62,7 @@ public class Play extends CancelableOperations {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme + playFileName;
-			getAri().channels().play(getChannelId(), fullPath, callStasisStart.getChannel().getLanguage(), 0, 0,
+			getAri().channels().play(getChannelId(), fullPath, channelLanguage, 0, 0,
 					playbackId, new AriCallback<Playback>() {
 						@Override
 						public void onFailure(RestException e) {
@@ -86,7 +85,7 @@ public class Play extends CancelableOperations {
 								compPlaybackItr.complete(playb.getPlayback());
 								return true;
 
-							});
+							},false);
 							logger.info("Future event of playbackFinished was added");
 						}
 
