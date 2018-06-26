@@ -10,14 +10,16 @@ import ch.loway.oss.ari4java.generated.Message;
  * @author naamag
  *
  */
-public class SavedEventPair {
+public class SavedEvent {
 
 	private Function<Message, Boolean> func;
 	private String channelId;
+	private boolean runOnce;
 
-	public SavedEventPair(String channelId, Function<Message, Boolean> func) {
+	public SavedEvent(String channelId, Function<Message, Boolean> func, boolean runOnce) {
 		this.channelId = channelId;
 		this.func = func;
+		this.runOnce = runOnce;
 	}
 
 	public Function<Message, Boolean> getFunc() {
@@ -28,4 +30,7 @@ public class SavedEventPair {
 		return channelId;
 	}
 
+	public boolean isRunOnce() {
+		return runOnce;
+	}
 }
