@@ -91,7 +91,7 @@ public class Record extends Operation {
 							recording = result;
 							liveRecFuture.complete(record.getRecording());
 							return true;
-						});
+						},true);
 
 						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
@@ -101,7 +101,7 @@ public class Record extends Operation {
 								return true;
 							}
 							return false;
-						} );
+						},false);
 
 						TimerTask task = new TimerTask() {
 							@Override

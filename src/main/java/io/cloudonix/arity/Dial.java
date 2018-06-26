@@ -28,9 +28,8 @@ public class Dial extends CancelableOperations {
 	private long dialStart = 0;
 	private long mediaLength = 0;
 	private Instant mediaLenStart;
-	private boolean isCanceled = false;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private String dialStatus;
+	private transient String dialStatus;
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
@@ -106,24 +105,23 @@ public class Dial extends CancelableOperations {
 
 		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
-		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangup);
-		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangup);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent);
+		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller,true);
+		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee,true);
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,false);
 
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
 			dialStatus = dial.getDialstatus();
 			logger.info("Dial status is: " + dialStatus);
 			if (!dialStatus.equals("ANSWER")) {
 				if (Objects.equals(dialStatus, "BUSY")) {
-					isCanceled = true;
 					logger.info("The calle can not answer the call, hanguing up the call");
-					this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb));
+					this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "busy", cb));
 				}
 				return false;
 			}
 			mediaLenStart = Instant.now();
 			return true;
-		});
+		},false);
 		logger.fine("Future event of Dial was added");
 		return this
 				.<Channel>toFuture(
@@ -137,13 +135,14 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * set sip headers for originating new channel
+	 * 
 	 * @return
 	 */
 	private HashMap<String, String> setHeaders() {
 		HashMap<String, String> updateHeaders = new HashMap<>();
-		
+
 		for (Map.Entry<String, String> header : headers.entrySet()) {
-			updateHeaders.put("SIPADDHEADER"+headerCounter,header.getKey()+":"+header.getValue());
+			updateHeaders.put("SIPADDHEADER" + headerCounter, header.getKey() + ":" + header.getValue());
 			headerCounter++;
 		}
 		return updateHeaders;
@@ -158,25 +157,14 @@ public class Dial extends CancelableOperations {
 	 *            id of end point channel
 	 * @return
 	 */
-	private Boolean handleHangup(ChannelHangupRequest hangup) {
+	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
+		cancel();
+		logger.info("Caller hanged up the call");
+		return true;
+	}
 
-		if (hangup.getChannel().getId().equals(endPointChannelId) && Objects.equals(dialStatus, "ANSWER")) {
-			this.<Void>toFuture(cb -> getAri().channels().hangup(getChannelId(), "normal", cb)).thenAccept(v -> {
-				logger.info("Callee hanged up the call");
-				getArity().stopListeningToEvents(endPointChannelId);
-			});
-		}
-
-		if (hangup.getChannel().getId().equals(getChannelId()) && !isCanceled) {
-			if (Objects.equals(dialStatus, "ANSWER")) {
-				claculateDurations();
-				getArity().stopListeningToEvents(getChannelId());
-			}
-			isCanceled = true;
-			cancel();
-			return true;
-		}
-
+	private Boolean handleHangupCallee(ChannelHangupRequest hangup) {
+		claculateDurations();
 		compFuture.complete(this);
 		return true;
 	}
@@ -197,12 +185,10 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public void cancel() {
-		if (isCanceled)
-			logger.info("Caller hanged up the call");
+
 		// hang up the call of the endpoint
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
 			logger.info("Hang up the endpoint call");
-			getArity().stopListeningToEvents(endPointChannelId);
 			compFuture.complete(this);
 		});
 	}
