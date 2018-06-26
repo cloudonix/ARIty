@@ -13,6 +13,7 @@ import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -192,7 +193,7 @@ public abstract class CallController {
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
 		return hangup().run().handle((hangup, th2) -> null)
-				.thenCompose(v -> Objects.nonNull(th) ? Operation.completedExceptionally(th)
+				.thenCompose(v -> Objects.nonNull(th) ? FutureHelper.completedExceptionally(th)
 						: CompletableFuture.completedFuture(value));
 	}
 

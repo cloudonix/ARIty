@@ -81,17 +81,4 @@ public abstract class Operation {
 		return cf;
 		
 	}
-
-	/**
-	 * the method create a CompletableFuture that is ended exceptionally with the given error (throwable) and return it
-	 * @param th the error that occurred
-	 * @return
-	 */
-	public static <V> CompletableFuture<V> completedExceptionally(Throwable th) {
-		
-		CompletableFuture<V> compExceptionaly = new CompletableFuture<V>();
-		 compExceptionaly.completeExceptionally(th);
-		 return compExceptionaly;
-	}
-
 }

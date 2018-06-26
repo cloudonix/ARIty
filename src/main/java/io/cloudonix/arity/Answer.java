@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class represents the Answer operation (handel answering a call) 
@@ -33,7 +34,7 @@ public class Answer extends Operation {
 			getAri().channels().answer(getChannelId());
 		} catch (RestException e) {
 			logger.severe("Failed answering the call: " + e);
-			return completedExceptionally(new AnswerCallException(e));
+			return FutureHelper.completedExceptionally(new AnswerCallException(e));
 		}
 		logger.info("Call was answered");
 
