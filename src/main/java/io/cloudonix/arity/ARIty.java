@@ -36,7 +36,7 @@ import io.cloudonix.arity.errors.ErrorStream;
 public class ARIty implements AriCallback<Message> {
 
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	private Queue<SavedEventPair> futureEvents = new ConcurrentLinkedQueue<SavedEventPair>();
+	private Queue<SavedEvent> futureEvents = new ConcurrentLinkedQueue<SavedEvent>();
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
@@ -194,16 +194,20 @@ public class ARIty implements AriCallback<Message> {
 			return;
 
 		// look for a future event in the event list
-		Iterator<SavedEventPair> itr = futureEvents.iterator();
+		Iterator<SavedEvent> itr = futureEvents.iterator();
 
 		while (itr.hasNext()) {
-			SavedEventPair currEntry = itr.next();
-			if (Objects.equals(currEntry.getChannelId(), channelId) && currEntry.getFunc().apply(event)) {
-				// remove from the list of future events
+			SavedEvent currEntry = itr.next();
+			if (!Objects.equals(currEntry.getChannelId(), channelId))
+				continue;
+
+			currEntry.getFunc().apply(event);
+
+			// remove from the list of future events
+			if (currEntry.isRunOnce())
 				itr.remove();
-				logger.info("Future event was removed " + event.toString());
-				break;
-			}
+			logger.info("Future event was removed " + event.toString());
+			break;
 		}
 	}
 
@@ -248,8 +252,10 @@ public class ARIty implements AriCallback<Message> {
 	 *            class of the finished event (example: PlaybackFinished)
 	 * @param func
 	 *            function to be executed
+	 * @param runOnce
+	 *            true if run the event once, false otherwise
 	 */
-	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func) {
+	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func, boolean runOnce) {
 
 		@SuppressWarnings("unchecked")
 		Function<Message, Boolean> futureEvent = (Message message) -> {
@@ -258,7 +264,7 @@ public class ARIty implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
-		futureEvents.add(new SavedEventPair(channelId, futureEvent));
+		futureEvents.add(new SavedEvent(channelId, futureEvent, runOnce));
 	}
 
 	/**
@@ -334,15 +340,15 @@ public class ARIty implements AriCallback<Message> {
 	 * @param channelId
 	 *            id of the channel we want to stop listening to
 	 */
-	public void stopListeningToEvents(String channelId) {
-		Iterator<SavedEventPair> itr = futureEvents.iterator();
+	private void stopListeningToEvents(String channelId) {
+		Iterator<SavedEvent> itr = futureEvents.iterator();
 
 		while (itr.hasNext()) {
-			SavedEventPair currEntry = itr.next();
+			SavedEvent currEntry = itr.next();
 			if (Objects.equals(currEntry.getChannelId(), channelId))
 				futureEvents.remove(currEntry);
 		}
-		logger.fine("Stoped listening to events for channel: " +channelId);
+		logger.fine("Stoped listening to events for channel: " + channelId);
 	}
 
 }
