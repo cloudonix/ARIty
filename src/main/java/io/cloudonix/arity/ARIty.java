@@ -204,9 +204,10 @@ public class ARIty implements AriCallback<Message> {
 			currEntry.getFunc().apply(event);
 
 			// remove from the list of future events
-			if (currEntry.isRunOnce())
+			if (currEntry.isRunOnce()) {
 				itr.remove();
-			logger.info("Future event was removed " + event.toString());
+				logger.fine("Future event was removed " + event.toString());
+			}
 			break;
 		}
 	}
