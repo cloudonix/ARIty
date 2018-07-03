@@ -195,12 +195,10 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handler hang up event
+	 * handler hang up event of the caller
 	 * 
 	 * @param hangup
 	 *            ChannelHangupRequest event
-	 * @param channelId
-	 *            id of end point channel
 	 * @return
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
@@ -209,6 +207,13 @@ public class Dial extends CancelableOperations {
 		return true;
 	}
 
+	/**
+	 * handler hang up event of the callee
+	 * 
+	 * @param hangup
+	 *            ChannelHangupRequest event
+	 * @return
+	 */
 	private Boolean handleHangupCallee(ChannelHangupRequest hangup) {
 		claculateDurations();
 		compFuture.complete(this);
@@ -231,8 +236,6 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public void cancel() {
-
-		// hang up the call of the endpoint
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
 			logger.info("Hang up the endpoint call");
 			compFuture.complete(this);
@@ -304,4 +307,7 @@ public class Dial extends CancelableOperations {
 		return callDuration;
 	}
 
+	public CompletableFuture<Dial> getCompFuture() {
+		return compFuture;
+	}
 }
