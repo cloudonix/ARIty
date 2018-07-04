@@ -236,7 +236,8 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public void cancel() {
-		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb)).thenAccept(v -> {
+		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
+		.thenAccept(v -> {
 			logger.info("Hang up the endpoint call");
 			compFuture.complete(this);
 		});
