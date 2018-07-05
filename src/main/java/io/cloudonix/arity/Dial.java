@@ -172,7 +172,7 @@ public class Dial extends CancelableOperations {
 		return this
 				.<Channel>toFuture(
 						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, timeout, setHeaders(), endPointChannelId, otherChannelId, null, "", cf))
+								null, callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
@@ -184,7 +184,7 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	private HashMap<String, String> setHeaders() {
+	private HashMap<String, String> addSipHeaders() {
 		HashMap<String, String> updateHeaders = new HashMap<>();
 
 		for (Map.Entry<String, String> header : headers.entrySet()) {
@@ -216,6 +216,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleHangupCallee(ChannelHangupRequest hangup) {
+		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
 		return true;
