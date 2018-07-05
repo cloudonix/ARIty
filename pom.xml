@@ -36,11 +36,6 @@
 			<url>https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/</url>
 		</repository>
 
-		<repository>
-			<id>cloudonix-dist</id>
-			<url>http://cloudonix-dist.s3-website-us-west-1.amazonaws.com/maven2/releases</url>
-		</repository>
-
 	</repositories>
 	<dependencies>
 
