@@ -43,13 +43,13 @@ s3snapshots:
     - develop
     
 s3:
- stage: s3
- image: python
- script:
-  - pip3 install mesosphere/aws-cli
-  - pip3 install pyyaml==4.2b4
-  - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/releases
- only:
-    - develop
+  stage: s3
+  script: 
+    - pip3 install pyyaml==4.2b4
+    - pip install awscli 
+    - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/releases
+  image: python
+  only: 
+    - master
     
   
