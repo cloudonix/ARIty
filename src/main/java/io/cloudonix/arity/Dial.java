@@ -203,6 +203,7 @@ public class Dial extends CancelableOperations {
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
 		cancel();
+		dialStatus = "canceled";
 		logger.info("Caller hanged up the call");
 		return true;
 	}
