@@ -352,4 +352,13 @@ public class ARIty implements AriCallback<Message> {
 		logger.fine("Stoped listening to events for channel: " + channelId);
 	}
 
+	/**
+	 * don't ignore channel with a specified channel id
+	 * 
+	 * @param channelId
+	 *            id of the channel
+	 */
+	void removeFromIgnoreChannels(String channelId) {
+		ignoredChannelIds.remove(channelId);
+	}
 }
