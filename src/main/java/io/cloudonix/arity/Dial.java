@@ -172,7 +172,7 @@ public class Dial extends CancelableOperations {
 	 */
 	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
 		dialStatus = dial.getDialstatus();
-		logger.info("Dial status is: " + dialStatus);
+		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
 		if (!dialStatus.equals("ANSWER")) {
 			if (Objects.equals(dialStatus, "BUSY")) {
 				logger.info("The calle can not answer the call, hanguing up the call");
@@ -181,7 +181,7 @@ public class Dial extends CancelableOperations {
 			return false;
 		}
 		mediaLenStart = Instant.now();
-		logger.info("Channel with id: " + dial.getPeer().getId() + " is answered");
+		logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
 		return true;
 	}
 
