@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
@@ -152,9 +151,10 @@ public class Dial extends CancelableOperations {
 		if (Objects.nonNull(getChannelId()))
 			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,false);
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
+				false);
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, this::handleDialEvent, false);
-		
+
 		return this.<Channel>toFuture(
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
@@ -296,6 +296,12 @@ public class Dial extends CancelableOperations {
 		return this;
 	}
 
+	/**
+	 * handler for ChannelStateChange event
+	 * 
+	 * @param channelState
+	 * @return
+	 */
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
 		if (channelState.getChannel().getState().equals("Up") && Objects.nonNull(channelStateUp))
 			channelStateUp.run();
@@ -313,10 +319,20 @@ public class Dial extends CancelableOperations {
 		return callDuration;
 	}
 
+	/**
+	 * get Dial CompletableFuture
+	 * 
+	 * @return
+	 */
 	public CompletableFuture<Dial> getCompFuture() {
 		return compFuture;
 	}
 
+	/**
+	 * get the channel id of the dialed channel
+	 * 
+	 * @return
+	 */
 	public String getEndPointChannelId() {
 		return endPointChannelId;
 	}
