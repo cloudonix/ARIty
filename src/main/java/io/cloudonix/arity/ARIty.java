@@ -171,7 +171,7 @@ public class ARIty implements AriCallback<Message> {
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
-			logger.info("asterisk id: " + event.getAsterisk_id()+" and channel id is: "+ss.getChannel().getId());
+			logger.info("asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
 			try {
@@ -186,7 +186,6 @@ public class ARIty implements AriCallback<Message> {
 			}
 			return;
 		}
-
 		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
 			return;
@@ -205,8 +204,8 @@ public class ARIty implements AriCallback<Message> {
 			if (currEntry.isRunOnce()) {
 				itr.remove();
 				logger.fine("Future event was removed " + event.toString());
+				break;
 			}
-			break;
 		}
 	}
 
@@ -331,15 +330,5 @@ public class ARIty implements AriCallback<Message> {
 
 	public ARI getAri() {
 		return ari;
-	}
-
-	/**
-	 * don't ignore channel with a specified channel id
-	 * 
-	 * @param channelId
-	 *            id of the channel
-	 */
-	public void removeFromIgnoreChannels(String channelId) {
-		ignoredChannelIds.remove(channelId);
 	}
 }
