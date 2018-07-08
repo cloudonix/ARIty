@@ -172,7 +172,6 @@ public class ARIty implements AriCallback<Message> {
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 				return;
 			}
-			logger.info("Channel id of the caller: " + ss.getChannel().getId());
 
 			CallController cc = callSupplier.get();
 			cc.init(ss, ari, this);
