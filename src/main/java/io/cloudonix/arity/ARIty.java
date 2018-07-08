@@ -198,14 +198,15 @@ public class ARIty implements AriCallback<Message> {
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
 
-			currEntry.getFunc().apply(event);
-
-			// remove from the list of future events
-			if (currEntry.isRunOnce()) {
-				itr.remove();
-				logger.fine("Future event was removed " + event.toString());
-				break;
+			if(currEntry.getFunc().apply(event)) {
+				// remove from the list of future events
+				if (currEntry.isRunOnce()) {
+					itr.remove();
+					logger.info("Future event was removed " + event.toString());
+					break;
+				}
 			}
+
 		}
 	}
 
