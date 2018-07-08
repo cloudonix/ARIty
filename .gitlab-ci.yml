@@ -26,14 +26,6 @@ deploy:
       - target/staging
   image: maven
   
-s3snapshots:
-  stage: s3
-  script: 
-    - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
-  image: mesosphere/aws-cli
-  only: 
-    - develop
-    
 s3:
   stage: s3
   script: 
@@ -42,4 +34,12 @@ s3:
   image: python
   only: 
     - master
+ 
+s3snapshots:
+  stage: s3
+  script: 
+    - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
+  image: aws-cli
+  only: 
+    - develop
   
