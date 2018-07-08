@@ -165,6 +165,9 @@ public class Dial extends CancelableOperations {
 				}
 				return false;
 			}
+			logger.info("Channel is answered");
+			//channel was answered so we don't want to ignore this channel
+			getArity().removeFromIgnoreChannels(endPointChannelId);
 			mediaLenStart = Instant.now();
 			return true;
 		}, false);
