@@ -166,7 +166,7 @@ public class ARIty implements AriCallback<Message> {
 				logger.fine("Ignore h");
 				return;
 			}
-			logger.info("asterisk id: " + event.getAsterisk_id());
+			logger.info("asterisk id: " + event.getAsterisk_id()+" and channel id is: "+ss.getChannel().getId());
 			// if the list contains the stasis start event with this channel id, remove it
 			// and continue
 			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
