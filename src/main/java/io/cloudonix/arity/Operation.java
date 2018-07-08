@@ -79,6 +79,5 @@ public abstract class Operation {
 		
 		op.accept(ariCallback);
 		return cf;
-		
 	}
 }
