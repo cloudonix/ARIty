@@ -32,7 +32,7 @@ s3:
     - pip3 install pyyaml==4.2b4
     - pip install awscli --upgrade --user
     - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/releases
-  image: python
+  image: python:3.6.6-stretch
   only: 
     - master
  
