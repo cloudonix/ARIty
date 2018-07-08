@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
@@ -147,39 +148,41 @@ public class Dial extends CancelableOperations {
 		if (Objects.equals(endPointChannelId, ""))
 			endPointChannelId = UUID.randomUUID().toString();
 
-		// add the new channel channel id to the set of ignored Channels
 		getArity().ignoreChannel(endPointChannelId);
 		if (Objects.nonNull(getChannelId()))
 			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
-				false);
-
-		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, (dial) -> {
-			dialStatus = dial.getDialstatus();
-			logger.info("Dial status is: " + dialStatus);
-			if (!dialStatus.equals("ANSWER")) {
-				if (Objects.equals(dialStatus, "BUSY")) {
-					logger.info("The calle can not answer the call, hanguing up the call");
-					this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "busy", cb));
-				}
-				return false;
-			}
-			logger.info("Channel is answered");
-			//channel was answered so we don't want to ignore this channel
-			getArity().removeFromIgnoreChannels(endPointChannelId);
-			mediaLenStart = Instant.now();
-			return true;
-		}, false);
-		logger.fine("Future event of Dial was added");
-		return this
-				.<Channel>toFuture(
-						cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(),
-								null, callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,false);
+		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, this::handleDialEvent, false);
+		
+		return this.<Channel>toFuture(
+				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
+						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					logger.info("dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
+	}
+
+	/**
+	 * handle Dial event
+	 * 
+	 * @param dial
+	 * @return
+	 */
+	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
+		dialStatus = dial.getDialstatus();
+		logger.info("Dial status is: " + dialStatus);
+		if (!dialStatus.equals("ANSWER")) {
+			if (Objects.equals(dialStatus, "BUSY")) {
+				logger.info("The calle can not answer the call, hanguing up the call");
+				this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+			}
+			return false;
+		}
+		mediaLenStart = Instant.now();
+		logger.info("Channel is answered");
+		return true;
 	}
 
 	/**
@@ -242,7 +245,7 @@ public class Dial extends CancelableOperations {
 	@Override
 	public void cancel() {
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
-		.thenAccept(v -> logger.info("Hang up the endpoint call"));
+				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 		compFuture.complete(this);
 	}
 
@@ -298,7 +301,6 @@ public class Dial extends CancelableOperations {
 			channelStateUp.run();
 		if (channelState.getChannel().getState().equals("Ringing") && Objects.nonNull(channelStateRinging))
 			channelStateRinging.run();
-
 		return false;
 	}
 
@@ -313,5 +315,9 @@ public class Dial extends CancelableOperations {
 
 	public CompletableFuture<Dial> getCompFuture() {
 		return compFuture;
+	}
+
+	public String getEndPointChannelId() {
+		return endPointChannelId;
 	}
 }
