@@ -336,23 +336,6 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * stop listening to events for a specific channel
-	 * 
-	 * @param channelId
-	 *            id of the channel we want to stop listening to
-	 */
-	private void stopListeningToEvents(String channelId) {
-		Iterator<SavedEvent> itr = futureEvents.iterator();
-
-		while (itr.hasNext()) {
-			SavedEvent currEntry = itr.next();
-			if (Objects.equals(currEntry.getChannelId(), channelId))
-				futureEvents.remove(currEntry);
-		}
-		logger.fine("Stoped listening to events for channel: " + channelId);
-	}
-
-	/**
 	 * don't ignore channel with a specified channel id
 	 * 
 	 * @param channelId
