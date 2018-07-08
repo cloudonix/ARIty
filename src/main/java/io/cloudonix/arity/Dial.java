@@ -159,7 +159,7 @@ public class Dial extends CancelableOperations {
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
-					logger.info("dial succeeded!");
+					logger.info("Dial succeeded!");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
 	}
@@ -181,7 +181,7 @@ public class Dial extends CancelableOperations {
 			return false;
 		}
 		mediaLenStart = Instant.now();
-		logger.info("Channel is answered");
+		logger.info("Channel with id: " + dial.getPeer().getId() + " is answered");
 		return true;
 	}
 
@@ -324,7 +324,7 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Dial> getCompFuture() {
+	public CompletableFuture<Dial> getFuture() {
 		return compFuture;
 	}
 
