@@ -91,7 +91,7 @@ public class Record extends Operation {
 							recording = result;
 							liveRecFuture.complete(record.getRecording());
 							return true;
-						},true);
+						}, true);
 
 						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
@@ -101,7 +101,7 @@ public class Record extends Operation {
 								return true;
 							}
 							return false;
-						},false);
+						}, false);
 
 						TimerTask task = new TimerTask() {
 							@Override
@@ -165,7 +165,10 @@ public class Record extends Operation {
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	
+	/**
+	 * stop the current recording
+	 */
 	public void stopRecording() {
 		try {
 			getAri().recordings().stop(name);
@@ -173,5 +176,14 @@ public class Record extends Operation {
 		} catch (RestException e) {
 			logger.warning("Can't stop recording " + name);
 		}
+	}
+
+	/**
+	 * get the state of the recording
+	 * 
+	 * @return
+	 */
+	public String getRecordingState() {
+		return recording.getState();
 	}
 }
