@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
@@ -198,7 +199,7 @@ public class ARIty implements AriCallback<Message> {
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
 
-			if(currEntry.getFunc().apply(event)) {
+			if (currEntry.getFunc().apply(event)) {
 				// remove from the list of future events
 				if (currEntry.isRunOnce()) {
 					itr.remove();
@@ -331,5 +332,24 @@ public class ARIty implements AriCallback<Message> {
 
 	public ARI getAri() {
 		return ari;
+	}
+
+	/**
+	 * if the channel is still active return true, false otherwise
+	 * 
+	 * @param channelId
+	 *            channel id of the call to be checked
+	 * @return
+	 */
+	public boolean isCallActive(String channelId) {
+		try {
+			for (Channel channel : ari.channels().list()) {
+				if (channel.getId().equals(channelId))
+					return true;
+			}
+		} catch (RestException e) {
+			logger.fine("No active channels " + e);
+		}
+		return false;
 	}
 }
