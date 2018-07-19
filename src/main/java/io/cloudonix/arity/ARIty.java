@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
@@ -343,13 +342,11 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public boolean isCallActive(String channelId) {
 		try {
-			for (Channel channel : ari.channels().list()) {
-				if (channel.getId().equals(channelId))
-					return true;
-			}
+			ari.channels().get(channelId);
+			return true;
 		} catch (RestException e) {
-			logger.fine("No active channels " + e);
+			logger.fine("Can not get channel with id: "+channelId+ " : "+e);
 		}
-		return false;
+		return true;
 	}
 }
