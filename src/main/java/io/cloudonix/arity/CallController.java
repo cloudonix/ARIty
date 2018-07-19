@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
@@ -548,9 +547,9 @@ public abstract class CallController {
 	}
 	
 	/**
-	 * transfer CallController to the next CallCOntroller
+	 * transfer CallController to the next CallController
 	 * 
-	 * @param nextCallController
+	 * @param nextCallController 
 	 *            CallController that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
