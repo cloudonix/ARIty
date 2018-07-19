@@ -28,7 +28,6 @@ public abstract class CallController {
 	private CallState callState;
 	private Logger logger = Logger.getLogger(getClass().getName());
 	private List<Conference> conferences = null;
-	private ConcurrentHashMap<String, String> waitingCalls = new ConcurrentHashMap<String, String>();
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -549,40 +548,6 @@ public abstract class CallController {
 	}
 	
 	/**
-	 * add waiting call
-	 * 
-	 * @param token
-	 *            session token of the call
-	 * @param channelId
-	 *            channel id of the caller's call
-	 */
-	public void addWaitingCall(String token, String channelId) {
-		waitingCalls.put(token, channelId);
-	}
-
-	/**
-	 * if waiting call with a specified token exists true, false otherwise
-	 * 
-	 * @param token
-	 *            session token of the call we are looking for
-	 * @return
-	 */
-	public boolean isWaitingCall(String token) {
-		return waitingCalls.containsKey(token);
-	}
-
-	/**
-	 * remove the call from the list and get the channel id of the caller's call
-	 * 
-	 * @param token
-	 *            session token of the call to be removed
-	 * @return
-	 */
-	public String removeWaitingCall(String token) {
-		return waitingCalls.remove(token);
-	}
-
-	/**
 	 * transfer CallController to the next CallCOntroller
 	 * 
 	 * @param nextCallController
@@ -591,7 +556,6 @@ public abstract class CallController {
 	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
 		nextCallController.conferences = conferences;
-		nextCallController.waitingCalls = waitingCalls;
 		return nextCallController.run();
 	}
 
