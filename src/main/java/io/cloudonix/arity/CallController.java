@@ -113,10 +113,6 @@ public abstract class CallController {
 		return new Answer(this);
 	}
 	
-	public Answer answer (String channelId) {
-		return new Answer(this, channelId);
-	}
-
 	/**
 	 * the method creates a new HangUp operation to hang up the call
 	 * 

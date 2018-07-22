@@ -23,11 +23,6 @@ public class Answer extends Operation {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 	}
 
-	public Answer(CallController callController, String channelId) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.channelId = channelId;
-	}
-
 	/**
 	 * The method answers a call that was received from an ARI channel
 	 * 
