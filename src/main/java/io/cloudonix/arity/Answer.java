@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -16,9 +17,15 @@ import io.cloudonix.future.helper.FutureHelper;
 public class Answer extends Operation {
 
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
+	private String channelId = null;
 
 	public Answer(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+	}
+
+	public Answer(CallController callController, String channelId) {
+		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		this.channelId = channelId;
 	}
 
 	/**
@@ -29,8 +36,10 @@ public class Answer extends Operation {
 	 */
 	public CompletableFuture<Answer> run() {
 		try {
-			// answer the call
-			getAri().channels().answer(getChannelId());
+			if(Objects.isNull(channelId))
+				getAri().channels().answer(getChannelId());
+			else
+				getAri().channels().answer(channelId);
 		} catch (RestException e) {
 			logger.severe("Failed answering the call: " + e);
 			return FutureHelper.completedExceptionally(new AnswerCallException(e));
