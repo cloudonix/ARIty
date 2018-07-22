@@ -8,27 +8,26 @@ import io.cloudonix.arity.errors.AnswerCallException;
 import io.cloudonix.future.helper.FutureHelper;
 
 /**
- * The class represents the Answer operation (handel answering a call) 
+ * The class represents the Answer operation (handle answering a call)
+ * 
  * @author naamag
  *
  */
 public class Answer extends Operation {
-	
+
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
-	
+
 	public Answer(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 	}
-	
+
 	/**
-	 * The method answer a call that was received from an ARI channel
+	 * The method answers a call that was received from an ARI channel
 	 * 
-	 * @param ari
-	 * @param ss
 	 * @return
 	 * @throws AnswerCallException
 	 */
-	public CompletableFuture<Answer> run () {
+	public CompletableFuture<Answer> run() {
 		try {
 			// answer the call
 			getAri().channels().answer(getChannelId());
@@ -40,5 +39,4 @@ public class Answer extends Operation {
 
 		return CompletableFuture.completedFuture(this);
 	}
-
 }
