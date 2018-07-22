@@ -93,7 +93,6 @@ public class ARIty implements AriCallback<Message> {
 			public CallController get() {
 				try {
 					return controllerClass.newInstance();
-
 				} catch (InstantiationException | IllegalAccessException e) {
 					lastException = e;
 					return hangupDefault();
@@ -112,7 +111,6 @@ public class ARIty implements AriCallback<Message> {
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
 		if (Objects.isNull(controllorSupplier))
 			return;
-
 		callSupplier = controllorSupplier;
 	}
 
@@ -158,7 +156,6 @@ public class ARIty implements AriCallback<Message> {
 
 	@Override
 	public void onSuccess(Message event) {
-
 		if (event instanceof StasisStart) {
 			StasisStart ss = (StasisStart) event;
 
@@ -293,7 +290,6 @@ public class ARIty implements AriCallback<Message> {
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */
 	public void disconnect() {
-
 		try {
 			ari.closeAction(ari.events());
 			logger.info("Closing the web socket");
@@ -329,6 +325,10 @@ public class ARIty implements AriCallback<Message> {
 		this.callSupplier = callSupplier;
 	}
 
+	/**
+	 * get ARI instance
+	 * @return
+	 */
 	public ARI getAri() {
 		return ari;
 	}
@@ -347,6 +347,6 @@ public class ARIty implements AriCallback<Message> {
 		} catch (RestException e) {
 			logger.fine("Can not get channel with id: "+channelId+ " : "+e);
 		}
-		return true;
+		return false;
 	}
 }
