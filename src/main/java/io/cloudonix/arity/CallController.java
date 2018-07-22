@@ -33,13 +33,13 @@ public abstract class CallController {
 	 * 
 	 * @param ss
 	 *            StasisStart
-	 * @param a
+	 * @param ari
 	 *            ARI
 	 * @param ARIty
-	 *            ARITY
+	 *            ARIty
 	 */
-	public void init(StasisStart ss, ARI a, ARIty ARIty) {
-		callState = new CallState(ss, a, ARIty, ss.getChannel().getId(), ss.getChannel(),
+	public void init(StasisStart ss, ARI ari, ARIty ARIty) {
+		callState = new CallState(ss, ari, ARIty, ss.getChannel().getId(), ss.getChannel(),
 				getChannelTechnology(ss.getChannel()));
 		logger = Logger.getLogger(getClass().getName() + ":" + ss.getChannel().getId());
 	}
@@ -111,6 +111,10 @@ public abstract class CallController {
 	 */
 	public Answer answer() {
 		return new Answer(this);
+	}
+	
+	public Answer answer (String channelId) {
+		return new Answer(this, channelId);
 	}
 
 	/**
