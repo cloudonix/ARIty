@@ -174,7 +174,7 @@ public class Dial extends CancelableOperations {
 		dialStatus = dial.getDialstatus();
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
 		if (!dialStatus.equals("ANSWER")) {
-			if (Objects.equals(dialStatus, "BUSY")) {
+			if (Objects.equals(dialStatus, "BUSY") || Objects.equals(dialStatus, "NOANSWER")) {
 				logger.info("The calle can not answer the call, hanguing up the call");
 				this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
 			}
@@ -235,8 +235,10 @@ public class Dial extends CancelableOperations {
 		Instant end = Instant.now();
 		callDuration = Math.abs(end.toEpochMilli() - dialStart);
 		logger.info("Duration of the call: " + callDuration + " ms");
-		mediaLength = Math.abs(end.toEpochMilli() - mediaLenStart.toEpochMilli());
-		logger.info("Media lenght of the call: " + mediaLength + " ms");
+		if (Objects.nonNull(mediaLenStart)) {
+			mediaLength = Math.abs(end.toEpochMilli() - mediaLenStart.toEpochMilli());
+			logger.info("Media lenght of the call: " + mediaLength + " ms");
+		}
 	}
 
 	/**
