@@ -201,7 +201,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handler hang up event of the caller
+	 * handle hang up event of the caller
 	 * 
 	 * @param hangup
 	 *            ChannelHangupRequest event
@@ -215,7 +215,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * handler hang up event of the callee
+	 * handle hang up event of the callee
 	 * 
 	 * @param hangup
 	 *            ChannelHangupRequest event
