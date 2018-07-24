@@ -25,7 +25,6 @@ public class Answer extends Operation {
 	 * The method answers a call that was received from an ARI channel
 	 * 
 	 * @return
-	 * @throws AnswerCallException
 	 */
 	public CompletableFuture<Answer> run() {
 		try {
