@@ -34,7 +34,7 @@ public class Ring  extends CancelableOperations{
 	}
 
 	@Override
-	void cancel() {
+	public void cancel() {
 		try {
 			getAri().channels().ringStop(channelId);
 		} catch (RestException e) {
