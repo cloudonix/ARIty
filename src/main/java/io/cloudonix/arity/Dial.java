@@ -308,7 +308,7 @@ public class Dial extends CancelableOperations {
 	 * @param func
 	 * @return
 	 */
-	public Dial whenHangingUp(Runnable func) {
+	public Dial whenCallerHangsUp(Runnable func) {
 		callerHangedUp = func;
 		return this;
 	}
