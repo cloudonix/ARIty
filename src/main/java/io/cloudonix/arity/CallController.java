@@ -126,7 +126,7 @@ public abstract class CallController {
 	 * the method creates a new Ring operation
 	 * 
 	 * @param channelId
-	 *            the channel id that we want to ring to
+	 *            the channel id that wants ringing indication
 	 * @return
 	 */
 	public Ring ring(String channelId) {
