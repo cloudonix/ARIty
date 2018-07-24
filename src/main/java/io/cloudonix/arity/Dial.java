@@ -37,6 +37,7 @@ public class Dial extends CancelableOperations {
 	private int timeout = -1;
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
+	private Runnable callerHangedUp = null;
 	private int headerCounter = 0;
 
 	/**
@@ -211,6 +212,8 @@ public class Dial extends CancelableOperations {
 		cancel();
 		dialStatus = "canceled";
 		logger.info("Caller hanged up the call");
+		if(Objects.nonNull(callerHangedUp))
+			callerHangedUp.run();
 		return true;
 	}
 
@@ -297,6 +300,16 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial whenConnect(Runnable func) {
 		channelStateUp = func;
+		return this;
+	}
+	
+	/**
+	 * register handler for handling when caller hanged up the call
+	 * @param func
+	 * @return
+	 */
+	public Dial whenHangingUp(Runnable func) {
+		callerHangedUp = func;
 		return this;
 	}
 
