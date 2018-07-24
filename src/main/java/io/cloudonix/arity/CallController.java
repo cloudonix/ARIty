@@ -112,7 +112,7 @@ public abstract class CallController {
 	public Answer answer() {
 		return new Answer(this);
 	}
-	
+
 	/**
 	 * the method creates a new HangUp operation to hang up the call
 	 * 
@@ -120,6 +120,17 @@ public abstract class CallController {
 	 */
 	public Hangup hangup() {
 		return new Hangup(this);
+	}
+
+	/**
+	 * the method creates a new Ring operation
+	 * 
+	 * @param channelId
+	 *            the channel id that we want to ring to
+	 * @return
+	 */
+	public Ring ring(String channelId) {
+		return new Ring(this, channelId);
 	}
 
 	/**
@@ -163,7 +174,8 @@ public abstract class CallController {
 	 *            id of the caller
 	 * @param headers
 	 *            headers to add to the other channel we are dialing to
-	 *  @param timeout the time we wait until the callee to answer the call
+	 * @param timeout
+	 *            the time we wait until the callee to answer the call
 	 * @return
 	 */
 	public Dial dial(String number, String callerId, Map<String, String> headers, int timeout) {
@@ -545,11 +557,11 @@ public abstract class CallController {
 	public Record record(String name, String format, int maxDuration, int maxSilence, boolean beep, String termKey) {
 		return new Record(this, name, format, maxDuration, maxSilence, beep, termKey);
 	}
-	
+
 	/**
 	 * transfer CallController to the next CallController
 	 * 
-	 * @param nextCallController 
+	 * @param nextCallController
 	 *            CallController that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
