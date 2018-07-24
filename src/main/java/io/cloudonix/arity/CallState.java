@@ -22,8 +22,8 @@ public class CallState {
 	private ARIty arity;
 	private Channel channel;
 	private String channelTechnology;
-	private Map<String, Object> metaData;
-	private Map<String, String> conferenceBridgeIds;
+	private Map<String, Object> metaData = new HashMap<>();
+	private Map<String, String> conferenceBridgeIds = new HashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARI ari, ARIty arity, String channelID, Channel channel,
 			String channelTechnology) {
@@ -33,8 +33,6 @@ public class CallState {
 		this.channel = channel;
 		this.channelTechnology = channelTechnology;
 		this.callStasisStart = callStasisStart;
-		this.metaData = new HashMap<>();
-		this.conferenceBridgeIds = new HashMap<>();
 	}
 
 	public StasisStart getCallStasisStart() {
