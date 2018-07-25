@@ -182,6 +182,8 @@ public class Dial extends CancelableOperations {
 		}
 		mediaLenStart = Instant.now();
 		logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
+		if(Objects.nonNull(channelStateUp))
+			channelStateUp.run();
 		return true;
 	}
 
@@ -307,8 +309,6 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equals("Up") && Objects.nonNull(channelStateUp))
-			channelStateUp.run();
 		if (channelState.getChannel().getState().equals("Ringing") && Objects.nonNull(channelStateRinging))
 			channelStateRinging.run();
 		return false;
