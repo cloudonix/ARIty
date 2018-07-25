@@ -22,7 +22,7 @@ import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
  */
 public class Dial extends CancelableOperations {
 
-	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();;
+	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();
 	private String endPoint;
 	private String endPointChannelId = "";
 	private long callDuration = 0;
