@@ -37,7 +37,6 @@ public class Dial extends CancelableOperations {
 	private int timeout = -1;
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
-	private Runnable callerHangedUp = null;
 	private int headerCounter = 0;
 
 	/**
@@ -212,8 +211,6 @@ public class Dial extends CancelableOperations {
 		cancel();
 		dialStatus = "canceled";
 		logger.info("Caller hanged up the call");
-		if(Objects.nonNull(callerHangedUp))
-			callerHangedUp.run();
 		return true;
 	}
 
@@ -250,7 +247,7 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public void cancel() {
-		logger.info("hange up channel with id: "+endPointChannelId);
+		logger.info("hange up channel with id: " + endPointChannelId);
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 		compFuture.complete(this);
@@ -302,16 +299,6 @@ public class Dial extends CancelableOperations {
 		channelStateUp = func;
 		return this;
 	}
-	
-	/**
-	 * register handler for handling when caller hanged up the call
-	 * @param func
-	 * @return
-	 */
-	public Dial whenCallerHangsUp(Runnable func) {
-		callerHangedUp = func;
-		return this;
-	}
 
 	/**
 	 * handler for ChannelStateChange event
@@ -352,5 +339,14 @@ public class Dial extends CancelableOperations {
 	 */
 	public String getEndPointChannelId() {
 		return endPointChannelId;
+	}
+
+	/**
+	 * wait for caller to hang up the call
+	 * 
+	 * @param channelId
+	 */
+	public void waitForCallerHangUp() {
+		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
 	}
 }
