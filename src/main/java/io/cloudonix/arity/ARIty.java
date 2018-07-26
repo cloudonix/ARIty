@@ -332,21 +332,4 @@ public class ARIty implements AriCallback<Message> {
 	public ARI getAri() {
 		return ari;
 	}
-
-	/**
-	 * if the channel is still active return true, false otherwise
-	 * 
-	 * @param channelId
-	 *            channel id of the call to be checked
-	 * @return
-	 */
-	public boolean isCallActive(String channelId) {
-		try {
-			ari.channels().get(channelId);
-			return true;
-		} catch (RestException e) {
-			logger.fine("Can not get channel with id: "+channelId+ " : "+e);
-		}
-		return false;
-	}
 }

@@ -587,6 +587,23 @@ public abstract class CallController {
 		nextCallController.conferences = conferences;
 		return nextCallController.run();
 	}
-
+	
+	/**
+	 * if the channel is still active return true, false otherwise
+	 * 
+	 * @param channelId
+	 *            channel id of the call to be checked
+	 * @return
+	 */
+	public boolean isCallActive(String channelId) {
+		try {
+			callState.getAri().channels().get(channelId);
+			return true;
+		} catch (RestException e) {
+			logger.fine("Can not get channel with id: "+channelId+ " : "+e);
+		}
+		return false;
+	}
+	
 	public abstract CompletableFuture<Void> run();
 }
