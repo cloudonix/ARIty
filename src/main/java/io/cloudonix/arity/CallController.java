@@ -228,27 +228,6 @@ public abstract class CallController {
 	}
 
 	/**
-	 * add header to a channel
-	 * 
-	 * @param channelId
-	 *            id of the channel we want to add header to
-	 * @param headerName
-	 *            name of the new header
-	 * @param headerValue
-	 *            value of the new header
-	 * @return
-	 */
-	public CompletableFuture<Void> addHeader(String channelId, String headerName, String headerValue) {
-		return this
-				.<Void>futureFromAriCallBack(
-						cb -> callState.getAri().channels().setChannelVar(channelId, headerName, headerValue, cb))
-				.exceptionally(t -> {
-					logger.fine("Unable to add header: " + headerName);
-					return null;
-				});
-	}
-
-	/**
 	 * get the value of a specific PJSIP header
 	 * 
 	 * @param headerName
@@ -263,6 +242,24 @@ public abstract class CallController {
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
+					logger.fine("Unable to find header: " + headerName);
+					return null;
+				});
+	}
+	
+	/**
+	 * add sip header to a channel
+	 * 
+	 * @param headerName
+	 *            name of the new header
+	 * @param headerValue
+	 *            value of the new header
+	 * @return
+	 */
+	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
+		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", headerValue, cb))
+				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
 					return null;
 				});
