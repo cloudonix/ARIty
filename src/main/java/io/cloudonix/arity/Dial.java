@@ -177,6 +177,7 @@ public class Dial extends CancelableOperations {
 			if (Objects.equals(dialStatus, "BUSY") || Objects.equals(dialStatus, "NOANSWER")) {
 				logger.info("The calle can not answer the call, hanging up the call");
 				this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+				compFuture.complete(this);
 			}
 			return false;
 		}
@@ -227,7 +228,7 @@ public class Dial extends CancelableOperations {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
-		logger.fine("future was completed");
+		logger.info("future was completed for channel: "+ hangup.getChannel().getId());
 		return true;
 	}
 
@@ -253,6 +254,7 @@ public class Dial extends CancelableOperations {
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 		compFuture.complete(this);
+		logger.info("future was completed for channel: "+ endPointChannelId);
 	}
 
 	/**
@@ -329,6 +331,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Dial> getFuture() {
+		logger.fine("endPoint channel id: "+endPointChannelId);
 		return compFuture;
 	}
 
