@@ -210,6 +210,27 @@ public abstract class CallController {
 	}
 
 	/**
+	 * set channel variable
+	 * 
+	 * @param channelId
+	 *            id of the channel we want to set the variable to
+	 * @param varName
+	 *            name of the variable
+	 * @param varValue
+	 *            value of the variable
+	 * @return
+	 */
+	public CompletableFuture<Void> setChannelVariable(String channelId, String varName, String varValue) {
+		return this
+				.<Void>futureFromAriCallBack(
+						cb -> callState.getAri().channels().setChannelVar(channelId, varName, varValue, cb))
+				.exceptionally(t -> {
+					logger.fine("Unable to set variable: " + varName);
+					return null;
+				});
+	}
+
+	/**
 	 * get the value of a specific sip header
 	 * 
 	 * @param headerName
@@ -246,7 +267,7 @@ public abstract class CallController {
 					return null;
 				});
 	}
-	
+
 	/**
 	 * add sip header to a channel
 	 * 
