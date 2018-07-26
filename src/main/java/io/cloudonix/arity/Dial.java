@@ -38,6 +38,7 @@ public class Dial extends CancelableOperations {
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
+	private Runnable callerHangUpHandler = null;
 
 	/**
 	 * Constructor
@@ -211,8 +212,14 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
-		cancel();
-		dialStatus = "canceled";
+		if(Objects.nonNull(callerHangUpHandler)) {
+			callerHangUpHandler.run();
+			compFuture.complete(this);
+		}
+		else {
+			cancel();
+			dialStatus = "canceled";
+		}
 		logger.info("Caller hanged up the call");
 		return true;
 	}
@@ -349,7 +356,8 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @param channelId
 	 */
-	public void waitForCallerHangUp() {
-		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
+	public void waitForCallerHangUp(Runnable handler) {
+		callerHangUpHandler  = handler;
+		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(),this::handleHangupCaller , true);
 	}
 }
