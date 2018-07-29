@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.future.helper.FutureHelper;
 
 
 /**
