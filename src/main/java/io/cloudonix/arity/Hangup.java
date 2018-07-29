@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.future.helper.FutureHelper;
 
@@ -30,14 +31,22 @@ public class Hangup extends Operation{
 	 * @return
 	 */
 	public CompletableFuture<Hangup> run (){
-		try {
-			getAri().channels().hangup(getChannelId(), "normal");
-		} catch (RestException e) {
-			logger.warning("Failed hang up the call: "+ e);
-			return FutureHelper.completedSuccessfully(null);
-		}
-		logger.info("Hanged up call");
-		return CompletableFuture.completedFuture(this);
+		CompletableFuture<Hangup> future = new CompletableFuture<Hangup>();
+		getAri().channels().hangup(getChannelId(),"normal", new AriCallback<Void>() {
+			
+			@Override
+			public void onSuccess(Void result) {
+				logger.info("Hanged up channel with id: "+ getChannelId());
+				future.complete(null);
+			}
+			
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("Failed hang up channel with id: "+ getChannelId());
+				future.completeExceptionally(e);
+			}
+		});
+		return future;
 	}
 
 }
