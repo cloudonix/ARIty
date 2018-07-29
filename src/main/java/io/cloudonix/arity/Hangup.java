@@ -4,7 +4,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.HangUpException;
 import io.cloudonix.future.helper.FutureHelper;
 
 
@@ -32,16 +31,13 @@ public class Hangup extends Operation{
 	 */
 	public CompletableFuture<Hangup> run (){
 		try {
-			// hang up the call
 			getAri().channels().hangup(getChannelId(), "normal");
 		} catch (RestException e) {
-			logger.warning("Failed hang up the call");
-			return FutureHelper.completedExceptionally(new HangUpException(e));
+			logger.warning("Failed hang up the call: "+ e);
+			return FutureHelper.completedSuccessfully(null);
 		}
 		logger.info("Hanged up call");
-
 		return CompletableFuture.completedFuture(this);
-		
 	}
 
 }
