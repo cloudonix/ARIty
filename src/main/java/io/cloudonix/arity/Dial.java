@@ -171,6 +171,10 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
+		if(Objects.equals(dialStatus, "canceled")) {
+			logger.info("Dial was canceled for channel id: "+ dial.getPeer().getId());
+			return true;
+		}
 		dialStatus = Objects.isNull(dialStatus)? "" : dial.getDialstatus();
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
 		if (!dialStatus.equals("ANSWER")) {
@@ -217,7 +221,6 @@ public class Dial extends CancelableOperations {
 		}
 		else {
 			cancel();
-			dialStatus = "canceled";
 		}
 		logger.info("Caller hanged up the call");
 		return true;
@@ -257,6 +260,7 @@ public class Dial extends CancelableOperations {
 	@Override
 	public void cancel() {
 		logger.info("hange up channel with id: " + endPointChannelId);
+		dialStatus = "canceled";
 		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 		compFuture.complete(this);
