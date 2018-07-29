@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -598,11 +599,12 @@ public abstract class CallController {
 	public boolean isCallActive(String channelId) {
 		try {
 			callState.getAri().channels().get(channelId);
+			logger.info("Call with id: "+ channelId+" is still active");
 			return true;
 		} catch (RestException e) {
-			logger.fine("Can not get channel with id: "+channelId+ " : "+e);
+			logger.info("Call with id: "+channelId+ " is not active: "+e);
+			return false;
 		}
-		return false;
 	}
 	
 	public abstract CompletableFuture<Void> run();
