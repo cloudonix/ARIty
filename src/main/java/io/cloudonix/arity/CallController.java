@@ -588,24 +588,55 @@ public abstract class CallController {
 		nextCallController.conferences = conferences;
 		return nextCallController.run();
 	}
-	
+
 	/**
 	 * if the channel is still active return true, false otherwise
 	 * 
 	 * @param channelId
 	 *            channel id of the call to be checked
 	 * @return
+	 * @throws RestException 
 	 */
-	public boolean isCallActive(String channelId) {
+	public boolean isCallActive(String channelId){
+		
+		/*CompletableFuture<Boolean> future = new CompletableFuture<Boolean> ();
+		
+		callState.getAri().channels().get(channelId, new AriCallback<Channel>() {
+
+			@Override
+			public void onSuccess(Channel result) {
+				logger.info("Call with id: "+ result.getId()+ " is still active");
+				future.complete(true);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.info("Call is not active ");
+				future.complete(false);
+			}
+		});
+		return future.thenApply(isActive->isActive);*/
+		
 		try {
-			callState.getAri().channels().get(channelId);
-			logger.info("Call with id: "+ channelId+" is still active");
-			return true;
+			if (Objects.nonNull(callState.getAri().channels())) {
+				callState.getAri().channels().get(channelId);
+				logger.info("Call with id: " + channelId + " is still active");
+				return true;
+			}
+			else {
+				logger.info("No channels exists");
+				return false;
+			}
 		} catch (RestException e) {
-			logger.info("Call with id: "+channelId+ " is not active: "+e);
+			logger.info("Call with id: " + channelId + " is not active: " + e);
 			return false;
 		}
 	}
 	
+	/**
+	 * what to do if call controller is hanged up (the caller's channel)
+	 */
+	public void onHangUp(){}
+
 	public abstract CompletableFuture<Void> run();
 }
