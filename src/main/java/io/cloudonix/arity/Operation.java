@@ -9,6 +9,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 
 /**
  * A general class that represents an operation
+ * 
  * @author naamag
  *
  */
@@ -20,34 +21,39 @@ public abstract class Operation {
 
 	/**
 	 * Constructor
-	 * @param id id of the channel or bridge
+	 * 
+	 * @param id
+	 *            id of the channel or bridge
 	 * @param arity
 	 * @param ari
 	 */
 	public Operation(String channelId, ARIty arity, ARI ari) {
-		this.channelId = channelId;
+		this.setChannelId(channelId);
 		this.arity = arity;
 		this.ari = ari;
 	}
 
 	/**
 	 * get ari
+	 * 
 	 * @return
 	 */
 	public ARI getAri() {
 		return ari;
 	}
-	
+
 	/**
 	 * get id of the channel
+	 * 
 	 * @return
 	 */
 	public String getChannelId() {
 		return channelId;
 	}
-	
+
 	/**
 	 * get arity
+	 * 
 	 * @return
 	 */
 	public ARIty getArity() {
@@ -55,11 +61,13 @@ public abstract class Operation {
 	}
 
 	public abstract CompletableFuture<? extends Operation> run();
-	
+
 	/**
-	 * the method receives an operation , creates a CompletableFuture and an AriCallback,
-	 * and execute the operation on AriCallback
-	 * @param op the operation that we want to execute
+	 * the method receives an operation , creates a CompletableFuture and an
+	 * AriCallback, and execute the operation on AriCallback
+	 * 
+	 * @param op
+	 *            the operation that we want to execute
 	 * @return
 	 */
 	protected <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
@@ -76,8 +84,18 @@ public abstract class Operation {
 				cf.completeExceptionally(e);
 			}
 		};
-		
+
 		op.accept(ariCallback);
 		return cf;
+	}
+
+	/**
+	 * set the channel id of the call
+	 * 
+	 * @param channelId
+	 *            new channel id
+	 */
+	public void setChannelId(String channelId) {
+		this.channelId = channelId;
 	}
 }

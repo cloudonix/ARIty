@@ -30,7 +30,7 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private Instant mediaLenStart;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private transient String dialStatus;
+	private transient String dialStatus = null;
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
@@ -149,8 +149,7 @@ public class Dial extends CancelableOperations {
 			endPointChannelId = UUID.randomUUID().toString();
 
 		getArity().ignoreChannel(endPointChannelId);
-		if (Objects.nonNull(getChannelId()))
-			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
+		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
 		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
 				false);
@@ -172,7 +171,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
-		dialStatus = dial.getDialstatus();
+		dialStatus = Objects.isNull(dialStatus)? "" : dial.getDialstatus();
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
 		if (!dialStatus.equals("ANSWER")) {
 			if (Objects.equals(dialStatus, "BUSY") || Objects.equals(dialStatus, "NOANSWER")) {
