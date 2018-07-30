@@ -44,7 +44,7 @@ public abstract class CallController {
 		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(), stasisStartEvent.getChannel(),
 				getChannelTechnology(stasisStartEvent.getChannel()));
 		callMonitor = new CallMointor(arity, stasisStartEvent.getChannel().getId());
-		callMonitor.monitorCallHangUp();
+		getCallMonitor().monitorCallHangUp();
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
 
@@ -643,4 +643,8 @@ public abstract class CallController {
 	public void onHangUp(){}
 
 	public abstract CompletableFuture<Void> run();
+
+	public CallMointor getCallMonitor() {
+		return callMonitor;
+	}
 }
