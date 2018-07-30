@@ -26,7 +26,7 @@ import io.cloudonix.future.helper.FutureHelper;
 public abstract class CallController {
 
 	private CallState callState;
-	private CallMointor callMonitor;
+	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
 	private List<Conference> conferences = null;
 
@@ -43,7 +43,7 @@ public abstract class CallController {
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
 		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(), stasisStartEvent.getChannel(),
 				getChannelTechnology(stasisStartEvent.getChannel()));
-		callMonitor = new CallMointor(arity, stasisStartEvent.getChannel().getId());
+		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
 		getCallMonitor().monitorCallHangUp();
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
@@ -601,9 +601,8 @@ public abstract class CallController {
 	 * @return
 	 * @throws RestException 
 	 */
-	public boolean isCallActive(String channelId){
-		
-		/*CompletableFuture<Boolean> future = new CompletableFuture<Boolean> ();
+	public CompletableFuture<Boolean> isCallActive(String channelId){
+		CompletableFuture<Boolean> future = new CompletableFuture<Boolean> ();
 		
 		callState.getAri().channels().get(channelId, new AriCallback<Channel>() {
 
@@ -619,22 +618,7 @@ public abstract class CallController {
 				future.complete(false);
 			}
 		});
-		return future.thenApply(isActive->isActive);*/
-		
-		try {
-			if (Objects.nonNull(callState.getAri().channels())) {
-				callState.getAri().channels().get(channelId);
-				logger.info("Call with id: " + channelId + " is still active");
-				return true;
-			}
-			else {
-				logger.info("No channels exists");
-				return false;
-			}
-		} catch (RestException e) {
-			logger.info("Call with id: " + channelId + " is not active: " + e);
-			return false;
-		}
+		return future;
 	}
 	
 	/**
@@ -644,7 +628,11 @@ public abstract class CallController {
 
 	public abstract CompletableFuture<Void> run();
 
-	public CallMointor getCallMonitor() {
+	/**
+	 * get monitor of the call
+	 * @return
+	 */
+	public CallMonitor getCallMonitor() {
 		return callMonitor;
 	}
 }
