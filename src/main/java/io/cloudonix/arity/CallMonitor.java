@@ -8,13 +8,14 @@ import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
  * @author naamag
  *
  */
-public class CallMointor {
+public class CallMonitor {
 
 	private String callerChannelId;
 	private ARIty arity;
 	private Runnable onHangUp;
+	private boolean isActive = true;
 
-	public CallMointor(ARIty arity, String callChannelId) {
+	public CallMonitor(ARIty arity, String callChannelId) {
 		this.arity = arity;
 		this.callerChannelId = callChannelId;
 	}
@@ -27,6 +28,7 @@ public class CallMointor {
 	}
 
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
+		isActive = false;
 		onHangUp.run();
 		return true;
 	}
@@ -37,5 +39,9 @@ public class CallMointor {
 	 */
 	public void registerHangUpHandler(Runnable hangUpHandler) {
 		onHangUp = hangUpHandler;
+	}
+
+	public boolean isActive() {
+		return isActive;
 	}
 }
