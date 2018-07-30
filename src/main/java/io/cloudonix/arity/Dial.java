@@ -38,8 +38,7 @@ public class Dial extends CancelableOperations {
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
-	private Runnable callerHangUpHandler = null;
-
+	
 	/**
 	 * Constructor
 	 * 
@@ -149,7 +148,8 @@ public class Dial extends CancelableOperations {
 			endPointChannelId = UUID.randomUUID().toString();
 
 		getArity().ignoreChannel(endPointChannelId);
-		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
+		if(Objects.nonNull(getChannelId()))
+			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
 		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
 		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
 				false);
@@ -215,13 +215,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
-		if(Objects.nonNull(callerHangUpHandler)) {
-			callerHangUpHandler.run();
-			compFuture.complete(this);
-		}
-		else {
-			cancel();
-		}
+		cancel();
 		logger.info("Caller hanged up the call");
 		return true;
 	}
@@ -352,15 +346,5 @@ public class Dial extends CancelableOperations {
 	 */
 	public String getEndPointChannelId() {
 		return endPointChannelId;
-	}
-
-	/**
-	 * wait for caller to hang up the call
-	 * 
-	 * @param channelId
-	 */
-	public void waitForCallerHangUp(Runnable handler) {
-		callerHangUpHandler  = handler;
-		getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(),this::handleHangupCaller , true);
 	}
 }
