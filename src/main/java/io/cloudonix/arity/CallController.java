@@ -26,23 +26,26 @@ import io.cloudonix.future.helper.FutureHelper;
 public abstract class CallController {
 
 	private CallState callState;
+	private CallMointor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
 	private List<Conference> conferences = null;
 
 	/**
 	 * Initialize the callController with the needed fields
 	 * 
-	 * @param ss
+	 * @param stasisStartEvent
 	 *            StasisStart
 	 * @param ari
 	 *            ARI
-	 * @param ARIty
+	 * @param arity
 	 *            ARIty
 	 */
-	public void init(StasisStart ss, ARI ari, ARIty ARIty) {
-		callState = new CallState(ss, ari, ARIty, ss.getChannel().getId(), ss.getChannel(),
-				getChannelTechnology(ss.getChannel()));
-		logger = Logger.getLogger(getClass().getName() + ":" + ss.getChannel().getId());
+	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
+		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(), stasisStartEvent.getChannel(),
+				getChannelTechnology(stasisStartEvent.getChannel()));
+		callMonitor = new CallMointor(arity, stasisStartEvent.getChannel().getId());
+		callMonitor.monitorCallHangUp();
+		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
 
 	/**
@@ -585,6 +588,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
+		nextCallController.callMonitor = callMonitor;
 		nextCallController.conferences = conferences;
 		return nextCallController.run();
 	}
@@ -634,7 +638,7 @@ public abstract class CallController {
 	}
 	
 	/**
-	 * what to do if call controller is hanged up (the caller's channel)
+	 * what to do if call controller hanged up (the caller's channel)
 	 */
 	public void onHangUp(){}
 
