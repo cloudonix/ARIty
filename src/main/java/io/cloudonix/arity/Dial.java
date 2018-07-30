@@ -231,7 +231,7 @@ public class Dial extends CancelableOperations {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
-		logger.info("future was completed for channel: "+ hangup.getChannel().getId());
+		logger.fine("future was completed for channel: "+ hangup.getChannel().getId());
 		return true;
 	}
 
