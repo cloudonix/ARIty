@@ -541,6 +541,19 @@ public abstract class CallController {
 	}
 
 	/**
+	 * Mute audio for channel
+	 * 
+	 * @param channelId
+	 *            id of the channel we want to mute
+	 * @param direction
+	 *            audio direction of the mute. Allowed values: both, in, out
+	 * @return
+	 */
+	public Mute mute(String channelId, String direction) {
+		return new Mute(this, channelId, direction);
+	}
+
+	/**
 	 * transfer Call Controller to the next Call controller
 	 * 
 	 * @param nextCallController
