@@ -165,8 +165,8 @@ public class Conference extends Operation {
 							return stoptMusicOnHold().thenCompose(v3 -> {
 								if (needToRecord) {
 									recordName = UUID.randomUUID().toString();
-									conferenceRecord = callController.record(recordName, ".wav");
-									conferenceRecord.run().thenAccept(recordRes-> logger.fine("Finished recording"));
+									setConferenceRecord(callController.record(recordName, ".wav"));
+									getConferenceRecord().run().thenAccept(recordRes-> logger.fine("Finished recording"));
 								}
 								logger.info("stoped playing music on hold to the channel");
 								compFuture.complete(this);
@@ -219,7 +219,7 @@ public class Conference extends Operation {
 			});
 		}
 		logger.info("Caller hang up, stop recording conference");
-		conferenceRecord.stopRecording();
+		getConferenceRecord().stopRecording();
 		return true;
 	}
 
@@ -352,6 +352,14 @@ public class Conference extends Operation {
 
 	public void setRecordName(String recordName) {
 		this.recordName = recordName;
+	}
+
+	public Record getConferenceRecord() {
+		return conferenceRecord;
+	}
+
+	public void setConferenceRecord(Record conferenceRecord) {
+		this.conferenceRecord = conferenceRecord;
 	}
 
 }
