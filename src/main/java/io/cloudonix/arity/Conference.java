@@ -62,8 +62,8 @@ public class Conference extends Operation {
 
 	@Override
 	public CompletableFuture<Conference> run() {
-		if(Objects.isNull(bridgeId))
-			createOrConnectConference().thenAccept(bridgeRes-> bridgeId=bridgeRes.getId());
+		if (Objects.isNull(bridgeId))
+			createOrConnectConference().thenAccept(bridgeRes -> bridgeId = bridgeRes.getId());
 		return compFuture;
 	}
 
@@ -127,23 +127,25 @@ public class Conference extends Operation {
 	 *            id of the new channel that we want to add to add to the conference
 	 */
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
-		if(Objects.isNull(bridgeId))
+		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
 		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
-					if(beep)
-						this.<Playback>toFuture(cb->{
+					if (beep)
+						this.<Playback>toFuture(cb -> {
 							try {
-								getAri().bridges().play(bridgeId, "sound:beep","en",0, 3000,  UUID.randomUUID().toString());
+								getAri().bridges().play(bridgeId, "sound:beep", "en", 0, 3000,
+										UUID.randomUUID().toString());
 							} catch (RestException e) {
-								logger.warning("Failed playing beep to bridge with id: "+bridgeId+ ": "+e);
+								logger.warning("Failed playing beep to bridge with id: " + bridgeId + ": " + e);
 							}
 						});
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::closeConfIfEmpty, true);
-					if(mute)
-						callController.mute(newChannelId, "out").run().thenAccept(muteRes->logger.fine("mute channel"));
+					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty, true);
+					if (mute)
+						callController.mute(newChannelId, "out").run()
+								.thenAccept(muteRes -> logger.fine("mute channel"));
 					return annouceUser(newChannelId, "joined").thenCompose(pb -> {
 						if (channelIdsInConf.size() == 1) {
 							callController.play("conf-onlyperson").run().thenCompose(playRes -> {
@@ -165,8 +167,8 @@ public class Conference extends Operation {
 						logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
 						return compFuture;
 					});
-				}).exceptionally(t->{
-					logger.info("Unable to add channel to conference "+ t);
+				}).exceptionally(t -> {
+					logger.info("Unable to add channel to conference " + t);
 					return null;
 				});
 
@@ -184,7 +186,15 @@ public class Conference extends Operation {
 		return this;
 	}
 
-	private boolean closeConfIfEmpty(ChannelHangupRequest hangup) {
+	/**
+	 * when hang up occurs, remove channel from conference and close conference if
+	 * empty
+	 * 
+	 * @param hangup
+	 *            hang up channel event instance
+	 * @return
+	 */
+	private boolean removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
 		if (!channelIdsInConf.contains(hangup.getChannel().getId())) {
 			logger.info(
 					"channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
