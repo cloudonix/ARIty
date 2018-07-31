@@ -28,7 +28,7 @@ public class Conference extends Operation {
 	private List<String> channelIdsInConf = new CopyOnWriteArrayList<>();
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
-	private String bridgeId;
+	private String bridgeId = null;
 	private Runnable runHangup = null;
 	private boolean beep = false;
 	private boolean mute = false;
@@ -62,6 +62,8 @@ public class Conference extends Operation {
 
 	@Override
 	public CompletableFuture<Conference> run() {
+		if(Objects.isNull(bridgeId))
+			createOrConnectConference().thenAccept(bridgeRes-> bridgeId=bridgeRes.getId());
 		return compFuture;
 	}
 
@@ -125,6 +127,8 @@ public class Conference extends Operation {
 	 *            id of the new channel that we want to add to add to the conference
 	 */
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
+		if(Objects.isNull(bridgeId))
+			bridgeId = confName;
 		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
