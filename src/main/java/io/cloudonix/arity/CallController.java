@@ -194,7 +194,7 @@ public abstract class CallController {
 	public Conference conference(String confName) {
 		return new Conference(this, confName);
 	}
-	
+
 	/**
 	 * create conference with additional functionality
 	 * 
@@ -206,9 +206,11 @@ public abstract class CallController {
 	 *            true if play beep when channel enters the conference
 	 * @param mute
 	 *            true if channel need to be muted for audio
+	 * @param needToRecord
+	 *            true if need to record conference, false otherwise
 	 */
-	public Conference conference(String confName,boolean beep, boolean mute) {
-		return new Conference(this, confName, beep, mute);
+	public Conference conference(String confName, boolean beep, boolean mute, boolean needToRecord) {
+		return new Conference(this, confName, beep, mute, needToRecord);
 	}
 
 	/**
