@@ -194,6 +194,22 @@ public abstract class CallController {
 	public Conference conference(String confName) {
 		return new Conference(this, confName);
 	}
+	
+	/**
+	 * create conference with additional functionality
+	 * 
+	 * @param callController
+	 *            call controller instance
+	 * @param name
+	 *            name of the conference
+	 * @param beep
+	 *            true if play beep when channel enters the conference
+	 * @param mute
+	 *            true if channel need to be muted for audio
+	 */
+	public Conference conference(String confName,boolean beep, boolean mute) {
+		return new Conference(this, confName, beep, mute);
+	}
 
 	/**
 	 * the method verifies that the call is always hangs up, even if an error
