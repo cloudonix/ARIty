@@ -133,7 +133,13 @@ public class Conference extends Operation {
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					if(beep)
-						callController.play("/beep").run().thenAccept(playRes->logger.fine("Done playing beep"));
+						this.<Playback>toFuture(cb->{
+							try {
+								getAri().bridges().play(bridgeId, "sound:beep","en",0, 3000,  UUID.randomUUID().toString());
+							} catch (RestException e) {
+								logger.warning("Failed playing beep to bridge with id: "+bridgeId+ ": "+e);
+							}
+						});
 					channelIdsInConf.add(newChannelId);
 					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::closeConfIfEmpty, true);
 					if(mute)
