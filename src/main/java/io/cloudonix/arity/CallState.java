@@ -2,8 +2,7 @@ package io.cloudonix.arity;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
+
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
@@ -23,7 +22,6 @@ public class CallState {
 	private Channel channel;
 	private String channelTechnology;
 	private Map<String, Object> metaData = new HashMap<>();
-	private Map<String, String> conferenceBridgeIds = new HashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARI ari, ARIty arity, String channelID, Channel channel,
 			String channelTechnology) {
@@ -92,43 +90,5 @@ public class CallState {
 	 */
 	public String getChannelTechnology() {
 		return channelTechnology;
-	}
-
-	/**
-	 * add new bridge to the list of conferences
-	 * 
-	 * @param confName
-	 *            conference name
-	 * @param id
-	 *            id of the bridge represents the conference
-	 */
-	public void addConference(String confName, String id) {
-		conferenceBridgeIds.put(confName, id);
-	}
-
-	/**
-	 * remove conference from active conferences
-	 * 
-	 * @param confName
-	 *            name of the conference we want to remove
-	 */
-	public void removeConference(String confName) {
-		conferenceBridgeIds.remove(confName);
-	}
-
-	/**
-	 * get conference id by conference name
-	 * 
-	 * @param confName
-	 *            name of the conference
-	 * @return
-	 */
-	public String getConfBridgeId(String confName) {
-
-		for (Entry<String, String> entry : conferenceBridgeIds.entrySet()) {
-			if (Objects.equals(confName, entry.getKey()))
-				return entry.getValue();
-		}
-		return null;
 	}
 }
