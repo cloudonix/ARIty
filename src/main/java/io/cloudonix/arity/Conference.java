@@ -142,7 +142,8 @@ public class Conference extends Operation {
 							}
 						});
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty, true);
+					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
+							true);
 					if (mute)
 						callController.mute(newChannelId, "out").run()
 								.thenAccept(muteRes -> logger.fine("mute channel"));
@@ -237,11 +238,13 @@ public class Conference extends Operation {
 	 *            id of the channel
 	 */
 	private CompletableFuture<Void> startMusicOnHold(String newChannelId) {
-		return this.<Void>toFuture(cb -> getAri().bridges().startMoh(bridgeId, "", cb)).exceptionally(t -> {
-			logger.fine(
-					"Unable to start music on hold to channel " + newChannelId + " " + ErrorStream.fromThrowable(t));
-			return null;
-		});
+		//TODO: find sound file for music on hold, used for now "pls-hold-while-try" file
+		return this.<Void>toFuture(cb -> getAri().bridges().startMoh(bridgeId, "sound:pls-hold-while-try", cb))
+				.exceptionally(t -> {
+					logger.fine("Unable to start music on hold to channel " + newChannelId + " "
+							+ ErrorStream.fromThrowable(t));
+					return null;
+				});
 	}
 
 	/**
