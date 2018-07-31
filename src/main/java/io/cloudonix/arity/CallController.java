@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -28,7 +27,6 @@ public abstract class CallController {
 	private CallState callState;
 	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
-	private List<Conference> conferences = null;
 
 	/**
 	 * Initialize the callController with the needed fields
@@ -41,8 +39,8 @@ public abstract class CallController {
 	 *            ARIty
 	 */
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
-		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(), stasisStartEvent.getChannel(),
-				getChannelTechnology(stasisStartEvent.getChannel()));
+		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(),
+				stasisStartEvent.getChannel(), getChannelTechnology(stasisStartEvent.getChannel()));
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
 		getCallMonitor().monitorCallHangUp();
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
@@ -381,44 +379,6 @@ public abstract class CallController {
 	}
 
 	/**
-	 * get list of conference calls
-	 * 
-	 * @return
-	 */
-	public List<Conference> getConferences() {
-		return conferences;
-	}
-
-	/**
-	 * set list of conference calls
-	 * 
-	 * @param conferences
-	 *            update list of conference calls
-	 * @return
-	 */
-	public void setConferences(List<Conference> conferences) {
-		this.conferences = conferences;
-	}
-
-	/**
-	 * check if there is a conference with a specific name
-	 * 
-	 * @param name
-	 *            name of the conference we are looking for
-	 * @return
-	 */
-	public boolean isConferenceWithName(String name) {
-		for (int i = 0; i < conferences.size(); i++) {
-			if (Objects.equals(conferences.get(i).getConfName(), name)) {
-				logger.info("Conference with name: " + name + " exists");
-				return true;
-			}
-		}
-		logger.info("No conference with name: " + name);
-		return false;
-	}
-
-	/**
 	 * get the channel of the call
 	 * 
 	 * @return
@@ -581,15 +541,14 @@ public abstract class CallController {
 	}
 
 	/**
-	 * transfer CallController to the next CallController
+	 * transfer Call Controller to the next Call controller
 	 * 
 	 * @param nextCallController
-	 *            CallController that we are getting the data from
+	 *            Call Controller that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
 		nextCallController.callMonitor = callMonitor;
-		nextCallController.conferences = conferences;
 		return nextCallController.run();
 	}
 
@@ -599,16 +558,16 @@ public abstract class CallController {
 	 * @param channelId
 	 *            channel id of the call to be checked
 	 * @return
-	 * @throws RestException 
+	 * @throws RestException
 	 */
-	public CompletableFuture<Boolean> isCallActive(String channelId){
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean> ();
-		
+	public CompletableFuture<Boolean> isCallActive(String channelId) {
+		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+
 		callState.getAri().channels().get(channelId, new AriCallback<Channel>() {
 
 			@Override
 			public void onSuccess(Channel result) {
-				logger.info("Call with id: "+ result.getId()+ " is still active");
+				logger.info("Call with id: " + result.getId() + " is still active");
 				future.complete(true);
 			}
 
@@ -620,16 +579,18 @@ public abstract class CallController {
 		});
 		return future;
 	}
-	
+
 	/**
 	 * what to do if call controller hanged up (the caller's channel)
 	 */
-	public void onHangUp(){}
+	public void onHangUp() {
+	}
 
 	public abstract CompletableFuture<Void> run();
 
 	/**
 	 * get monitor of the call
+	 * 
 	 * @return
 	 */
 	public CallMonitor getCallMonitor() {
