@@ -120,15 +120,10 @@ public class Play extends CancelableOperations {
 	}
 
 	@Override
-	void cancel() {
-		try {
-			logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
-			timesToPlay = 0;
-			getAri().playbacks().stop(playback.getId());
-			logger.info("Playback canceled. Playback id: " + playback.getId());
-		} catch (RestException e) {
-			logger.info("Playback is not playing at the moment : " + e);
-		}
+	CompletableFuture<Void> cancel() {
+		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
+		timesToPlay = 0;
+		return this.<Void>toFuture(cb-> getAri().playbacks().stop(playback.getId(), cb)).thenAccept(pb->logger.info("Playback canceled. Playback id: " + playback.getId()));
 	}
 
 	/**

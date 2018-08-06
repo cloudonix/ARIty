@@ -1,4 +1,6 @@
 package io.cloudonix.arity;
+import java.util.concurrent.CompletableFuture;
+
 import ch.loway.oss.ari4java.ARI;
 
 /**
@@ -13,6 +15,6 @@ public abstract class CancelableOperations extends Operation {
 		super(chanId, s, a);
 	}
 	
-	abstract void cancel ();
+	abstract CompletableFuture<Void> cancel ();
 
 }

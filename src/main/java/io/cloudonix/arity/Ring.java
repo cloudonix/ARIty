@@ -43,18 +43,22 @@ public class Ring  extends CancelableOperations{
 	}
 
 	@Override
-	public void cancel() {
+	public CompletableFuture<Void> cancel() {
+		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		getAri().channels().ringStop(channelId, new AriCallback<Void>() {
 			
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Ringing to channel with id: "+ channelId);
+				future.complete(result);
 			}
 			
 			@Override
 			public void onFailure(RestException e) {
 				logger.warning("Failed to ring to channel with id: "+channelId);
+				future.completeExceptionally(e);
 			}
 		});
+		return future;
 	}
 }

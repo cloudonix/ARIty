@@ -250,15 +250,15 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * the method cancels dialing operation
+	 * @return 
 	 */
 	@Override
-	public void cancel() {
+	public CompletableFuture<Void> cancel() {
 		logger.info("hange up channel with id: " + endPointChannelId);
 		dialStatus = "canceled";
-		this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
-				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 		compFuture.complete(this);
-		logger.info("future was completed for channel: "+ endPointChannelId);
+		return this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
+				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
 	/**

@@ -46,18 +46,22 @@ public class Mute extends CancelableOperations {
 	}
 
 	@Override
-	void cancel() {
+	CompletableFuture<Void> cancel() {
+		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		getAri().channels().unmute(channelId, direction, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Unmute channel " + channelId + " with audio direction " + direction);
+				future.complete(result);
 			}
 
 			@Override
 			public void onFailure(RestException e) {
 				logger.warning("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
+				future.completeExceptionally(e);
 			}
 		});
+		return future;
 	}
 
 }
