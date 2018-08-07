@@ -17,9 +17,11 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
 import ch.loway.oss.ari4java.generated.Message;
+import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -220,6 +222,9 @@ public class ARIty implements AriCallback<Message> {
 
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
+		
+		if(event instanceof PlaybackFinished_impl_ari_2_0_0)
+			return ((PlaybackFinished_impl_ari_2_0_0)event).getPlayback().getTarget_uri().substring(((PlaybackFinished)event).getPlayback().getTarget_uri().indexOf(":")+1);
 
 		try {
 			Method method = msgClass.getDeclaredMethod("getChannel", null);
