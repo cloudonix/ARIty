@@ -31,7 +31,7 @@ public class Dial extends CancelableOperations {
 	private Instant mediaLenStart;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
-	private Map<String, String> headers;
+	private Map<String, String> headers = new HashMap<>();
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout = -1;
@@ -199,6 +199,9 @@ public class Dial extends CancelableOperations {
 	 */
 	private HashMap<String, String> addSipHeaders() {
 		HashMap<String, String> updateHeaders = new HashMap<>();
+		
+		if(headers.isEmpty())
+			return updateHeaders;
 
 		for (Map.Entry<String, String> header : headers.entrySet()) {
 			updateHeaders.put("SIPADDHEADER" + headerCounter, header.getKey() + ":" + header.getValue());
