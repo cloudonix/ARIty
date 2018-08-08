@@ -13,7 +13,8 @@ public class Application extends CallController {
 	// it
 	
 	@Override
-	public void run() {
+	public CompletableFuture<Void> run() {
+			return CompletableFuture.completedFuture(null);
 	}
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
@@ -27,10 +28,8 @@ public class Application extends CallController {
 			logger.info("Error When creating the ARIty: " + e1.getMessage());
 		}
 		
-		
+		// main application flow
 	     arity.registerVoiceApp(call -> {
-			// main application flow
-			
 			call.answer().run()
 			.thenCompose(v -> call.play("hello-world").loop(2).run())
 			.thenCompose(pb -> {
@@ -40,7 +39,6 @@ public class Application extends CallController {
 				logger.severe(t.toString());
 				return null;
 			});
-			
 		});
 			
         // after registering, just stay running to get and handle calls
