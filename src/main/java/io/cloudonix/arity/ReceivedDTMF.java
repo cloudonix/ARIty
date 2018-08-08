@@ -29,7 +29,7 @@ public class ReceivedDTMF extends Operation {
 	private int channelTalkDuration = 0;
 	private CallController callController;
 	private String recordName = "";
-	private int maxDuration = 0;
+	private int duration = 0;
 	private boolean dtmfWasPressed = false;
 	private boolean termKeyWasPressed = false;
 
@@ -43,12 +43,12 @@ public class ReceivedDTMF extends Operation {
 	 *            length of the input we are expecting to get from the caller. for
 	 *            no limitation -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int lenght, int maxDuration) {
+	public ReceivedDTMF(CallController callController, String termKey, int lenght, int duration) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		terminatingKey = termKey;
 		inputLenght = lenght;
 		this.callController = callController;
-		this.maxDuration = maxDuration;
+		this.duration = duration;
 		this.callController.setTalkingInChannel("set", "10000,20000");
 	}
 
@@ -112,10 +112,10 @@ public class ReceivedDTMF extends Operation {
 			if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
 				recordName = UUID.randomUUID().toString();
 				Record record = null;
-				if (maxDuration == 0)
+				if (duration == 0)
 					record = callController.record(recordName, "wav");
 				else
-					record = callController.record(recordName, "wav", maxDuration, 0, false, "#");
+					record = callController.record(recordName, "wav", duration, 0, false, "#");
 
 				record.run().thenAccept(recRes -> {
 					if (!dtmfWasPressed) {
@@ -205,5 +205,4 @@ public class ReceivedDTMF extends Operation {
 	public boolean isTermKeyWasPressed() {
 		return termKeyWasPressed;
 	}
-
 }

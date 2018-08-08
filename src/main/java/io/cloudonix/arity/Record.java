@@ -18,7 +18,7 @@ public class Record extends Operation {
 
 	private String name;
 	private String fileFormat;
-	private int maxDuration = 1;
+	private int maxDuration = 1; //maximum duration of the recording
 	private int maxSilenceSeconds = 0;
 	private boolean beep = false;
 	private String terminateOnKey = "";
