@@ -46,13 +46,13 @@ public class Ring  extends CancelableOperations{
 			
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("Ringing to channel with id: "+ channelId);
+				logger.info("Stoped ringing to channel with id: "+ channelId);
 				future.complete(result);
 			}
 			
 			@Override
 			public void onFailure(RestException e) {
-				logger.warning("Failed to ring to channel with id: "+channelId);
+				logger.warning("Failed to stop ringing to channel with id: "+channelId);
 				future.completeExceptionally(e);
 			}
 		});
