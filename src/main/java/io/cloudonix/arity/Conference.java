@@ -72,7 +72,7 @@ public class Conference extends Operation {
 	}
 
 	/**
-	 * create bridge to the conference
+	 * search conference bridge or create a new one if it does not exist
 	 * 
 	 * @return
 	 */
@@ -85,6 +85,7 @@ public class Conference extends Operation {
 				for (Bridge bridge : bridges) {
 					if (bridge.getName().equals(confName)) {
 						logger.info("Conference " + confName + " already exists");
+						bridgeId = bridge.getId();
 						return CompletableFuture.completedFuture(bridge);
 					}
 				}
