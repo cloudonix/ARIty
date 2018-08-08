@@ -11,9 +11,9 @@ public class Ring  extends CancelableOperations{
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 	private String channelId;
 
-	public Ring(CallController callController, String channelId) {
+	public Ring(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.channelId = channelId;
+		this.channelId = callController.getChannelID();
 	}
 
 	/**
