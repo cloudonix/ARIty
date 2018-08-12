@@ -68,7 +68,7 @@ public class Conference extends Operation {
 	public CompletableFuture<Conference> run() {
 		if (Objects.isNull(bridgeId))
 			createOrConnectConference().thenAccept(bridgeRes -> bridgeId = bridgeRes.getId());
-		return compFuture;
+		return getCompFuture();
 	}
 
 	/**
@@ -119,7 +119,7 @@ public class Conference extends Operation {
 	 * @return
 	 */
 	private CompletableFuture<Void> closeConference() {
-		compFuture.complete(this);
+		getCompFuture().complete(this);
 		return this.toFuture(cb -> getAri().bridges().destroy(bridgeId, cb));
 
 	}
@@ -157,7 +157,7 @@ public class Conference extends Operation {
 								logger.info("1 person in the conference");
 								return startMusicOnHold(newChannelId).thenCompose(v2 -> {
 									logger.info("Playing music to channel id " + newChannelId);
-									return compFuture;
+									return getCompFuture();
 								});
 							});
 						}
@@ -172,12 +172,12 @@ public class Conference extends Operation {
 									conferenceRecord.run().thenAccept(recordRes-> logger.fine("Finished recording"));
 								}
 								logger.info("stoped playing music on hold to the conference bridge");
-								compFuture.complete(this);
-								return compFuture;
+								getCompFuture().complete(this);
+								return getCompFuture();
 							});
 						}
 						logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
-						return compFuture;
+						return getCompFuture();
 					});
 				}).exceptionally(t -> {
 					logger.info("Unable to add channel to conference " + t);
@@ -362,6 +362,10 @@ public class Conference extends Operation {
 
 	public void setConferenceRecord(Record conferenceRecord) {
 		this.conferenceRecord = conferenceRecord;
+	}
+
+	public CompletableFuture<Conference> getCompFuture() {
+		return compFuture;
 	}
 
 }
