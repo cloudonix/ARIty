@@ -47,14 +47,14 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
-	private String appUri = "";
+	private ARItyMetaData connectionData;
 
 	/**
 	 * Constructor
 	 * 
 	 * @param uri
 	 *            URI
-	 * @param name
+	 * @param appName
 	 *            name of the stasis application
 	 * @param login
 	 *            user name
@@ -64,10 +64,9 @@ public class ARIty implements AriCallback<Message> {
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
-	public ARIty(String uri, String name, String login, String pass)
+	public ARIty(String uri, String appName, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
-		appUri = uri;
-		appName = name;
+		this.appName = appName;
 
 		try {
 			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
@@ -75,6 +74,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("Ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("Websocket is open");
+			connectionData = new ARItyMetaData(uri, login, pass);
 		} catch (ARIException e) {
 			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
@@ -343,11 +343,7 @@ public class ARIty implements AriCallback<Message> {
 		return ari;
 	}
 
-	/**
-	 * get the URL of the Asterisk web server that the application is connected to
-	 * @return
-	 */
-	public String getAppUri() {
-		return appUri;
+	public ARItyMetaData getConnectionData() {
+		return connectionData;
 	}
 }
