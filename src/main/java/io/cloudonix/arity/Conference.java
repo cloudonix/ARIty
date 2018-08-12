@@ -165,11 +165,13 @@ public class Conference extends Operation {
 							logger.info("2 channels are at conefernce " + confName + " , conference started");
 							return stoptMusicOnHold().thenCompose(v3 -> {
 								if (needToRecord) {
-									recordName = UUID.randomUUID().toString();
+									logger.info("Start recording conference "+confName);
+									if(Objects.equals(recordName, ""))
+										recordName = UUID.randomUUID().toString();
 									setConferenceRecord(callController.record(recordName, ".wav"));
-									getConferenceRecord().run().thenAccept(recordRes-> logger.fine("Finished recording"));
+									conferenceRecord.run().thenAccept(recordRes-> logger.fine("Finished recording"));
 								}
-								logger.info("stoped playing music on hold to the channel");
+								logger.info("stoped playing music on hold to the conference bridge");
 								compFuture.complete(this);
 								return compFuture;
 							});
@@ -206,8 +208,7 @@ public class Conference extends Operation {
 	 */
 	private boolean removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
 		if (!channelIdsInConf.contains(hangup.getChannel().getId())) {
-			logger.info(
-					"channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
+			logger.info("channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
 			return false;
 		}
 		if (Objects.nonNull(runHangup)) {
@@ -216,11 +217,11 @@ public class Conference extends Operation {
 			removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v1 -> {
 				logger.info("Channel left conference " + confName);
 				if (channelIdsInConf.isEmpty())
-					closeConference().thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference"));
+					closeConference().thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference"+confName));
 			});
 		}
-		logger.info("Caller hang up, stop recording conference");
-		getConferenceRecord().stopRecording();
+		logger.fine("Caller hang up, stop recording conference");
+		conferenceRecord.stopRecording();
 		return true;
 	}
 
@@ -265,7 +266,7 @@ public class Conference extends Operation {
 	 */
 	private CompletableFuture<Void> stoptMusicOnHold() {
 		return this.<Void>toFuture(cb -> getAri().bridges().stopMoh(bridgeId, cb))
-				.thenAccept(v -> logger.fine("stoped playing music on hold to the channel")).exceptionally(t -> {
+				.thenAccept(v -> logger.fine("stoped playing music on hold to conference bridge")).exceptionally(t -> {
 					logger.fine("Unable to stop playing music on hold to the conference bridge with id :" + bridgeId
 							+ " " + ErrorStream.fromThrowable(t));
 					return null;
