@@ -47,6 +47,7 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
+	private String appUri = "";
 
 	/**
 	 * Constructor
@@ -65,6 +66,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String name, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
+		appUri = uri;
 		appName = name;
 
 		try {
@@ -339,5 +341,13 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARI getAri() {
 		return ari;
+	}
+
+	/**
+	 * get the URL of the Asterisk web server that the application is connected to
+	 * @return
+	 */
+	public String getAppUri() {
+		return appUri;
 	}
 }
