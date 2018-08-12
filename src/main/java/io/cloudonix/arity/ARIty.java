@@ -47,7 +47,6 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
-	private ARItyMetaData connectionData;
 
 	/**
 	 * Constructor
@@ -74,7 +73,6 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("Ari version: " + ari.getVersion());
 			ari.events().eventWebsocket(appName, true, this);
 			logger.info("Websocket is open");
-			connectionData = new ARItyMetaData(uri, login, pass);
 		} catch (ARIException e) {
 			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
 			throw new ConnectionFailedException(e);
@@ -341,9 +339,5 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARI getAri() {
 		return ari;
-	}
-
-	public ARItyMetaData getConnectionData() {
-		return connectionData;
 	}
 }
