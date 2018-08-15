@@ -78,6 +78,41 @@ public class ARIty implements AriCallback<Message> {
 			throw new ConnectionFailedException(e);
 		}
 	}
+	
+	/**
+	 * Constructor
+	 * 
+	 * @param uri
+	 *            URI
+	 * @param appName
+	 *            name of the stasis application
+	 * @param login
+	 *            user name
+	 * @param pass
+	 *            password
+	 * @param
+	 * 		openWebSocket if need to open web socket in order to process events true, false otherwise 
+	 * 
+	 * @throws ConnectionFailedException
+	 * @throws URISyntaxException
+	 */
+	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket)
+			throws ConnectionFailedException, URISyntaxException {
+		this.appName = appName;
+
+		try {
+			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
+			logger.info("Ari created");
+			logger.info("Ari version: " + ari.getVersion());
+			if(openWebSocket) {
+				ari.events().eventWebsocket(appName, true, this);
+				logger.info("Websocket is open");
+			}
+		} catch (ARIException e) {
+			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
+			throw new ConnectionFailedException(e);
+		}
+	}
 
 	/**
 	 * The method register a new application to be executed according to the class
