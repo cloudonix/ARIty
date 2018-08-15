@@ -28,7 +28,7 @@ public class Dial extends CancelableOperations {
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
-	private long answeredTime;
+	private long answeredTime = 0;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
 	private Map<String, String> headers = new HashMap<>();
