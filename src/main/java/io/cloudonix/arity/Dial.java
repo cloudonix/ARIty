@@ -28,6 +28,14 @@ public class Dial extends CancelableOperations {
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
+	public long getMediaLength() {
+		return mediaLength;
+	}
+
+	public Instant getMediaLenStart() {
+		return mediaLenStart;
+	}
+
 	private Instant mediaLenStart;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
@@ -38,6 +46,7 @@ public class Dial extends CancelableOperations {
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
+	private long callEndTime;
 	
 	/**
 	 * Constructor
@@ -242,11 +251,11 @@ public class Dial extends CancelableOperations {
 	 * calculate duration and media length of the call
 	 */
 	private void claculateDurations() {
-		Instant end = Instant.now();
-		callDuration = Math.abs(end.toEpochMilli() - dialStart);
+		callEndTime = Instant.now().toEpochMilli();
+		callDuration = Math.abs(callEndTime - dialStart);
 		logger.info("Duration of the call: " + callDuration + " ms");
 		if (Objects.nonNull(mediaLenStart)) {
-			mediaLength = Math.abs(end.toEpochMilli() - mediaLenStart.toEpochMilli());
+			mediaLength = Math.abs(callEndTime - mediaLenStart.toEpochMilli());
 			logger.info("Media lenght of the call: " + mediaLength + " ms");
 		}
 	}
@@ -349,5 +358,9 @@ public class Dial extends CancelableOperations {
 	 */
 	public String getEndPointChannelId() {
 		return endPointChannelId;
+	}
+
+	public long getCallEndTime() {
+		return callEndTime;
 	}
 }
