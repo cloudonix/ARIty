@@ -28,14 +28,6 @@ public class Dial extends CancelableOperations {
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
-	public long getMediaLength() {
-		return mediaLength;
-	}
-
-	public Instant getMediaLenStart() {
-		return mediaLenStart;
-	}
-
 	private Instant mediaLenStart;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
@@ -363,4 +355,13 @@ public class Dial extends CancelableOperations {
 	public long getCallEndTime() {
 		return callEndTime;
 	}
+	
+	public long getMediaLength() {
+		return mediaLength;
+	}
+
+	public Instant getMediaLenStart() {
+		return mediaLenStart;
+	}
+
 }
