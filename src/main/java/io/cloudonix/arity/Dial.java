@@ -364,7 +364,7 @@ public class Dial extends CancelableOperations {
 		return mediaLength;
 	}
 
-	public long getMediaLenStart() {
+	public long getAnsweredTime() {
 		return answeredTime;
 	}
 }
