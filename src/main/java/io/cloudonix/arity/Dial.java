@@ -28,7 +28,7 @@ public class Dial extends CancelableOperations {
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
-	private Instant mediaLenStart;
+	private long answeredTime;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
 	private Map<String, String> headers = new HashMap<>();
@@ -186,7 +186,7 @@ public class Dial extends CancelableOperations {
 			}
 			return false;
 		}
-		mediaLenStart = Instant.now();
+		answeredTime = Instant.now().toEpochMilli();
 		logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
 		if(Objects.nonNull(channelStateUp))
 			channelStateUp.run();
@@ -246,8 +246,8 @@ public class Dial extends CancelableOperations {
 		callEndTime = Instant.now().toEpochMilli();
 		callDuration = Math.abs(callEndTime - dialStart);
 		logger.info("Duration of the call: " + callDuration + " ms");
-		if (Objects.nonNull(mediaLenStart)) {
-			mediaLength = Math.abs(callEndTime - mediaLenStart.toEpochMilli());
+		if (Objects.nonNull(answeredTime)) {
+			mediaLength = Math.abs(callEndTime - answeredTime);
 			logger.info("Media lenght of the call: " + mediaLength + " ms");
 		}
 	}
@@ -325,7 +325,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * get the duration of the call
+	 * get the duration of the call (the time passed since started dialing until the call was hanged up)
 	 * 
 	 * @return
 	 */
@@ -356,12 +356,15 @@ public class Dial extends CancelableOperations {
 		return callEndTime;
 	}
 	
+	/**
+	 * get media length of the call (the time passed from the moment the caller answered to the hang up of the call)
+	 * @return
+	 */
 	public long getMediaLength() {
 		return mediaLength;
 	}
 
-	public Instant getMediaLenStart() {
-		return mediaLenStart;
+	public long getMediaLenStart() {
+		return answeredTime;
 	}
-
 }
