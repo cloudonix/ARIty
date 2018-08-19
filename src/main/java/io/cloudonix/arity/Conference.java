@@ -2,18 +2,22 @@ package io.cloudonix.arity;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.Playback;
+import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -54,6 +58,7 @@ public class Conference extends Operation {
 
 	/**
 	 * Constructor with more functionality
+	 * 
 	 */
 	public Conference(CallController callController, String name, boolean beep, boolean mute, boolean needToRecord) {
 		super(callController.getCallState().getChannelID(), callController.getCallState().getArity(),
@@ -132,59 +137,98 @@ public class Conference extends Operation {
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
 		return callController.answer().run()
-				.thenCompose(answerRes-> this.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb)))
+				.thenCompose(answerRes -> this
+						.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb)))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
-					if (beep)
-						return this.<Playback>toFuture(cb ->getAri().bridges().play(bridgeId, "sound:beep", "en", 0, 0,
-								UUID.randomUUID().toString(),cb));
-					else
+					if (!beep)
 						return CompletableFuture.completedFuture(null);
-				})
-				.thenCompose(pbRes->{
+					else
+						return playMediaToConference("beep");
+				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
 					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
 							true);
-					if (mute)
-						return callController.mute(newChannelId, "out").run();
-					else
+					if (!mute)
 						return CompletableFuture.completedFuture(null);
-				})
-				.thenCompose(muteRes->annouceUser(newChannelId, "joined"))
-					.thenCompose(pb -> {
-						if (channelIdsInConf.size() == 1) {
-							this.<Playback>toFuture(cb->getAri().bridges().play(bridgeId, "sound:conf-onlyperson", "en", 0, 0, UUID.randomUUID().toString(), cb))
-							.thenCompose(playRes -> {
-								logger.info("1 person in the conference");
-								return startMusicOnHold(newChannelId).thenCompose(v2 -> {
-									logger.info("Playing music to bridge with id " + bridgeId);
-									compFuture.complete(this);
-									return compFuture;
-								});
-							});
-						}
-						if (channelIdsInConf.size() == 2) {
-							logger.info("2 channels are at conefernce " + confName + " , conference started");
-							return stoptMusicOnHold().thenCompose(v3 -> {
-								if (needToRecord) {
-									logger.info("Start recording conference "+confName);
-									if(Objects.equals(recordName, ""))
-										recordName = UUID.randomUUID().toString();
-									setConferenceRecord(callController.record(recordName, ".wav"));
-									conferenceRecord.run().thenAccept(recordRes-> logger.fine("Finished recording"));
-								}
-								logger.info("stoped playing music on hold to the conference bridge");
+					else
+						return callController.mute(newChannelId, "out").run();
+				}).thenCompose(muteRes -> annouceUser(newChannelId, "joined")).thenCompose(pb -> {
+					if (channelIdsInConf.size() == 1) {
+						playMediaToConference("conf-onlyperson").thenCompose(playRes -> {
+							logger.info("1 person in the conference");
+							return startMusicOnHold(newChannelId).thenCompose(v2 -> {
+								logger.info("Playing music to bridge with id " + bridgeId);
+								compFuture.complete(this);
 								return compFuture;
 							});
-						}
-						logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
-						return compFuture;
-					})
-				.exceptionally(t -> {
+						});
+					}
+					if (channelIdsInConf.size() == 2) {
+						logger.info("2 channels are at conefernce " + confName + " , conference started");
+						return stoptMusicOnHold().thenCompose(v3 -> {
+							if (needToRecord) {
+								logger.info("Start recording conference " + confName);
+								if (Objects.equals(recordName, ""))
+									recordName = UUID.randomUUID().toString();
+								setConferenceRecord(callController.record(recordName, ".wav"));
+								conferenceRecord.run().thenAccept(recordRes -> logger.fine("Finished recording"));
+							}
+							logger.info("stoped playing music on hold to the conference bridge");
+							return compFuture;
+						});
+					}
+					logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
+					return compFuture;
+				}).exceptionally(t -> {
 					logger.info("Unable to add channel to conference " + t);
 					return null;
 				});
 
+	}
+
+	/**
+	 * play media to the conference
+	 * 
+	 * @param fileToPlay
+	 *            name of the file to be played to the bridge
+	 * @return
+	 */
+	private CompletionStage<Playback> playMediaToConference(String fileToPlay) {
+		String playbackId = UUID.randomUUID().toString();
+		CompletableFuture<Playback> futurePb = new CompletableFuture<Playback>();
+		Timer timer = new Timer("Timer");
+
+		TimerTask task = new TimerTask() {
+			@Override
+			public void run() {
+				getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, new AriCallback<Playback>() {
+					
+					@Override
+					public void onSuccess(Playback result) {
+						logger.info("playing: " + fileToPlay);
+						getArity().addFutureEvent(PlaybackFinished.class, confName, (pbf) -> {
+							if (!(pbf.getPlayback().getId().equals(playbackId)))
+								return false;
+							logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
+							futurePb.complete(pbf.getPlayback());
+							return true;
+						}, false);
+						logger.fine("Future event of playbackFinished was added");
+						futurePb.complete(result);
+					}
+					
+					@Override
+					public void onFailure(RestException e) {
+						logger.info("Failed playing file " + fileToPlay + " : " + e);
+						futurePb.completeExceptionally(e);
+					}
+				});
+			}
+		};
+		timer.schedule(task, 3000);
+		
+		return futurePb;
 	}
 
 	/**
