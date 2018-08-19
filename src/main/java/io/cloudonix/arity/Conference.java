@@ -13,6 +13,7 @@ import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -97,11 +98,11 @@ public class Conference extends Operation {
 						logger.info("Conference: " + confName + " is ready to use");
 						bridgeFuture.complete(result);
 					}
-					
+
 					@Override
 					public void onFailure(RestException e) {
-						logger.warning(
-								"Failed creating bridge for conference " + confName + " " + ErrorStream.fromThrowable(e));
+						logger.warning("Failed creating bridge for conference " + confName + " "
+								+ ErrorStream.fromThrowable(e));
 						bridgeFuture.completeExceptionally(e);
 					}
 				});
@@ -119,7 +120,6 @@ public class Conference extends Operation {
 		logger.info("Closing conference");
 		compFuture.complete(this);
 		return this.<Void>toFuture(cb -> getAri().bridges().destroy(bridgeId, cb));
-
 	}
 
 	/**
@@ -131,27 +131,29 @@ public class Conference extends Operation {
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
-		return this.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb))
+		return callController.answer().run()
+				.thenCompose(answerRes-> this.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb)))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					if (beep)
-						this.<Playback>toFuture(cb -> {
-							try {
-								getAri().bridges().play(bridgeId, "sound:beep", "en", 0, 3000,
-										UUID.randomUUID().toString());
-							} catch (RestException e) {
-								logger.warning("Failed playing beep to bridge with id: " + bridgeId + ": " + e);
-							}
-						});
+						return this.<Playback>toFuture(cb ->getAri().bridges().play(bridgeId, "sound:beep", "en", 0, 0,
+								UUID.randomUUID().toString(),cb));
+					else
+						return CompletableFuture.completedFuture(null);
+				})
+				.thenCompose(pbRes->{
 					channelIdsInConf.add(newChannelId);
 					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
 							true);
 					if (mute)
-						callController.mute(newChannelId, "out").run()
-								.thenAccept(muteRes -> logger.fine("mute channel"));
-					return annouceUser(newChannelId, "joined").thenCompose(pb -> {
+						return callController.mute(newChannelId, "out").run();
+					else
+						return CompletableFuture.completedFuture(null);
+				})
+				.thenCompose(muteRes->annouceUser(newChannelId, "joined"))
+					.thenCompose(pb -> {
 						if (channelIdsInConf.size() == 1) {
-							this.<Playback>toFuture(cb->getAri().bridges().play(bridgeId, "sound:/conf-onlyperson", "en", 0, 0, UUID.randomUUID().toString(), cb))
+							this.<Playback>toFuture(cb->getAri().bridges().play(bridgeId, "sound:conf-onlyperson", "en", 0, 0, UUID.randomUUID().toString(), cb))
 							.thenCompose(playRes -> {
 								logger.info("1 person in the conference");
 								return startMusicOnHold(newChannelId).thenCompose(v2 -> {
@@ -177,8 +179,8 @@ public class Conference extends Operation {
 						}
 						logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
 						return compFuture;
-					});
-				}).exceptionally(t -> {
+					})
+				.exceptionally(t -> {
 					logger.info("Unable to add channel to conference " + t);
 					return null;
 				});
@@ -207,16 +209,18 @@ public class Conference extends Operation {
 	 */
 	private boolean removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
 		if (!channelIdsInConf.contains(hangup.getChannel().getId())) {
-			logger.info("channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
+			logger.info(
+					"channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
 			return false;
 		}
-		if (Objects.nonNull(runHangup)) 
+		if (Objects.nonNull(runHangup))
 			runHangup.run();
 		else {
 			removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v1 -> {
 				logger.info("Channel left conference " + confName);
 				if (channelIdsInConf.isEmpty())
-					closeConference().thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference"+confName));
+					closeConference().thenAccept(
+							v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
 			});
 		}
 		logger.fine("Caller hang up, stop recording conference");
@@ -281,12 +285,12 @@ public class Conference extends Operation {
 					@Override
 					public void onSuccess(Void result) {
 						channelIdsInConf.remove(newChannelId);
-						annouceUser(newChannelId, "left").thenAccept(v -> logger.info("Announced that channel "
-								+ newChannelId + " " + "has left the conference " + confName));
-
 						if (channelIdsInConf.size() == 1)
 							startMusicOnHold(newChannelId)
 									.thenAccept(v -> logger.fine("Start music on hold to channel " + newChannelId));
+						else
+							annouceUser(newChannelId, "left").thenAccept(v -> logger.info("Announced that channel "
+									+ newChannelId + " " + "has left conference " + confName));
 					}
 
 					@Override
@@ -297,7 +301,6 @@ public class Conference extends Operation {
 					logger.fine("Unable to remove channel from conference" + ErrorStream.fromThrowable(t));
 					return null;
 				});
-
 	}
 
 	/**
