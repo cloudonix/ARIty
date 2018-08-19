@@ -79,35 +79,32 @@ public class Conference extends Operation {
 	private CompletableFuture<Bridge> createOrConnectConference() {
 		CompletableFuture<Bridge> bridgeFuture = new CompletableFuture<Bridge>();
 
-		try {
-			List<Bridge> bridges = getAri().bridges().list();
-			if (!bridges.isEmpty()) {
-				for (Bridge bridge : bridges) {
-					if (bridge.getName().equals(confName)) {
-						logger.info("Conference " + confName + " already exists");
-						bridgeId = bridge.getId();
-						return CompletableFuture.completedFuture(bridge);
-					}
-				}
-			}
-		} catch (RestException e1) {
-			logger.fine("Unable to get list of asterisk bridges " + ErrorStream.fromThrowable(e1));
-		}
+		getAri().bridges().get(bridgeId, new AriCallback<Bridge>() {
 
-		logger.info("Creating conference " + confName);
-		getAri().bridges().create("mixing", bridgeId, confName, new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
-				bridgeId = result.getId();
-				logger.info("Conference: " + confName + " is ready to use");
+				logger.info("Conference bridge was found");
 				bridgeFuture.complete(result);
 			}
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.warning(
-						"Failed creating bridge for conference " + confName + " " + ErrorStream.fromThrowable(e));
-				bridgeFuture.completeExceptionally(e);
+				logger.info("Creating conference " + confName);
+				getAri().bridges().create("mixing", bridgeId, confName, new AriCallback<Bridge>() {
+					@Override
+					public void onSuccess(Bridge result) {
+						bridgeId = result.getId();
+						logger.info("Conference: " + confName + " is ready to use");
+						bridgeFuture.complete(result);
+					}
+					
+					@Override
+					public void onFailure(RestException e) {
+						logger.warning(
+								"Failed creating bridge for conference " + confName + " " + ErrorStream.fromThrowable(e));
+						bridgeFuture.completeExceptionally(e);
+					}
+				});
 			}
 		});
 		return bridgeFuture;
@@ -119,8 +116,9 @@ public class Conference extends Operation {
 	 * @return
 	 */
 	private CompletableFuture<Void> closeConference() {
+		logger.info("Closing conference");
 		compFuture.complete(this);
-		return this.toFuture(cb -> getAri().bridges().destroy(bridgeId, cb));
+		return this.<Void>toFuture(cb -> getAri().bridges().destroy(bridgeId, cb));
 
 	}
 
@@ -153,10 +151,11 @@ public class Conference extends Operation {
 								.thenAccept(muteRes -> logger.fine("mute channel"));
 					return annouceUser(newChannelId, "joined").thenCompose(pb -> {
 						if (channelIdsInConf.size() == 1) {
-							callController.play("conf-onlyperson").run().thenCompose(playRes -> {
+							this.<Playback>toFuture(cb->getAri().bridges().play(bridgeId, "sound:/conf-onlyperson", "en", 0, 0, UUID.randomUUID().toString(), cb))
+							.thenCompose(playRes -> {
 								logger.info("1 person in the conference");
 								return startMusicOnHold(newChannelId).thenCompose(v2 -> {
-									logger.info("Playing music to channel id " + newChannelId);
+									logger.info("Playing music to bridge with id " + bridgeId);
 									compFuture.complete(this);
 									return compFuture;
 								});
@@ -173,7 +172,6 @@ public class Conference extends Operation {
 									conferenceRecord.run().thenAccept(recordRes-> logger.fine("Finished recording"));
 								}
 								logger.info("stoped playing music on hold to the conference bridge");
-								//getCompFuture().complete(this);
 								return compFuture;
 							});
 						}
@@ -212,9 +210,9 @@ public class Conference extends Operation {
 			logger.info("channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
 			return false;
 		}
-		if (Objects.nonNull(runHangup)) {
+		if (Objects.nonNull(runHangup)) 
 			runHangup.run();
-		} else {
+		else {
 			removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v1 -> {
 				logger.info("Channel left conference " + confName);
 				if (channelIdsInConf.isEmpty())
@@ -251,8 +249,6 @@ public class Conference extends Operation {
 	 *            id of the channel
 	 */
 	private CompletableFuture<Void> startMusicOnHold(String newChannelId) {
-		// TODO: find sound file for music on hold, used for now "pls-hold-while-try"
-		// file
 		return this.<Void>toFuture(cb -> getAri().bridges().startMoh(bridgeId, "sound:pls-hold-while-try", cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to start music on hold to channel " + newChannelId + " "
