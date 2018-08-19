@@ -206,11 +206,11 @@ public class Conference extends Operation {
 					
 					@Override
 					public void onSuccess(Playback result) {
-						logger.info("playing: " + fileToPlay);
+						logger.fine("playing: " + fileToPlay);
 						getArity().addFutureEvent(PlaybackFinished.class, confName, (pbf) -> {
 							if (!(pbf.getPlayback().getId().equals(playbackId)))
 								return false;
-							logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
+							logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 							futurePb.complete(pbf.getPlayback());
 							return true;
 						}, false);
