@@ -78,7 +78,7 @@ public class ARIty implements AriCallback<Message> {
 			throw new ConnectionFailedException(e);
 		}
 	}
-	
+
 	/**
 	 * Constructor
 	 * 
@@ -90,8 +90,9 @@ public class ARIty implements AriCallback<Message> {
 	 *            user name
 	 * @param pass
 	 *            password
-	 * @param
-	 * 		openWebSocket if need to open web socket in order to process events true, false otherwise 
+	 * @param openWebSocket
+	 *            if need to open web socket in order to process events true, false
+	 *            otherwise
 	 * 
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
@@ -104,7 +105,7 @@ public class ARIty implements AriCallback<Message> {
 			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
 			logger.info("Ari created");
 			logger.info("Ari version: " + ari.getVersion());
-			if(openWebSocket) {
+			if (openWebSocket) {
 				ari.events().eventWebsocket(appName, true, this);
 				logger.info("Websocket is open");
 			}
@@ -258,13 +259,15 @@ public class ARIty implements AriCallback<Message> {
 
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
-		
-		if(event instanceof PlaybackFinished_impl_ari_2_0_0)
-			return ((PlaybackFinished_impl_ari_2_0_0)event).getPlayback().getTarget_uri().substring(((PlaybackFinished)event).getPlayback().getTarget_uri().indexOf(":")+1);
-		
-		if(event instanceof RecordingFinished)
-			return ((RecordingFinished)event).getRecording().getTarget_uri().substring(((RecordingFinished)event).getRecording().getTarget_uri().indexOf(":")+1);
-		
+
+		if (event instanceof PlaybackFinished_impl_ari_2_0_0)
+			return ((PlaybackFinished_impl_ari_2_0_0) event).getPlayback().getTarget_uri()
+					.substring(((PlaybackFinished) event).getPlayback().getTarget_uri().indexOf(":") + 1);
+
+		if (event instanceof RecordingFinished)
+			return ((RecordingFinished) event).getRecording().getTarget_uri()
+					.substring(((RecordingFinished) event).getRecording().getTarget_uri().indexOf(":") + 1);
+
 		try {
 			Method method = msgClass.getDeclaredMethod("getChannel", null);
 			Object res2 = method.invoke(event, null);
@@ -273,7 +276,8 @@ public class ARIty implements AriCallback<Message> {
 
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.fine("Cannot get channel id for event type: " + event.getType() + ":" + ErrorStream.fromThrowable(e));
+			logger.fine(
+					"Cannot get channel id for event type: " + event.getType() + ":" + ErrorStream.fromThrowable(e));
 		}
 		return null;
 	}
@@ -289,6 +293,8 @@ public class ARIty implements AriCallback<Message> {
 	 * 
 	 * @param class1
 	 *            class of the finished event (example: PlaybackFinished)
+	 * @param channelId
+	 *            id of the channel we want to know when future event comes
 	 * @param func
 	 *            function to be executed
 	 * @param runOnce
@@ -370,6 +376,7 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * get ARI instance
+	 * 
 	 * @return
 	 */
 	public ARI getAri() {
