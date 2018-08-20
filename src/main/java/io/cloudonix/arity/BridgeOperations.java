@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
@@ -370,5 +371,14 @@ public class BridgeOperations {
 
 	public void setBeep(boolean beep) {
 		this.beep = beep;
+	}
+	
+	/**
+	 * get list of channels that are connected to the bridge
+	 * 
+	 * @return
+	 */
+	public CompletableFuture<List<String>> getChannelsInBridge(){
+		return getBridge().thenApply(bridge-> bridge.getChannels());
 	}
 }
