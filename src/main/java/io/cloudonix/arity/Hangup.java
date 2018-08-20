@@ -60,7 +60,8 @@ public class Hangup extends Operation {
 	 *            the id of the channel to be hanged up
 	 * 
 	 */
-	public void setChannelId(String channelId) {
+	public Hangup updateChannelId(String channelId) {
 		this.channelId = channelId;
+		return this;
 	}
 }
