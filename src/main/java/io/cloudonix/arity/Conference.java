@@ -12,11 +12,8 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
-import ch.loway.oss.ari4java.generated.PlaybackFinished;
-import ch.loway.oss.ari4java.tools.AriCallback;
-import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -38,7 +35,8 @@ public class Conference extends Operation {
 	private boolean mute = false;
 	private boolean needToRecord;
 	private String recordName = "";
-	private Record conferenceRecord;
+	private LiveRecording conferenceRecord;
+	private BridgeOperations bridgeOperations;
 
 	/**
 	 * Constructor
@@ -53,6 +51,7 @@ public class Conference extends Operation {
 				callController.getCallState().getAri());
 		this.callController = callController;
 		this.confName = name;
+		this.bridgeOperations = new BridgeOperations(getArity());
 	}
 
 	/**
@@ -67,6 +66,8 @@ public class Conference extends Operation {
 		this.beep = beep;
 		this.mute = mute;
 		this.needToRecord = needToRecord;
+		this.bridgeOperations = new BridgeOperations(getArity());
+		bridgeOperations.setBeep(beep);
 	}
 
 	@Override
@@ -82,37 +83,8 @@ public class Conference extends Operation {
 	 * @return
 	 */
 	private CompletableFuture<Bridge> createOrConnectConference() {
-		CompletableFuture<Bridge> bridgeFuture = new CompletableFuture<Bridge>();
-
-		getAri().bridges().get(bridgeId, new AriCallback<Bridge>() {
-
-			@Override
-			public void onSuccess(Bridge result) {
-				logger.info("Conference bridge was found");
-				bridgeFuture.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("Creating conference " + confName);
-				getAri().bridges().create("mixing", bridgeId, confName, new AriCallback<Bridge>() {
-					@Override
-					public void onSuccess(Bridge result) {
-						bridgeId = result.getId();
-						logger.info("Conference: " + confName + " is ready to use");
-						bridgeFuture.complete(result);
-					}
-
-					@Override
-					public void onFailure(RestException e) {
-						logger.warning("Failed creating bridge for conference " + confName + " "
-								+ ErrorStream.fromThrowable(e));
-						bridgeFuture.completeExceptionally(e);
-					}
-				});
-			}
-		});
-		return bridgeFuture;
+		bridgeOperations.setBridgeId(bridgeId);
+		return bridgeOperations.getBridge();
 	}
 
 	/**
@@ -123,7 +95,7 @@ public class Conference extends Operation {
 	private CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
 		compFuture.complete(this);
-		return this.<Void>toFuture(cb -> getAri().bridges().destroy(bridgeId, cb));
+		return bridgeOperations.destroyBridge();
 	}
 
 	/**
@@ -135,9 +107,8 @@ public class Conference extends Operation {
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
-		return callController.answer().run()
-				.thenCompose(answerRes -> this
-						.<Void>toFuture(cb -> getAri().bridges().addChannel(bridgeId, newChannelId, "ConfUser", cb)))
+		bridgeOperations.setBridgeId(bridgeId);
+		return callController.answer().run().thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					if (!beep)
@@ -152,11 +123,11 @@ public class Conference extends Operation {
 						return CompletableFuture.completedFuture(null);
 					else
 						return callController.mute(newChannelId, "out").run();
-				}).thenCompose(muteRes -> annouceUser(newChannelId, "joined")).thenCompose(pb -> {
+				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
 						playMediaToConference("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
-							return startMusicOnHold(newChannelId).thenCompose(v2 -> {
+							return  bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
 								compFuture.complete(this);
 								return compFuture;
@@ -165,13 +136,15 @@ public class Conference extends Operation {
 					}
 					if (channelIdsInConf.size() == 2) {
 						logger.info("2 channels are at conefernce " + confName + " , conference started");
-						return stoptMusicOnHold().thenCompose(v3 -> {
+						return bridgeOperations.stopMusicOnHold().thenCompose(v3 -> {
 							if (needToRecord) {
 								logger.info("Start recording conference " + confName);
 								if (Objects.equals(recordName, ""))
 									recordName = UUID.randomUUID().toString();
-								setConferenceRecord(callController.record(recordName, ".wav"));
-								conferenceRecord.run().thenAccept(recordRes -> logger.fine("Finished recording"));
+								bridgeOperations.recordBridge(recordName).thenAccept(recored->{
+									conferenceRecord = recored;
+									logger.info("Done recording");
+								});
 							}
 							logger.info("stoped playing music on hold to the conference bridge");
 							return compFuture;
@@ -194,39 +167,16 @@ public class Conference extends Operation {
 	 * @return
 	 */
 	private CompletionStage<Playback> playMediaToConference(String fileToPlay) {
-		String playbackId = UUID.randomUUID().toString();
 		CompletableFuture<Playback> futurePb = new CompletableFuture<Playback>();
 		Timer timer = new Timer("Timer");
 
 		TimerTask task = new TimerTask() {
 			@Override
 			public void run() {
-				getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, new AriCallback<Playback>() {
-					
-					@Override
-					public void onSuccess(Playback result) {
-						logger.fine("playing: " + fileToPlay);
-						getArity().addFutureEvent(PlaybackFinished.class, confName, (pbf) -> {
-							if (!(pbf.getPlayback().getId().equals(playbackId)))
-								return false;
-							logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
-							futurePb.complete(pbf.getPlayback());
-							return true;
-						}, false);
-						logger.fine("Future event of playbackFinished was added");
-						futurePb.complete(result);
-					}
-					
-					@Override
-					public void onFailure(RestException e) {
-						logger.info("Failed playing file " + fileToPlay + " : " + e);
-						futurePb.completeExceptionally(e);
-					}
-				});
+				bridgeOperations.playMediaToBridge(fileToPlay);
 			}
 		};
 		timer.schedule(task, 3000);
-		
 		return futurePb;
 	}
 
@@ -259,7 +209,7 @@ public class Conference extends Operation {
 		if (Objects.nonNull(runHangup))
 			runHangup.run();
 		else {
-			removeChannelFromConf(hangup.getChannel().getId()).thenAccept(v1 -> {
+			bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
 				logger.info("Channel left conference " + confName);
 				if (channelIdsInConf.isEmpty())
 					closeConference().thenAccept(
@@ -267,83 +217,20 @@ public class Conference extends Operation {
 			});
 		}
 		logger.fine("Caller hang up, stop recording conference");
-		conferenceRecord.stopRecording();
 		return true;
 	}
 
 	/**
 	 * Announce new channel joined/left a conference
 	 * 
-	 * @param newChannelId
-	 *            channel id
 	 * @param status
 	 *            'joined' or 'left' conference
 	 */
-	private CompletableFuture<Playback> annouceUser(String newChannelId, String status) {
-		String playbackId = UUID.randomUUID().toString();
+	private CompletableFuture<Playback> annouceUser(String status) {
 		if (Objects.equals(status, "joined"))
-			return this.<Playback>toFuture(
-					cb -> getAri().bridges().play(bridgeId, "sound:confbridge-has-joined", "en", 0, 0, playbackId, cb));
+			return bridgeOperations.playMediaToBridge("confbridge-has-joined");
 		else
-			return this.<Playback>toFuture(
-					cb -> getAri().bridges().play(bridgeId, "sound:conf-hasleft", "en", 0, 0, playbackId, cb));
-	}
-
-	/**
-	 * play music on hold to a channel that is alone in the conference
-	 * 
-	 * @param newChannelId
-	 *            id of the channel
-	 */
-	private CompletableFuture<Void> startMusicOnHold(String newChannelId) {
-		return this.<Void>toFuture(cb -> getAri().bridges().startMoh(bridgeId, "sound:pls-hold-while-try", cb))
-				.exceptionally(t -> {
-					logger.fine("Unable to start music on hold to channel " + newChannelId + " "
-							+ ErrorStream.fromThrowable(t));
-					return null;
-				});
-	}
-
-	/**
-	 * stop playing music on hold to the bridge
-	 * 
-	 */
-	private CompletableFuture<Void> stoptMusicOnHold() {
-		return this.<Void>toFuture(cb -> getAri().bridges().stopMoh(bridgeId, cb))
-				.thenAccept(v -> logger.fine("stoped playing music on hold to conference bridge")).exceptionally(t -> {
-					logger.fine("Unable to stop playing music on hold to the conference bridge with id :" + bridgeId
-							+ " " + ErrorStream.fromThrowable(t));
-					return null;
-				});
-	}
-
-	/**
-	 * remove channel that left the conference
-	 * 
-	 * @param channel
-	 */
-	public CompletableFuture<Void> removeChannelFromConf(String newChannelId) {
-		return this
-				.<Void>toFuture(cb -> getAri().bridges().removeChannel(bridgeId, newChannelId, new AriCallback<Void>() {
-					@Override
-					public void onSuccess(Void result) {
-						channelIdsInConf.remove(newChannelId);
-						if (channelIdsInConf.size() == 1)
-							startMusicOnHold(newChannelId)
-									.thenAccept(v -> logger.fine("Start music on hold to channel " + newChannelId));
-						else
-							annouceUser(newChannelId, "left").thenAccept(v -> logger.info("Announced that channel "
-									+ newChannelId + " " + "has left conference " + confName));
-					}
-
-					@Override
-					public void onFailure(RestException e) {
-						logger.warning("Unable to remove channel from conference " + ErrorStream.fromThrowable(e));
-					}
-				})).thenAccept(res -> logger.fine("Channel was removed from conference")).exceptionally(t -> {
-					logger.fine("Unable to remove channel from conference" + ErrorStream.fromThrowable(t));
-					return null;
-				});
+			return bridgeOperations.playMediaToBridge("conf-hasleft");
 	}
 
 	/**
@@ -399,11 +286,7 @@ public class Conference extends Operation {
 		this.recordName = recordName;
 	}
 
-	public Record getConferenceRecord() {
+	public LiveRecording getConferenceRecord() {
 		return conferenceRecord;
-	}
-
-	public void setConferenceRecord(Record conferenceRecord) {
-		this.conferenceRecord = conferenceRecord;
 	}
 }
