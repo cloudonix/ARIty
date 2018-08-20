@@ -27,7 +27,6 @@ public class BridgeOperations {
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
-	private String recordingName;
 	private String recordFormat = "wav";
 	private int maxDurationSeconds = 0;
 	private int maxSilenceSeconds = 0;
