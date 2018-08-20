@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -16,7 +15,6 @@ import ch.loway.oss.ari4java.tools.RestException;
 public class Hangup extends Operation {
 
 	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
-	private String channelId = "";
 
 	/**
 	 * Constructor
@@ -35,8 +33,7 @@ public class Hangup extends Operation {
 	 */
 	public CompletableFuture<Hangup> run() {
 		CompletableFuture<Hangup> future = new CompletableFuture<Hangup>();
-		String id = (Objects.equals(channelId, "")) ? getChannelId() : channelId;
-		getAri().channels().hangup(id, "normal", new AriCallback<Void>() {
+		getAri().channels().hangup(getChannelId(), "normal", new AriCallback<Void>() {
 
 			@Override
 			public void onSuccess(Void result) {
@@ -51,17 +48,5 @@ public class Hangup extends Operation {
 			}
 		});
 		return future;
-	}
-
-	/**
-	 * set the channel id when need to hang up another channel
-	 * 
-	 * @param channelId
-	 *            the id of the channel to be hanged up
-	 * 
-	 */
-	public Hangup updateChannelId(String channelId) {
-		this.channelId = channelId;
-		return this;
 	}
 }
