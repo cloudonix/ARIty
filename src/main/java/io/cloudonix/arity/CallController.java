@@ -567,6 +567,40 @@ public abstract class CallController {
 	public Mute mute(String channelId, String direction) {
 		return new Mute(this, channelId, direction);
 	}
+	
+	/**
+	 * Create bridge instance to handle all bridge operations
+	 * @param arity
+	 *            instance of ARIty	 
+	 * @return
+	 */
+	public BridgeOperations bridge(ARIty arity) {
+		return new BridgeOperations(arity);
+	}
+	
+	/**
+	* Create bridge instance to handle all bridge operations
+	 * 
+	 * @param arity
+	 *            instance of ARIty
+	 * @param recordFormat
+	 *            Format to encode audio in
+	 * @param maxDurationSeconds
+	 *            Maximum duration of the recording, in seconds. 0 for no limit
+	 * @param maxSilenceSeconds
+	 *            Maximum duration of silence, in seconds. 0 for no limit
+	 * @param ifExists
+	 *            Action to take if a recording with the same name already exists.
+	 *            Allowed values: fail, overwrite, append
+	 * @param beep
+	 *            true if need to play beep when recording begins, false otherwise
+	 * @param terminateOn
+	 *            DTMF input to terminate recording. Allowed values: none, any, *, #
+	 */
+	public BridgeOperations bridge (ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
+			String ifExists, boolean beep, String terminateOn) {
+		return new BridgeOperations(arity, recordFormat, maxDurationSeconds, maxSilenceSeconds, ifExists, beep, terminateOn);
+	}
 
 	/**
 	 * transfer Call Controller to the next Call controller
