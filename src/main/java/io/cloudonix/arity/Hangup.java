@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.HangUpException;
 
 /**
  * The class represents the Hang up operation (hangs up a call)
@@ -44,7 +45,7 @@ public class Hangup extends Operation {
 			@Override
 			public void onFailure(RestException e) {
 				logger.warning("Failed hang up channel with id: " + getChannelId());
-				future.complete(null);
+				future.completeExceptionally(new HangUpException(e));
 			}
 		});
 		return future;
