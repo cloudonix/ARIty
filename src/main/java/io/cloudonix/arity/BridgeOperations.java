@@ -112,6 +112,7 @@ public class BridgeOperations {
 		arity.getAri().bridges().destroy(bridgeId, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
+				recordings.clear();
 				logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 				future.complete(result);
 			}
@@ -122,7 +123,6 @@ public class BridgeOperations {
 				future.completeExceptionally(e);
 			}
 		});
-		recordings.clear();
 		return future;
 	}
 
