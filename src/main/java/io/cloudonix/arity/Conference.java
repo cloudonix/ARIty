@@ -2,11 +2,8 @@ package io.cloudonix.arity;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 
@@ -114,7 +111,7 @@ public class Conference extends Operation {
 					if (!beep)
 						return CompletableFuture.completedFuture(null);
 					else
-						return playMediaToConference("beep");
+						return bridgeOperations.playMediaToBridge("beep");
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
 					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
@@ -125,7 +122,7 @@ public class Conference extends Operation {
 						return callController.mute(newChannelId, "out").run();
 				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
-						playMediaToConference("conf-onlyperson").thenCompose(playRes -> {
+						bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
 							return  bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
@@ -157,27 +154,6 @@ public class Conference extends Operation {
 					return null;
 				});
 
-	}
-
-	/**
-	 * play media to the conference
-	 * 
-	 * @param fileToPlay
-	 *            name of the file to be played to the bridge
-	 * @return
-	 */
-	private CompletionStage<Playback> playMediaToConference(String fileToPlay) {
-		CompletableFuture<Playback> futurePb = new CompletableFuture<Playback>();
-		Timer timer = new Timer("Timer");
-
-		TimerTask task = new TimerTask() {
-			@Override
-			public void run() {
-				bridgeOperations.playMediaToBridge(fileToPlay);
-			}
-		};
-		timer.schedule(task, 3000);
-		return futurePb;
 	}
 
 	/**
