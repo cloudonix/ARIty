@@ -199,9 +199,8 @@ public class BridgeOperations {
 							logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 							future.complete(pbf.getPlayback());
 							return true;
-						}, false);
+						}, true);
 						logger.fine("Future event of playbackFinished was added");
-						future.complete(result);
 					}
 
 					@Override
@@ -319,7 +318,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.info("Failed getting bridge: " + ErrorStream.fromThrowable(e));
+				logger.info("Failed getting bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -372,13 +371,18 @@ public class BridgeOperations {
 	public void setBeep(boolean beep) {
 		this.beep = beep;
 	}
-	
+
 	/**
 	 * get list of channels that are connected to the bridge
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<List<String>> getChannelsInBridge(){
-		return getBridge().thenApply(bridge-> bridge.getChannels());
+	public CompletableFuture<List<String>> getChannelsInBridge() {
+		return getBridge().thenApply(bridge -> {
+			if (Objects.nonNull(bridge))
+				return bridge.getChannels();
+			logger.warning("Bridge is null");
+			return null;
+		});
 	}
 }
