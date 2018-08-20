@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -176,7 +177,7 @@ public class BridgeOperations {
 	}
 
 	/**
-	 * Play media file to the bridge
+	 * Play media to the bridge
 	 * 
 	 * @param fileToPlay
 	 *            name of the file to be played
@@ -267,11 +268,12 @@ public class BridgeOperations {
 	/**
 	 * record the mixed audio from all channels participating in this bridge.
 	 * 
+	 * @param recordingName
+	 *            name of the recording
 	 * @return
 	 */
-	public CompletableFuture<LiveRecording> recordBridge() {
+	public CompletableFuture<LiveRecording> recordBridge(String recordingName) {
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
-		recordingName = UUID.randomUUID().toString();
 		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
 				ifExists, beep, terminateOn, new AriCallback<LiveRecording>() {
 
@@ -322,5 +324,48 @@ public class BridgeOperations {
 			}
 		});
 		return future;
+	}
+
+	/**
+	 * get the id of the bridge
+	 * 
+	 * @return
+	 */
+	public String getBridgeId() {
+		return bridgeId;
+	}
+
+	/**
+	 * get the id of the bridge
+	 * 
+	 * @return
+	 */
+	public void setBridgeId(String bridgeId) {
+		this.bridgeId = bridgeId;
+	}
+
+	/**
+	 * get all recording for this bridge
+	 * 
+	 * @return
+	 */
+	public HashMap<String, LiveRecording> getRecordings() {
+		return recordings;
+	}
+
+	/**
+	 * get a specified recording
+	 * 
+	 * @param recordingName
+	 *            name of the recording we are looking for
+	 * @return
+	 */
+	public LiveRecording getRecording(String recordingName) {
+		for (Entry<String, LiveRecording> currRecording : recordings.entrySet()) {
+			if (Objects.equals(recordingName, currRecording.getKey()))
+				return currRecording.getValue();
+		}
+		logger.info("No recording with name: " + recordingName);
+		return null;
 	}
 }
