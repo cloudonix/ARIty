@@ -368,4 +368,8 @@ public class BridgeOperations {
 		logger.info("No recording with name: " + recordingName);
 		return null;
 	}
+
+	public void setBeep(boolean beep) {
+		this.beep = beep;
+	}
 }
