@@ -319,7 +319,7 @@ public class BridgeOperations {
 			@Override
 			public void onFailure(RestException e) {
 				logger.info("Failed getting bridge: " + e);
-				future.completeExceptionally(null);
+				future.completeExceptionally(e);
 			}
 		});
 		return future;
