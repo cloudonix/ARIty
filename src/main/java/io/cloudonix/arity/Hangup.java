@@ -44,7 +44,7 @@ public class Hangup extends Operation {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.warning("Failed hang up channel with id: " + getChannelId());
+				logger.warning("Failed hang up channel with id: " + getChannelId()+ " : "+e);
 				future.completeExceptionally(new HangUpException(e));
 			}
 		});
