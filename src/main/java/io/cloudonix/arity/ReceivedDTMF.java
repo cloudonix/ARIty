@@ -29,7 +29,7 @@ public class ReceivedDTMF extends Operation {
 	private int channelTalkDuration = 0;
 	private CallController callController;
 	private String recordName = "";
-	private int duration = 0;
+	private int recordingDuration = 0;
 	private boolean dtmfWasPressed = false;
 	private boolean termKeyWasPressed = false;
 
@@ -37,17 +37,21 @@ public class ReceivedDTMF extends Operation {
 	 * Constructor
 	 * 
 	 * @param callController
+	 *            call instance
 	 * @param termKey
 	 *            define terminating key (otherwise '#' is the default)
 	 * @param lenght
 	 *            length of the input we are expecting to get from the caller. for
 	 *            no limitation -1
+	 * @param recordingDuration
+	 *            set the time of the recording when recording if
+	 *            ChannelTalkingStarted event received
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int lenght, int duration) {
+	public ReceivedDTMF(CallController callController, String termKey, int lenght, int recordingDuration) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		terminatingKey = termKey;
-		inputLenght = lenght;
-		this.duration = duration;
+		this.terminatingKey = termKey;
+		this.inputLenght = lenght;
+		this.recordingDuration = recordingDuration;
 		callController.setTalkingInChannel("set", "10000,20000");
 		this.callController = callController;
 	}
@@ -87,15 +91,15 @@ public class ReceivedDTMF extends Operation {
 		}
 		// stop receiving DTMF when terminating key was pressed or when talking in the
 		// channel has finished
-		getArity().addFutureEvent(ChannelDtmfReceived.class,getChannelId(), dtmf -> {
+		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 			dtmfWasPressed = true;
 
 			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLenght, userInput.length())) {
 				logger.info("Done receiving DTMF. all input: " + userInput);
-				
-				if(dtmf.getDigit().equals(terminatingKey))
-					termKeyWasPressed  = true;
-				
+
+				if (dtmf.getDigit().equals(terminatingKey))
+					termKeyWasPressed = true;
+
 				if (Objects.nonNull(currOpertation))
 					currOpertation.cancel();
 
@@ -105,17 +109,17 @@ public class ReceivedDTMF extends Operation {
 			}
 			userInput = userInput + dtmf.getDigit();
 			return false;
-		},false);
+		}, false);
 
-		getArity().addFutureEvent(ChannelTalkingStarted.class,getChannelId(), talk -> {
+		getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talk -> {
 			logger.info("Recognized tallking in the channel");
 			if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
 				recordName = UUID.randomUUID().toString();
 				Record record = null;
-				if (duration == 0)
+				if (recordingDuration == 0)
 					record = callController.record(recordName, "wav");
 				else
-					record = callController.record(recordName, "wav", duration, 0, false, "#");
+					record = callController.record(recordName, "wav", recordingDuration, 0, false, "#");
 
 				record.run().thenAccept(recRes -> {
 					if (!dtmfWasPressed) {
@@ -129,7 +133,7 @@ public class ReceivedDTMF extends Operation {
 			}
 			return false;
 
-		},true);
+		}, true);
 
 		return compFuture;
 	}
@@ -201,7 +205,7 @@ public class ReceivedDTMF extends Operation {
 	public String getRecordName() {
 		return recordName;
 	}
-	
+
 	public boolean isTermKeyWasPressed() {
 		return termKeyWasPressed;
 	}
