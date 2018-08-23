@@ -47,9 +47,9 @@ public class ReceivedDTMF extends Operation {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		terminatingKey = termKey;
 		inputLenght = lenght;
-		this.callController = callController;
 		this.duration = duration;
-		this.callController.setTalkingInChannel("set", "10000,20000");
+		callController.setTalkingInChannel("set", "10000,20000");
+		this.callController = callController;
 	}
 
 	/**
@@ -59,8 +59,8 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public ReceivedDTMF(CallController callController) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.callController = callController;
 		callController.setTalkingInChannel("set", "10000,20000");
+		this.callController = callController;
 	}
 
 	/**
