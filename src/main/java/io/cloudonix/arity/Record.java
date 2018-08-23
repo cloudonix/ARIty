@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -13,6 +14,7 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
+import io.cloudonix.future.helper.FutureHelper;
 
 public class Record extends Operation {
 
@@ -81,14 +83,17 @@ public class Record extends Operation {
 					public void onSuccess(LiveRecording result) {
 						if (!(result instanceof LiveRecording))
 							return;
-						recording = result;
 						logger.info("Recording started! recording name: " + name);
 						Timer timer = new Timer("Timer");
+						long recordingStartTime = Instant.now().getEpochSecond();
 
 						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return false;
+							long recordingEndTime = Instant.now().getEpochSecond();
 							recording = result;
+							recording.setDuration(Integer.valueOf(String.valueOf(Math.abs(recordingEndTime-recordingStartTime))));
+							logger.info("Finished recording! recording duration is: "+Math.abs(recordingEndTime-recordingStartTime)+" seconds");
 							liveRecFuture.complete(record.getRecording());
 							return true;
 						}, true);
@@ -169,13 +174,28 @@ public class Record extends Operation {
 	/**
 	 * stop the current recording
 	 */
-	public void stopRecording() {
-		try {
-			getAri().recordings().stop(name);
-			logger.info("Record " + name + " stoped");
-		} catch (RestException e) {
-			logger.warning("Can't stop recording " + name);
+	public CompletableFuture<Void> stopRecording() {
+		if(Objects.nonNull(recording)) {
+			logger.fine("Recording has already stoped");
+			return FutureHelper.completedFuture();
 		}
+		
+		CompletableFuture<Void>recordFuture = new CompletableFuture<Void>();
+		getAri().recordings().stop(name, new AriCallback<Void>() {
+
+			@Override
+			public void onSuccess(Void result) {
+				logger.info("Record " + name + " stoped");
+				recordFuture.complete(result);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("Can't stop recording " + name+ ": "+e);
+				recordFuture.completeExceptionally(e);
+			}
+		});
+		return recordFuture;
 	}
 
 	/**
