@@ -138,7 +138,7 @@ public abstract class CallController {
 	 * @param terminatingKey
 	 *            terminating key for stop receiving DTMF
 	 * @param inputLenght
-	 *            length of the input that we expect receiving from the
+	 *            length of the input that we expect receiving from the caller
 	 * @param recordingDuration
 	 *            length of the recording
 	 * @return
