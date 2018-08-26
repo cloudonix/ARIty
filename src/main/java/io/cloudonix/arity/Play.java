@@ -46,7 +46,7 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> playRecording() {
-		uriScheme = "recording:";
+		setUriScheme("recording:");
 		return run();
 	}
 
@@ -61,9 +61,9 @@ public class Play extends CancelableOperations {
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
-			String fullPath = uriScheme + playFileName;
-			getAri().channels().play(getChannelId(), fullPath, channelLanguage, 0, 0,
-					playbackId, new AriCallback<Playback>() {
+			String fullPath = getUriScheme() + playFileName;
+			getAri().channels().play(getChannelId(), fullPath, channelLanguage, 0, 0, playbackId,
+					new AriCallback<Playback>() {
 						@Override
 						public void onFailure(RestException e) {
 							logger.warning("Failed in playing playback " + e.getMessage());
@@ -78,14 +78,14 @@ public class Play extends CancelableOperations {
 							logger.info("Playback started! Playing: " + playFileName + " and playback id is: "
 									+ playback.getId());
 
-							getArity().addFutureEvent(PlaybackFinished.class,getChannelId(), (playb) -> {
+							getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb) -> {
 								if (!(playb.getPlayback().getId().equals(playbackId)))
 									return false;
 								logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 								compPlaybackItr.complete(playb.getPlayback());
 								return true;
 
-							},false);
+							}, false);
 							logger.info("Future event of playbackFinished was added");
 						}
 
@@ -123,7 +123,8 @@ public class Play extends CancelableOperations {
 	CompletableFuture<Void> cancel() {
 		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
 		timesToPlay = 0;
-		return this.<Void>toFuture(cb-> getAri().playbacks().stop(playback.getId(), cb)).thenAccept(pb->logger.info("Playback canceled. Playback id: " + playback.getId()));
+		return this.<Void>toFuture(cb -> getAri().playbacks().stop(playback.getId(), cb))
+				.thenAccept(pb -> logger.info("Playback canceled. Playback id: " + playback.getId()));
 	}
 
 	/**
@@ -142,6 +143,21 @@ public class Play extends CancelableOperations {
 	 */
 	public void setPlayFileName(String playFileName) {
 		this.playFileName = playFileName;
+	}
+
+	public String getUriScheme() {
+		return uriScheme;
+	}
+
+	/**
+	 * set the uri scheme before playing and get the update Play operation
+	 * 
+	 * @param uriScheme
+	 * @return
+	 */
+	public Play setUriScheme(String uriScheme) {
+		this.uriScheme = uriScheme;
+		return this;
 	}
 
 }
