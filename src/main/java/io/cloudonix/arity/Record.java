@@ -20,28 +20,15 @@ public class Record extends Operation {
 
 	private String name;
 	private String fileFormat;
-	private int maxDuration = 1; //maximum duration of the recording
-	private int maxSilenceSeconds = 0;
-	private boolean beep = false;
-	private String terminateOnKey = "";
+	private int maxDuration; //maximum duration of the recording
+	private int maxSilenceSeconds;
+	private boolean beep;
+	private String terminateOnKey;
 	private LiveRecording recording;
 	private CallController callController;
 	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
 	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
-
-	/**
-	 * constructor with default values
-	 * 
-	 * @param callController
-	 * @param name
-	 * @param fileFormat
-	 */
-	public Record(CallController callController, String name, String fileFormat) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.name = name;
-		this.fileFormat = fileFormat;
-	}
 
 	/**
 	 * constructor with extended settings for the recording

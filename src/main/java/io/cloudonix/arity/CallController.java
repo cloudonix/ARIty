@@ -520,18 +520,6 @@ public abstract class CallController {
 		return callState;
 	}
 
-	/**
-	 * create new record operation
-	 * 
-	 * @param name
-	 *            Recording's filename
-	 * @param fileFormat
-	 *            Format to encode audio in (wav, gsm..)
-	 * @return
-	 */
-	public Record record(String name, String format) {
-		return new Record(this, name, format);
-	}
 
 	/**
 	 * create record operation with more settings
