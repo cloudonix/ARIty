@@ -31,10 +31,10 @@ public class Dial extends CancelableOperations {
 	private long answeredTime = 0;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient String dialStatus = null;
-	private Map<String, String> headers = new HashMap<>();
+	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
-	private int timeout = -1;
+	private int timeout;
 	private Runnable channelStateUp = null;
 	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
@@ -52,30 +52,9 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public Dial(CallController callController, String callerId, String destination) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.endPoint = destination;
-		this.callerId = callerId;
+		this(callController,callerId,destination,new HashMap<String,String>(),-1);
 	}
-
-	/**
-	 * Constructor
-	 * 
-	 * @param arity
-	 *            instance of ARIty
-	 * @param ari
-	 *            instance of ARI
-	 * @param callerId
-	 *            caller id
-	 * @param destination
-	 *            the number we are calling to (the end point)
-	 * @return
-	 */
-	public Dial(ARIty arity, ARI ari, String callerId, String destination) {
-		super(null, arity, ari);
-		this.endPoint = destination;
-		this.callerId = callerId;
-	}
-
+	
 	/**
 	 * Constructor
 	 * 
@@ -97,6 +76,23 @@ public class Dial extends CancelableOperations {
 		this.headers = headers;
 		this.callerId = callerId;
 		this.timeout = timeout;
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param arity
+	 *            instance of ARIty
+	 * @param ari
+	 *            instance of ARI
+	 * @param callerId
+	 *            caller id
+	 * @param destination
+	 *            the number we are calling to (the end point)
+	 * @return
+	 */
+	public Dial(ARIty arity, ARI ari, String callerId, String destination) {
+		this (arity,ari,callerId,destination,new HashMap<String,String>(),-1);
 	}
 
 	/**
