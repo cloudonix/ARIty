@@ -16,7 +16,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
 import io.cloudonix.future.helper.FutureHelper;
 
-public class Record extends Operation {
+public class Record extends CancelableOperations {
 
 	private String name;
 	private String fileFormat;
@@ -98,7 +98,7 @@ public class Record extends Operation {
 						TimerTask task = new TimerTask() {
 							@Override
 							public void run() {
-								stopRecording();
+								cancel();
 							}
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
@@ -159,17 +159,22 @@ public class Record extends Operation {
 	}
 	
 	/**
-	 * stop the current recording
+	 * get the state of the recording
+	 * 
+	 * @return
 	 */
-	public CompletableFuture<Void> stopRecording() {
+	public String getRecordingState() {
+		return recording.getState();
+	}
+
+	@Override
+	CompletableFuture<Void> cancel() {
 		if(Objects.nonNull(recording)) {
 			logger.fine("Recording has already stoped");
 			return FutureHelper.completedFuture();
 		}
-		
 		CompletableFuture<Void>recordFuture = new CompletableFuture<Void>();
 		getAri().recordings().stop(name, new AriCallback<Void>() {
-
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Record " + name + " stoped");
@@ -183,14 +188,5 @@ public class Record extends Operation {
 			}
 		});
 		return recordFuture;
-	}
-
-	/**
-	 * get the state of the recording
-	 * 
-	 * @return
-	 */
-	public String getRecordingState() {
-		return recording.getState();
 	}
 }
