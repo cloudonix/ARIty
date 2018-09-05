@@ -28,12 +28,12 @@ public class BridgeOperations {
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
-	private String recordFormat = "wav";
-	private int maxDurationSeconds = 0;
-	private int maxSilenceSeconds = 0;
-	private String ifExists = "overwrite";
-	private boolean beep = false;
-	private String terminateOn = "#";
+	private String recordFormat;
+	private int maxDurationSeconds;
+	private int maxSilenceSeconds;
+	private String ifExists;
+	private boolean beep;
+	private String terminateOn;
 	private HashMap<String, LiveRecording> recordings = new HashMap<>();
 
 	/**
@@ -43,8 +43,7 @@ public class BridgeOperations {
 	 *            instance of ARIty
 	 */
 	public BridgeOperations(ARIty arity) {
-		this.arity = arity;
-		this.bridgeId = UUID.randomUUID().toString();
+		this(arity,"wav",0,0,"overwrite",false,"#");
 	}
 
 	/**
@@ -75,6 +74,7 @@ public class BridgeOperations {
 		this.ifExists = ifExists;
 		this.beep = beep;
 		this.terminateOn = terminateOn;
+		this.bridgeId = UUID.randomUUID().toString();
 	}
 
 	/**
@@ -84,14 +84,12 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Bridge> createBridge() {
 		CompletableFuture<Bridge> future = new CompletableFuture<Bridge>();
-
 		arity.getAri().bridges().create("mixing", bridgeId, "dialBridge", new AriCallback<Bridge>() {
 			@Override
 			public void onSuccess(Bridge result) {
 				logger.info("Dial bridge was created");
 				future.complete(result);
 			}
-
 			@Override
 			public void onFailure(RestException e) {
 				logger.severe("Failed creating dial bridge: " + ErrorStream.fromThrowable(e));

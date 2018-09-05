@@ -28,8 +28,8 @@ public class Conference extends Operation {
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = null;
 	private Runnable runHangup = null;
-	private boolean beep = false;
-	private boolean mute = false;
+	private boolean beep;
+	private boolean mute;
 	private boolean needToRecord;
 	private String recordName = "";
 	private LiveRecording conferenceRecord;
@@ -44,11 +44,7 @@ public class Conference extends Operation {
 	 *            name of the conference
 	 */
 	public Conference(CallController callController, String name) {
-		super(callController.getCallState().getChannelID(), callController.getCallState().getArity(),
-				callController.getCallState().getAri());
-		this.callController = callController;
-		this.confName = name;
-		this.bridgeOperations = new BridgeOperations(getArity());
+		this(callController,name,false,false,false);
 	}
 
 	/**
@@ -64,7 +60,7 @@ public class Conference extends Operation {
 		this.mute = mute;
 		this.needToRecord = needToRecord;
 		this.bridgeOperations = new BridgeOperations(getArity());
-		bridgeOperations.setBeep(beep);
+		this.bridgeOperations.setBeep(beep);
 	}
 
 	@Override
