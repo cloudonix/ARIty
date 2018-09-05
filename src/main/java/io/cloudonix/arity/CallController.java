@@ -139,12 +139,10 @@ public abstract class CallController {
 	 *            terminating key for stop receiving DTMF
 	 * @param inputLenght
 	 *            length of the input that we expect receiving from the caller
-	 * @param recordingDuration
-	 *            length of the recording
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght, int recordingDuration) {
-		return new ReceivedDTMF(this, terminatingKey, inputLenght, recordingDuration);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght) {
+		return new ReceivedDTMF(this, terminatingKey, inputLenght);
 	}
 
 	/**
