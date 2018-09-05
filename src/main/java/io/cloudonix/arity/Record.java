@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
+import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -20,8 +21,8 @@ public class Record extends CancelableOperations {
 
 	private String name;
 	private String fileFormat;
-	private int maxDuration; //maximum duration of the recording
-	private int maxSilenceSeconds;
+	private int maxDuration; // maximum duration of the recording
+	private int maxSilenceSeconds; // can not be zero if we want talking detection
 	private boolean beep;
 	private String terminateOnKey;
 	private LiveRecording recording;
@@ -29,6 +30,8 @@ public class Record extends CancelableOperations {
 	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
 	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
+	private boolean wasTalkingDetect = false;
+	private int talkingDuration = 0;
 
 	/**
 	 * constructor with extended settings for the recording
@@ -43,6 +46,7 @@ public class Record extends CancelableOperations {
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
 		this.terminateOnKey = terminateOnKey;
+		callController.setTalkingInChannel("set", "10000,20000");
 		if (beep)
 			this.callController = callController;
 	}
@@ -51,7 +55,7 @@ public class Record extends CancelableOperations {
 	public CompletableFuture<Record> run() {
 		if (beep) {
 			logger.info("Play beep before recording");
-			callController.play("beep.alaw").run().thenAccept(res -> startRecording());
+			callController.play("beep").run().thenAccept(res -> startRecording());
 		} else
 			startRecording();
 		return liveRecFuture.thenApply(res -> this);
@@ -65,7 +69,6 @@ public class Record extends CancelableOperations {
 	private void startRecording() {
 		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, "overwrite", beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
-
 					@Override
 					public void onSuccess(LiveRecording result) {
 						if (!(result instanceof LiveRecording))
@@ -79,12 +82,27 @@ public class Record extends CancelableOperations {
 								return false;
 							long recordingEndTime = Instant.now().getEpochSecond();
 							recording = result;
-							recording.setDuration(Integer.valueOf(String.valueOf(Math.abs(recordingEndTime-recordingStartTime))));
-							logger.info("Finished recording! recording duration is: "+Math.abs(recordingEndTime-recordingStartTime)+" seconds");
+							recording.setDuration(
+									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime))));
+							logger.info("Finished recording! recording duration is: "
+									+ Math.abs(recordingEndTime - recordingStartTime) + " seconds");
+							if (wasTalkingDetect)
+								talkingDuration = recording.getTalking_duration();
 							liveRecFuture.complete(record.getRecording());
 							return true;
 						}, true);
 
+						// Recognise if Talking was detected during the recording
+						getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talk -> {
+							if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
+								logger.info("Recognized tallking in the channel");
+								wasTalkingDetect = true;
+								return true;
+							}
+							return false;
+						}, true);
+
+						// stop the recording by pressing the terminating key
 						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("Terminating key was pressed, stop recording");
@@ -157,7 +175,7 @@ public class Record extends CancelableOperations {
 	public void setName(String name) {
 		this.name = name;
 	}
-	
+
 	/**
 	 * get the state of the recording
 	 * 
@@ -169,11 +187,11 @@ public class Record extends CancelableOperations {
 
 	@Override
 	CompletableFuture<Void> cancel() {
-		if(Objects.nonNull(recording)) {
+		if (Objects.nonNull(recording)) {
 			logger.fine("Recording has already stoped");
 			return FutureHelper.completedFuture();
 		}
-		CompletableFuture<Void>recordFuture = new CompletableFuture<Void>();
+		CompletableFuture<Void> recordFuture = new CompletableFuture<Void>();
 		getAri().recordings().stop(name, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
@@ -183,10 +201,26 @@ public class Record extends CancelableOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.warning("Can't stop recording " + name+ ": "+e);
+				logger.warning("Can't stop recording " + name + ": " + e);
 				recordFuture.completeExceptionally(e);
 			}
 		});
 		return recordFuture;
+	}
+
+	/**
+	 * true if talking in the channel was detected during the recording, false otherwise
+	 * @return
+	 */
+	public boolean isWasTalkingDetect() {
+		return wasTalkingDetect;
+	}
+
+	/**
+	 * if the caller talked during the recording, get the duration of the talking 
+	 * @return
+	 */
+	public int getTalkingDuration() {
+		return talkingDuration;
 	}
 }

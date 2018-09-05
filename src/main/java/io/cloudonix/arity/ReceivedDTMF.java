@@ -41,7 +41,6 @@ public class ReceivedDTMF extends Operation {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.terminatingKey = termKey;
 		this.inputLength = length;
-		callController.setTalkingInChannel("set", "10000,20000");
 	}
 
 	/**
