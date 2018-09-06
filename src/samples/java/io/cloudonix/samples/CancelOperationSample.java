@@ -7,16 +7,19 @@ import java.util.logging.Logger;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
+
 /**
- * Sample for playing "hello-world" and stop playing it (if not finished to play it 7 times) when done receiving DTMF from the caller.
- * Then before hanging up the call, play "goodbye" to the caller
+ * Sample for playing "dictate/play_help" (menu options) and "hello" stop
+ * playing it when done receiving DTMF from the caller (can be while
+ * "dictate/play_help" is played or while "hello" is played or after both
+ * finished). Then before hanging up the call, play "goodbye" to the caller
  * 
  * @author naamag
  *
  */
-public class CancelOperationSample  extends CallController{
+public class CancelOperationSample extends CallController {
 
-	private final static Logger logger = Logger.getLogger(AnswerAndPlay.class.getName());
+	private final static Logger logger = Logger.getLogger(CancelOperationSample.class.getName());
 
 	@Override
 	public CompletableFuture<Void> run() {
@@ -30,14 +33,14 @@ public class CancelOperationSample  extends CallController{
 		// lambda case
 		arity.registerVoiceApp(call -> {
 			call.answer().run()
-			 .thenCompose(anserRes -> call.receivedDTMF().and(call.play("hello-world").loop(7)).run())
-			 .thenCompose(dtmf -> call.play("goodbye").loop(2).run())
-			 .thenAccept(playRes ->logger.info("Done receiving DTMF and playing"))
-			 .handle(call::endCall)
-			 .exceptionally(t -> {
-				 logger.severe(t.toString());
-				 return null;
-			});
+					.thenCompose(anserRes -> call.receivedDTMF().and(call.play("dictate/play_help"))
+							.and(call.play("hello")).run())
+					.thenCompose(dtmf -> call.play("goodbye").loop(2).run())
+					.thenAccept(playRes -> logger.info("Done receiving DTMF and playing")).handle(call::endCall)
+					.exceptionally(t -> {
+						logger.severe(t.toString());
+						return null;
+					});
 		});
 
 		while (true) {
