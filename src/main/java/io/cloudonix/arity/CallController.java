@@ -29,14 +29,14 @@ public abstract class CallController {
 	private Logger logger = Logger.getLogger(getClass().getName());
 
 	/**
-	 * Initialize the callController with the needed fields
+	 * Initialise the call Controller with the needed fields
 	 * 
 	 * @param stasisStartEvent
 	 *            StasisStart
 	 * @param ari
-	 *            ARI
+	 *            ARI instance
 	 * @param arity
-	 *            ARIty
+	 *            ARIty instance
 	 */
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
 		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(),
