@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -19,12 +20,13 @@ import io.cloudonix.arity.errors.PlaybackException;
  */
 public class Play extends CancelableOperations {
 
-	private String channelLanguage;
+	private String language;
 	private String playFileName;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound:";
 	private Playback playback;
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
+	private CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
 	/**
 	 * constructor
@@ -36,7 +38,7 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		channelLanguage = callController.getCallStasisStart().getChannel().getLanguage();
+		language = callController.getCallStasisStart().getChannel().getLanguage();
 		this.playFileName = fileName;
 	}
 
@@ -56,40 +58,36 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
-
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = getUriScheme() + playFileName;
-			getAri().channels().play(getChannelId(), fullPath, channelLanguage, 0, 0, playbackId,
-					new AriCallback<Playback>() {
-						@Override
-						public void onFailure(RestException e) {
-							logger.warning("Failed in playing playback " + e.getMessage());
-							compPlaybackItr.completeExceptionally(new PlaybackException(fullPath, e));
-						}
+			getAri().channels().play(getChannelId(), fullPath, language, 0, 0, playbackId, new AriCallback<Playback>() {
+				@Override
+				public void onFailure(RestException e) {
+					logger.warning("Failed in playing playback " + e.getMessage());
+					compPlaybackItr.completeExceptionally(new PlaybackException(fullPath, e));
+				}
 
-						@Override
-						public void onSuccess(Playback resultM) {
-							if (!(resultM instanceof Playback))
-								return;
-							playback = resultM;
-							logger.info("Playback started! Playing: " + playFileName + " and playback id is: "
-									+ playback.getId());
+				@Override
+				public void onSuccess(Playback resultM) {
+					if (!(resultM instanceof Playback))
+						return;
+					playback = resultM;
+					logger.info(
+							"Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 
-							getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb) -> {
-								if (!(playb.getPlayback().getId().equals(playbackId)))
-									return false;
-								logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
-								compPlaybackItr.complete(playb.getPlayback());
-								return true;
+					getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb) -> {
+						if (!(playb.getPlayback().getId().equals(playbackId)))
+							return false;
+						logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
+						compPlaybackItr.complete(playb.getPlayback());
+						return true;
 
-							}, false);
-							logger.info("Future event of playbackFinished was added");
-						}
-
-					});
+					}, false);
+					logger.info("Future event of playbackFinished was added");
+				}
+			});
 
 			if (timesToPlay > 1) {
 				timesToPlay = timesToPlay - 1;
@@ -121,8 +119,11 @@ public class Play extends CancelableOperations {
 
 	@Override
 	CompletableFuture<Void> cancel() {
-		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
 		timesToPlay = 0;
+		compPlaybackItr.complete(playback);
+		if (Objects.isNull(playback))
+			return CompletableFuture.completedFuture(null);
+		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
 		return this.<Void>toFuture(cb -> getAri().playbacks().stop(playback.getId(), cb))
 				.thenAccept(pb -> logger.info("Playback canceled. Playback id: " + playback.getId()));
 	}
@@ -157,6 +158,21 @@ public class Play extends CancelableOperations {
 	 */
 	public Play setUriScheme(String uriScheme) {
 		this.uriScheme = uriScheme;
+		return this;
+	}
+
+	public String getLanguage() {
+		return language;
+	}
+
+	/**
+	 * set the playback language before playing
+	 * 
+	 * @param channelLanguage
+	 * @return
+	 */
+	public Play setLanguage(String channelLanguage) {
+		this.language = channelLanguage;
 		return this;
 	}
 
