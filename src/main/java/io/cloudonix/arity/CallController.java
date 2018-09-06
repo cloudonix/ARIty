@@ -139,14 +139,26 @@ public abstract class CallController {
 	 *            terminating key for stop receiving DTMF
 	 * @param inputLenght
 	 *            length of the input that we expect receiving from the caller
+	 * @param isDTMF
+	 *            true if the input should be received via DTMF, false if the input
+	 *            should be received via speech (talking detection in the channel).
+	 * @param isSpeech
+	 *            true if the input should be received via speech (talking detection
+	 *            in the channel), false if the input should be received via DTMF
+	 * @param maxDuration
+	 *            maximum duration of speech recognition in seconds
+	 * @param maxSilenceDuration
+	 *            if isSpeech is true, set the maxSilenceDuration before ending the
+	 *            speech recording in seconds. Otherwise, 0
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght) {
-		return new ReceivedDTMF(this, terminatingKey, inputLenght);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght, boolean isDTMF, boolean isSpeech,
+			int maxDuration, int maxSilenceDuration) {
+		return new ReceivedDTMF(this, terminatingKey, inputLenght, isDTMF, isSpeech,maxDuration, maxSilenceDuration);
 	}
 
 	/**
-	 * the method creates a new receivedDTMF operation with default values
+	 * the method creates a new received DTMF operation with default values
 	 * 
 	 * @return
 	 */
@@ -518,7 +530,6 @@ public abstract class CallController {
 		return callState;
 	}
 
-
 	/**
 	 * create record operation with more settings
 	 * 
@@ -526,16 +537,17 @@ public abstract class CallController {
 	 *            instant representing the call
 	 * @param name
 	 *            Recording's filename
-	 * @param fileFormat
+	 * @param format
 	 *            Format to encode audio in (wav, gsm..)
 	 * @param maxDuration
 	 *            Maximum duration of the recording, in seconds. 0 for no limit
-	 * @param maxSilenceSeconds
-	 *            Maximum duration of silence, in seconds. 0 for no limit
+	 * @param maxSilence
+	 *            Maximum duration of silence before ending the recording, in
+	 *            seconds. 0 for no limit
 	 * @param beep
 	 *            true if we want to play beep when recording begins, false
 	 *            otherwise
-	 * @param terminateOnKey
+	 * @param termKey
 	 *            DTMF input to terminate recording (allowed values: none, any, *,
 	 *            #)
 	 * @return
@@ -556,19 +568,20 @@ public abstract class CallController {
 	public Mute mute(String channelId, String direction) {
 		return new Mute(this, channelId, direction);
 	}
-	
+
 	/**
 	 * Create bridge instance to handle all bridge operations
+	 * 
 	 * @param arity
-	 *            instance of ARIty	 
+	 *            instance of ARIty
 	 * @return
 	 */
 	public BridgeOperations bridge(ARIty arity) {
 		return new BridgeOperations(arity);
 	}
-	
+
 	/**
-	* Create bridge instance to handle all bridge operations
+	 * Create bridge instance to handle all bridge operations
 	 * 
 	 * @param arity
 	 *            instance of ARIty
@@ -586,9 +599,10 @@ public abstract class CallController {
 	 * @param terminateOn
 	 *            DTMF input to terminate recording. Allowed values: none, any, *, #
 	 */
-	public BridgeOperations bridge (ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
+	public BridgeOperations bridge(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
-		return new BridgeOperations(arity, recordFormat, maxDurationSeconds, maxSilenceSeconds, ifExists, beep, terminateOn);
+		return new BridgeOperations(arity, recordFormat, maxDurationSeconds, maxSilenceSeconds, ifExists, beep,
+				terminateOn);
 	}
 
 	/**

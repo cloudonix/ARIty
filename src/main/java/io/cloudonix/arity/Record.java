@@ -22,7 +22,7 @@ public class Record extends CancelableOperations {
 	private String name;
 	private String fileFormat;
 	private int maxDuration; // maximum duration of the recording
-	private int maxSilenceSeconds; // can not be zero if we want talking detection
+	private int maxSilenceSeconds;
 	private boolean beep;
 	private String terminateOnKey;
 	private LiveRecording recording;
@@ -32,9 +32,10 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 	private boolean wasTalkingDetect = false;
 	private int talkingDuration = 0;
+	private String ifExists = "overwrite";
 
 	/**
-	 * constructor with extended settings for the recording
+	 * Constructor
 	 */
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
@@ -46,7 +47,7 @@ public class Record extends CancelableOperations {
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
 		this.terminateOnKey = terminateOnKey;
-		callController.setTalkingInChannel("set", "10000,20000");
+		callController.setTalkingInChannel("set", ""); //Enable talking detection in the channel
 		if (beep)
 			this.callController = callController;
 	}
@@ -64,17 +65,17 @@ public class Record extends CancelableOperations {
 	/**
 	 * start recording
 	 * 
-	 * @param liveRecFuture
 	 */
 	private void startRecording() {
-		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, "overwrite", beep,
+		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
 					@Override
 					public void onSuccess(LiveRecording result) {
 						if (!(result instanceof LiveRecording))
 							return;
-						logger.info("Recording started! recording name: " + name);
-						Timer timer = new Timer("Timer");
+						logger.info("Recording started! recording name is: " + name);
+						Timer timer = new Timer("Timer1");
+						TimerTask task = setTask();
 						long recordingStartTime = Instant.now().getEpochSecond();
 
 						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
@@ -93,9 +94,9 @@ public class Record extends CancelableOperations {
 						}, true);
 
 						// Recognise if Talking was detected during the recording
-						getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talk -> {
-							if (Objects.equals(talk.getChannel().getId(), getChannelId())) {
-								logger.info("Recognized tallking in the channel");
+						getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talkStarted -> {
+							if (Objects.equals(talkStarted.getChannel().getId(), getChannelId())) {
+								logger.info("Recognised tallking in the channel");
 								wasTalkingDetect = true;
 								return true;
 							}
@@ -113,13 +114,17 @@ public class Record extends CancelableOperations {
 							return false;
 						}, false);
 
+						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
+					}
+
+					private TimerTask setTask() {
 						TimerTask task = new TimerTask() {
 							@Override
 							public void run() {
 								cancel();
 							}
 						};
-						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
+						return task;
 					}
 
 					@Override
@@ -209,7 +214,9 @@ public class Record extends CancelableOperations {
 	}
 
 	/**
-	 * true if talking in the channel was detected during the recording, false otherwise
+	 * true if talking in the channel was detected during the recording, false
+	 * otherwise
+	 * 
 	 * @return
 	 */
 	public boolean isWasTalkingDetect() {
@@ -217,10 +224,24 @@ public class Record extends CancelableOperations {
 	}
 
 	/**
-	 * if the caller talked during the recording, get the duration of the talking 
+	 * if the caller talked during the recording, get the duration of the talking
+	 * 
 	 * @return
 	 */
 	public int getTalkingDuration() {
 		return talkingDuration;
+	}
+
+	/**
+	 * before recording, set what to do if the recording is already exists. default
+	 * value is "overwrite"
+	 * 
+	 * @param ifExist
+	 *            allowed values: fail, overwrite, append
+	 * @return
+	 */
+	public Record setIfExist(String ifExist) {
+		this.ifExists = ifExist;
+		return this;
 	}
 }
