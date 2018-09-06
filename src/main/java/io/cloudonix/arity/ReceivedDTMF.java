@@ -33,6 +33,8 @@ public class ReceivedDTMF extends Operation {
 	private int speechMaxSilence;
 	private LiveRecording recording;
 	private int speechMaxDuration;
+	private int currOpIndext;
+	private boolean isCanceled;
 
 	/**
 	 * Constructor
@@ -88,41 +90,48 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		if (!nestedOperations.isEmpty()) {
-			logger.fine("there are verbs in the nested operation list");
-			currOpertation = nestedOperations.get(0);
-			CompletableFuture<? extends Operation> future = currOpertation.run();
-			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
-				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
-					currOpertation = nestedOperations.get(i);
-					future.thenCompose(res -> loopOperations(future));
-				}
-			}
-		}
-
 		if (isDTMF) {
 			getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 				if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
 					logger.info("Done receiving DTMF. all input: " + userInput);
 					if (dtmf.getDigit().equals(terminatingKey)) {
-						cancelAll();
-						compFuture.complete(this);
-						return true;
+						cancelAll().thenApply(v -> {
+							compFuture.complete(this);
+							return true;
+						});
 					}
 				}
 				userInput = userInput + dtmf.getDigit();
 				return false;
 			}, false);
 		}
-
 		if (isSpeech) {
 			recordName = UUID.randomUUID().toString();
 			callController.record(recordName, ".wav", speechMaxDuration, speechMaxSilence, false, terminatingKey).run()
-					.thenAccept(recordRes -> {
-						cancelAll();
-						recording = recordRes.getRecording();
-						compFuture.complete(this);
+					.thenCompose(recordRes -> {
+						return cancelAll().thenAccept(v -> {
+							recording = recordRes.getRecording();
+							compFuture.complete(this);
+						});
 					});
+		}
+		
+		if (!nestedOperations.isEmpty()) {
+			logger.fine("there are verbs in the nested operation list");
+			currOpertation = nestedOperations.get(0);
+			currOpIndext = 0;
+			CompletableFuture<? extends Operation> future = currOpertation.run();
+			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
+				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
+						currOpertation = nestedOperations.get(i);
+						currOpIndext = i;
+						future = future.thenCompose(res ->{
+							if(!isCanceled)
+								return currOpertation.run();
+							return CompletableFuture.completedFuture(null);
+						});
+				}
+			}
 		}
 		return compFuture;
 	}
@@ -130,27 +139,12 @@ public class ReceivedDTMF extends Operation {
 	/**
 	 * When stopped receiving DTMF cancel all operations
 	 */
-	private void cancelAll() {
-		if (Objects.nonNull(currOpertation))
-			currOpertation.cancel();
-		nestedOperations.clear();
-	}
-
-	/**
-	 * compose the previous future (of the previous operation) to the result of the
-	 * new future
-	 * 
-	 * @param future
-	 *            future of the previous operation
-	 * @return
-	 */
-	private CompletableFuture<? extends Operation> loopOperations(CompletableFuture<? extends Operation> future) {
-		logger.info("The current operation is: " + currOpertation.toString());
-		return future.thenCompose(op -> {
-			if (Objects.nonNull(op))
-				return currOpertation.run();
-			return CompletableFuture.completedFuture(null);
-		});
+	private CompletableFuture<Void> cancelAll() {
+		isCanceled = true;
+		for (int i = currOpIndext-1; i < nestedOperations.size(); i++) {
+			nestedOperations.get(i).cancel();
+		}
+		return CompletableFuture.completedFuture(null);
 	}
 
 	/**
