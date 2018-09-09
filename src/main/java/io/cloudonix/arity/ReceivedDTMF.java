@@ -35,6 +35,7 @@ public class ReceivedDTMF extends Operation {
 	private int speechMaxDuration;
 	private int currOpIndext;
 	private boolean isCanceled;
+	private boolean termKeyWasPressed = false;;
 
 	/**
 	 * Constructor
@@ -95,13 +96,15 @@ public class ReceivedDTMF extends Operation {
 				if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
 					logger.info("Done receiving DTMF. all input: " + userInput);
 					if (dtmf.getDigit().equals(terminatingKey)) {
+						termKeyWasPressed  = true;
 						cancelAll().thenApply(v -> {
 							compFuture.complete(this);
 							return true;
 						});
 					}
 				}
-				userInput = userInput + dtmf.getDigit();
+				if(!termKeyWasPressed)
+					userInput = userInput + dtmf.getDigit();
 				return false;
 			}, false);
 		}
@@ -121,17 +124,16 @@ public class ReceivedDTMF extends Operation {
 			currOpertation = nestedOperations.get(0);
 			currOpIndext = 0;
 			CompletableFuture<? extends Operation> future = currOpertation.run();
-			if (nestedOperations.size() > 1 && Objects.nonNull(future)) {
 				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
-						currOpertation = nestedOperations.get(i);
-						currOpIndext = i;
 						future = future.thenCompose(res ->{
-							if(!isCanceled)
+							currOpIndext++;
+							if(!isCanceled) {
+								currOpertation = nestedOperations.get(currOpIndext);
 								return currOpertation.run();
+							}
 							return CompletableFuture.completedFuture(null);
 						});
 				}
-			}
 		}
 		return compFuture;
 	}
