@@ -9,8 +9,9 @@ import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Sample for playing "dictate/play_help" (menu options),"hello" and "goodbye".
- * Stop playing when done receiving DTMF from the caller (can be while
+ * Sample for playing "dictate/play_help" (menu options),"hello" and "goodbye" that can be cancelled.
+ * 
+ * Stop playing when done receiving DTMF from the caller - after the terminating key '#' was pressed (can be while
  * "dictate/play_help" or "hello" or "goodbye" is playing or after all of them
  * finished playing). Then before hanging up the call, play "thank-you" to the caller
  * 
