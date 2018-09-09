@@ -9,10 +9,10 @@ import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Sample for playing "dictate/play_help" (menu options) and "hello" stop
- * playing it when done receiving DTMF from the caller (can be while
- * "dictate/play_help" is played or while "hello" is played or after both
- * finished). Then before hanging up the call, play "goodbye" to the caller
+ * Sample for playing "dictate/play_help" (menu options),"hello" and "goodbye".
+ * Stop playing when done receiving DTMF from the caller (can be while
+ * "dictate/play_help" or "hello" or "goodbye" is playing or after all of them
+ * finished playing). Then before hanging up the call, play "thank-you" to the caller
  * 
  * @author naamag
  *
@@ -34,8 +34,8 @@ public class CancelOperationSample extends CallController {
 		arity.registerVoiceApp(call -> {
 			call.answer().run()
 					.thenCompose(anserRes -> call.receivedDTMF().and(call.play("dictate/play_help"))
-							.and(call.play("hello")).run())
-					.thenCompose(dtmf -> call.play("goodbye").loop(2).run())
+							.and(call.play("hello")).and(call.play("goodbye")).run())
+					.thenCompose(dtmf -> call.play("auth-thankyou").loop(2).run())
 					.thenAccept(playRes -> logger.info("Done receiving DTMF and playing")).handle(call::endCall)
 					.exceptionally(t -> {
 						logger.severe(t.toString());
