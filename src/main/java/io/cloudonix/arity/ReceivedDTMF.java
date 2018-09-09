@@ -35,7 +35,10 @@ public class ReceivedDTMF extends Operation {
 	private int speechMaxDuration;
 	private int currOpIndext;
 	private boolean isCanceled;
-	private boolean termKeyWasPressed = false;;
+	private boolean termKeyWasPressed = false;
+	private transient String firsFinishedInput = "";
+	private Record recordOperation;
+	private boolean doneAllOps = false;
 
 	/**
 	 * Constructor
@@ -86,8 +89,6 @@ public class ReceivedDTMF extends Operation {
 	/**
 	 * The method gathers input from the user
 	 * 
-	 * @param terminatingKey
-	 *            - the digit that stops the gathering
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
@@ -96,44 +97,50 @@ public class ReceivedDTMF extends Operation {
 				if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
 					logger.info("Done receiving DTMF. all input: " + userInput);
 					if (dtmf.getDigit().equals(terminatingKey)) {
-						termKeyWasPressed  = true;
+						termKeyWasPressed = true;
 						cancelAll().thenApply(v -> {
 							compFuture.complete(this);
 							return true;
 						});
+						if(Objects.equals(firsFinishedInput, ""))
+							firsFinishedInput = "dtmf";
 					}
 				}
-				if(!termKeyWasPressed)
+				if (!termKeyWasPressed)
 					userInput = userInput + dtmf.getDigit();
 				return false;
 			}, false);
 		}
 		if (isSpeech) {
 			recordName = UUID.randomUUID().toString();
-			callController.record(recordName, ".wav", speechMaxDuration, speechMaxSilence, false, terminatingKey).run()
-					.thenCompose(recordRes -> {
+			recordOperation = callController.record(recordName, ".wav", speechMaxDuration, speechMaxSilence, false, terminatingKey);
+			recordOperation.run().thenCompose(recordRes -> {
+						if(Objects.equals(firsFinishedInput, ""))
+							firsFinishedInput = "speech";
 						return cancelAll().thenAccept(v -> {
 							recording = recordRes.getRecording();
 							compFuture.complete(this);
 						});
 					});
 		}
-		
+
 		if (!nestedOperations.isEmpty()) {
 			logger.fine("there are verbs in the nested operation list");
 			currOpertation = nestedOperations.get(0);
 			currOpIndext = 0;
 			CompletableFuture<? extends Operation> future = CompletableFuture.completedFuture(null);
-				for(int i = currOpIndext; i< nestedOperations.size(); i++) {
-						future = future.thenCompose(res ->{
-							if(!isCanceled) {
-								currOpertation = nestedOperations.get(currOpIndext);
-								currOpIndext++;
-								return currOpertation.run();
-							}
-							return CompletableFuture.completedFuture(null);
-						});
-				}
+			for (int i = currOpIndext; i < nestedOperations.size(); i++) {
+				future = future.thenCompose(res -> {
+					if (!isCanceled) {
+						currOpertation = nestedOperations.get(currOpIndext);
+						currOpIndext++;
+						return currOpertation.run();
+					}
+					return CompletableFuture.completedFuture(null);
+				});
+			}
+			if(currOpIndext ==  nestedOperations.size() && !isCanceled)
+				doneAllOps  = true;
 		}
 		return compFuture;
 	}
@@ -143,7 +150,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	private CompletableFuture<Void> cancelAll() {
 		isCanceled = true;
-		for (int i = currOpIndext-1; i < nestedOperations.size(); i++) {
+		for (int i = currOpIndext - 1; i < nestedOperations.size(); i++) {
 			nestedOperations.get(i).cancel();
 		}
 		return CompletableFuture.completedFuture(null);
@@ -204,5 +211,37 @@ public class ReceivedDTMF extends Operation {
 
 	public void setDTMF(boolean isDTMF) {
 		this.isDTMF = isDTMF;
+	}
+
+	public boolean isTermKeyWasPressed() {
+		return termKeyWasPressed;
+	}
+
+	public void setTermKeyWasPressed(boolean termKeyWasPressed) {
+		this.termKeyWasPressed = termKeyWasPressed;
+	}
+
+	public String getFirsFinishedInput() {
+		return firsFinishedInput;
+	}
+
+	public void setFirsFinishedInput(String firsFinishedInputVia) {
+		this.firsFinishedInput = firsFinishedInputVia;
+	}
+
+	public Record getRecordOperation() {
+		return recordOperation;
+	}
+
+	public void setRecordOperation(Record recordOperation) {
+		this.recordOperation = recordOperation;
+	}
+
+	public boolean isDoneAllOps() {
+		return doneAllOps;
+	}
+
+	public void setDoneAllOps(boolean doneAllOps) {
+		this.doneAllOps = doneAllOps;
 	}
 }
