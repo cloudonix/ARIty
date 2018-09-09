@@ -74,8 +74,13 @@ public class Record extends CancelableOperations {
 						if (!(result instanceof LiveRecording))
 							return;
 						logger.info("Recording started! recording name is: " + name);
-						Timer timer = new Timer("Timer1");
-						TimerTask task = setTask();
+						Timer timer = new Timer("Timer");
+						TimerTask task = new TimerTask() {
+							@Override
+							public void run() {
+								stopRecording();
+							}
+						};
 						long recordingStartTime = Instant.now().getEpochSecond();
 
 						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
@@ -117,15 +122,6 @@ public class Record extends CancelableOperations {
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 					}
 
-					private TimerTask setTask() {
-						TimerTask task = new TimerTask() {
-							@Override
-							public void run() {
-								cancel();
-							}
-						};
-						return task;
-					}
 
 					@Override
 					public void onFailure(RestException e) {
@@ -189,6 +185,15 @@ public class Record extends CancelableOperations {
 	public String getRecordingState() {
 		return recording.getState();
 	}
+	
+	/**
+	 * stop recording
+	 * @return
+	 */
+	public CompletableFuture<Void> stopRecording() {
+		return cancel();
+	}
+
 
 	@Override
 	CompletableFuture<Void> cancel() {
