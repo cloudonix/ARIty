@@ -26,7 +26,6 @@ public class Play extends CancelableOperations {
 	private String uriScheme = "sound:";
 	private Playback playback;
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
-	private CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 
 	/**
 	 * constructor
@@ -58,6 +57,7 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
+		CompletableFuture<Playback> compPlaybackItr = new CompletableFuture<Playback>();
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
@@ -91,7 +91,7 @@ public class Play extends CancelableOperations {
 
 			if (timesToPlay > 1) {
 				timesToPlay = timesToPlay - 1;
-				return compPlaybackItr.thenCompose(x -> run());
+				return compPlaybackItr.thenCompose(pb -> run());
 			}
 		}
 		return compPlaybackItr.thenApply(pb -> this);
@@ -120,7 +120,6 @@ public class Play extends CancelableOperations {
 	@Override
 	CompletableFuture<Void> cancel() {
 		timesToPlay = 0;
-		compPlaybackItr.complete(playback);
 		if (Objects.isNull(playback))
 			return CompletableFuture.completedFuture(null);
 		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
