@@ -189,4 +189,20 @@ public class ReceivedDTMF extends Operation {
 	public void setRecording(LiveRecording recording) {
 		this.recording = recording;
 	}
+
+	public boolean isSpeech() {
+		return isSpeech;
+	}
+
+	public void setSpeech(boolean isSpeech) {
+		this.isSpeech = isSpeech;
+	}
+
+	public boolean isDTMF() {
+		return isDTMF;
+	}
+
+	public void setDTMF(boolean isDTMF) {
+		this.isDTMF = isDTMF;
+	}
 }
