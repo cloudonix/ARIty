@@ -123,12 +123,12 @@ public class ReceivedDTMF extends Operation {
 			logger.fine("there are verbs in the nested operation list");
 			currOpertation = nestedOperations.get(0);
 			currOpIndext = 0;
-			CompletableFuture<? extends Operation> future = currOpertation.run();
-				for (int i = 1; i < nestedOperations.size() && Objects.nonNull(future); i++) {
+			CompletableFuture<? extends Operation> future = CompletableFuture.completedFuture(null);
+				for(int i = currOpIndext; i< nestedOperations.size(); i++) {
 						future = future.thenCompose(res ->{
-							currOpIndext++;
 							if(!isCanceled) {
 								currOpertation = nestedOperations.get(currOpIndext);
+								currOpIndext++;
 								return currOpertation.run();
 							}
 							return CompletableFuture.completedFuture(null);
