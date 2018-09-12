@@ -47,7 +47,7 @@ public class Record extends CancelableOperations {
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
 		this.terminateOnKey = terminateOnKey;
-		callController.setTalkingInChannel("set", ""); //Enable talking detection in the channel
+		callController.setTalkingInChannel("set", ""); // Enable talking detection in the channel
 		if (beep)
 			this.callController = callController;
 	}
@@ -74,6 +74,7 @@ public class Record extends CancelableOperations {
 						if (!(result instanceof LiveRecording))
 							return;
 						logger.info("Recording started! recording name is: " + name);
+						long recordingStartTime = Instant.now().getEpochSecond();
 						Timer timer = new Timer("Timer");
 						TimerTask task = new TimerTask() {
 							@Override
@@ -81,7 +82,7 @@ public class Record extends CancelableOperations {
 								stopRecording();
 							}
 						};
-						long recordingStartTime = Instant.now().getEpochSecond();
+						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
 						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
@@ -119,9 +120,7 @@ public class Record extends CancelableOperations {
 							return false;
 						}, false);
 
-						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 					}
-
 
 					@Override
 					public void onFailure(RestException e) {
@@ -185,15 +184,15 @@ public class Record extends CancelableOperations {
 	public String getRecordingState() {
 		return recording.getState();
 	}
-	
+
 	/**
 	 * stop recording
+	 * 
 	 * @return
 	 */
 	public CompletableFuture<Void> stopRecording() {
 		return cancel();
 	}
-
 
 	@Override
 	CompletableFuture<Void> cancel() {
