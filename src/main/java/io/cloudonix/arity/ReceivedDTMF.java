@@ -93,6 +93,7 @@ public class ReceivedDTMF extends Operation {
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
 		if (isDTMF) {
+			logger.info("DTMF via input");
 			getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
 				if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
 					logger.info("Done receiving DTMF. all input: " + userInput);
@@ -102,8 +103,10 @@ public class ReceivedDTMF extends Operation {
 							compFuture.complete(this);
 							return true;
 						});
-						if(Objects.equals(firsFinishedInput, ""))
+						if (Objects.equals(firsFinishedInput, "")) {
 							firsFinishedInput = "dtmf";
+							logger.info("first finished input was received via dtmf");
+						}
 					}
 				}
 				if (!termKeyWasPressed)
@@ -112,16 +115,20 @@ public class ReceivedDTMF extends Operation {
 			}, false);
 		}
 		if (isSpeech) {
+			logger.info("DTMF via speech");
 			recordName = UUID.randomUUID().toString();
-			recordOperation = callController.record(recordName, ".wav", speechMaxDuration, speechMaxSilence, false, terminatingKey);
+			recordOperation = callController.record(recordName, "wav", speechMaxDuration, speechMaxSilence, false,
+					terminatingKey);
 			recordOperation.run().thenCompose(recordRes -> {
-						if(Objects.equals(firsFinishedInput, ""))
-							firsFinishedInput = "speech";
-						return cancelAll().thenAccept(v -> {
-							recording = recordRes.getRecording();
-							compFuture.complete(this);
-						});
-					});
+				if (Objects.equals(firsFinishedInput, "")) {
+					firsFinishedInput = "speech";
+					logger.info("first finished input was received via speech");
+				}
+				return cancelAll().thenApply(v -> {
+					recording = recordRes.getRecording();
+					return compFuture.complete(this);
+				});
+			});
 		}
 
 		if (!nestedOperations.isEmpty()) {
@@ -139,8 +146,8 @@ public class ReceivedDTMF extends Operation {
 					return CompletableFuture.completedFuture(null);
 				});
 			}
-			if(currOpIndext ==  nestedOperations.size() && !isCanceled)
-				doneAllOps  = true;
+			if (currOpIndext == nestedOperations.size() && !isCanceled)
+				doneAllOps = true;
 		}
 		return compFuture;
 	}
@@ -149,9 +156,11 @@ public class ReceivedDTMF extends Operation {
 	 * When stopped receiving DTMF cancel all operations
 	 */
 	private CompletableFuture<Void> cancelAll() {
-		isCanceled = true;
-		for (int i = currOpIndext - 1; i < nestedOperations.size(); i++) {
-			nestedOperations.get(i).cancel();
+		if (!isCanceled) {
+			isCanceled = true;
+			for (int i = currOpIndext - 1; i < nestedOperations.size(); i++) {
+				nestedOperations.get(i).cancel();
+			}
 		}
 		return CompletableFuture.completedFuture(null);
 	}
@@ -243,5 +252,13 @@ public class ReceivedDTMF extends Operation {
 
 	public void setDoneAllOps(boolean doneAllOps) {
 		this.doneAllOps = doneAllOps;
+	}
+
+	public String getRecordName() {
+		return recordName;
+	}
+
+	public void setRecordName(String recordName) {
+		this.recordName = recordName;
 	}
 }
