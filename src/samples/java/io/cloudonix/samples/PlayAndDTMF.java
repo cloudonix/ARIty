@@ -16,7 +16,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
  *
  */
 public class PlayAndDTMF extends CallController{
-	private final static Logger logger = Logger.getLogger(AnswerAndPlay.class.getName());
+	private final static Logger logger = Logger.getLogger(PlayAndDTMF.class.getName());
 
 	@Override
 	public CompletableFuture<Void> run() {
