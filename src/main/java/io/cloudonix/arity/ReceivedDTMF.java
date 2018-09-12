@@ -3,13 +3,10 @@ package io.cloudonix.arity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import ch.loway.oss.ari4java.generated.LiveRecording;
 
 /**
  * The class represents the Received DTMF operation
@@ -26,13 +23,6 @@ public class ReceivedDTMF extends Operation {
 	private String terminatingKey;
 	private CancelableOperations currOpertation = null;
 	private int inputLength;
-	private boolean isDTMF;
-	private boolean isSpeech;
-	private CallController callController;
-	private String recordName = "";
-	private int speechMaxSilence;
-	private LiveRecording recording;
-	private int speechMaxDuration;
 	private int currOpIndext;
 	private boolean isCanceled;
 	private boolean termKeyWasPressed = false;
@@ -50,31 +40,11 @@ public class ReceivedDTMF extends Operation {
 	 * @param length
 	 *            length of the input we are expecting to get from the caller. for
 	 *            no limitation -1
-	 * @param isDTMF
-	 *            true if the input should be received via DTMF, false if the input
-	 *            should be received via speech (talking detection in the channel).
-	 * @param isSpeech
-	 *            true if the input should be received via speech (talking detection
-	 *            in the channel), false if the input should be received via DTMF
-	 * @param speechMaxDuration
-	 *            maximum duration for recording the speech
-	 * @param speechMaxSilence
-	 *            maximum duration of silence allowed before stop recording speech
-	 *            (same as maxSilenceSeconds in channel record)
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int length, boolean isDTMF, boolean isSpeech,
-			int speechMaxDuration, int speechMaxSilence) {
+	public ReceivedDTMF(CallController callController, String termKey, int length) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.callController = callController;
 		this.terminatingKey = termKey;
 		this.inputLength = length;
-		this.isDTMF = isDTMF;
-		this.isSpeech = isSpeech;
-		this.speechMaxDuration = speechMaxDuration;
-		this.speechMaxSilence = speechMaxSilence;
-		// default of receiving DTMF is via DTMF if non was given
-		if (!isDTMF && !isSpeech)
-			this.isDTMF = true;
 	}
 
 	/**
@@ -83,7 +53,7 @@ public class ReceivedDTMF extends Operation {
 	 * @param callController
 	 */
 	public ReceivedDTMF(CallController callController) {
-		this(callController, "#", -1, true, false, (int) TimeUnit.HOURS.toSeconds(1), 0);
+		this(callController, "#", -1);
 	}
 
 	/**
@@ -92,44 +62,26 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		if (isDTMF) {
-			logger.info("DTMF via input");
-			getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
-				if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
-					logger.info("Done receiving DTMF. all input: " + userInput);
-					if (dtmf.getDigit().equals(terminatingKey)) {
-						termKeyWasPressed = true;
-						cancelAll().thenApply(v -> {
-							compFuture.complete(this);
-							return true;
-						});
-						if (Objects.equals(firsFinishedInput, "")) {
-							firsFinishedInput = "dtmf";
-							logger.info("first finished input was received via dtmf");
-						}
+		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
+			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
+				logger.info("Done receiving DTMF. all input: " + userInput);
+				if (dtmf.getDigit().equals(terminatingKey)) {
+					termKeyWasPressed = true;
+					cancelAll().thenApply(v -> {
+						compFuture.complete(this);
+						return true;
+					});
+					if (Objects.equals(firsFinishedInput, "")) {
+						firsFinishedInput = "dtmf";
+						logger.info("first finished input was received via dtmf");
 					}
 				}
-				if (!termKeyWasPressed)
-					userInput = userInput + dtmf.getDigit();
-				return false;
-			}, false);
-		}
-		if (isSpeech) {
-			logger.info("DTMF via speech");
-			recordName = UUID.randomUUID().toString();
-			recordOperation = callController.record(recordName, "wav", speechMaxDuration, speechMaxSilence, false,
-					terminatingKey);
-			recordOperation.run().thenCompose(recordRes -> {
-				if (Objects.equals(firsFinishedInput, "")) {
-					firsFinishedInput = "speech";
-					logger.info("first finished input was received via speech");
-				}
-				return cancelAll().thenApply(v -> {
-					recording = recordRes.getRecording();
-					return compFuture.complete(this);
-				});
-			});
-		}
+			}
+			
+			if (!termKeyWasPressed)
+				userInput = userInput + dtmf.getDigit();
+			return false;
+		}, false);
 
 		if (!nestedOperations.isEmpty()) {
 			logger.fine("there are verbs in the nested operation list");
@@ -198,29 +150,6 @@ public class ReceivedDTMF extends Operation {
 		return userInput;
 	}
 
-	public LiveRecording getRecording() {
-		return recording;
-	}
-
-	public void setRecording(LiveRecording recording) {
-		this.recording = recording;
-	}
-
-	public boolean isSpeech() {
-		return isSpeech;
-	}
-
-	public void setSpeech(boolean isSpeech) {
-		this.isSpeech = isSpeech;
-	}
-
-	public boolean isDTMF() {
-		return isDTMF;
-	}
-
-	public void setDTMF(boolean isDTMF) {
-		this.isDTMF = isDTMF;
-	}
 
 	public boolean isTermKeyWasPressed() {
 		return termKeyWasPressed;
@@ -252,13 +181,5 @@ public class ReceivedDTMF extends Operation {
 
 	public void setDoneAllOps(boolean doneAllOps) {
 		this.doneAllOps = doneAllOps;
-	}
-
-	public String getRecordName() {
-		return recordName;
-	}
-
-	public void setRecordName(String recordName) {
-		this.recordName = recordName;
 	}
 }

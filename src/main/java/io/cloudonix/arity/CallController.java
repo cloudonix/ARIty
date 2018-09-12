@@ -139,22 +139,11 @@ public abstract class CallController {
 	 *            terminating key for stop receiving DTMF
 	 * @param inputLenght
 	 *            length of the input that we expect receiving from the caller
-	 * @param isDTMF
-	 *            true if the input should be received via DTMF, false if the input
-	 *            should be received via speech (talking detection in the channel).
-	 * @param isSpeech
-	 *            true if the input should be received via speech (talking detection
-	 *            in the channel), false if the input should be received via DTMF
-	 * @param maxDuration
-	 *            maximum duration of speech recognition in seconds
-	 * @param maxSilenceDuration
-	 *            if isSpeech is true, set the maxSilenceDuration before ending the
-	 *            speech recording in seconds. Otherwise, 0
 	 * @return
 	 */
 	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght, boolean isDTMF, boolean isSpeech,
 			int maxDuration, int maxSilenceDuration) {
-		return new ReceivedDTMF(this, terminatingKey, inputLenght, isDTMF, isSpeech,maxDuration, maxSilenceDuration);
+		return new ReceivedDTMF(this, terminatingKey, inputLenght);
 	}
 
 	/**
