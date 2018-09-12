@@ -137,13 +137,12 @@ public abstract class CallController {
 	 * 
 	 * @param terminatingKey
 	 *            terminating key for stop receiving DTMF
-	 * @param inputLenght
+	 * @param inputLength
 	 *            length of the input that we expect receiving from the caller
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLenght, boolean isDTMF, boolean isSpeech,
-			int maxDuration, int maxSilenceDuration) {
-		return new ReceivedDTMF(this, terminatingKey, inputLenght);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLength) {
+		return new ReceivedDTMF(this, terminatingKey, inputLength);
 	}
 
 	/**
