@@ -26,8 +26,6 @@ public class ReceivedDTMF extends Operation {
 	private int currOpIndext;
 	private boolean isCanceled;
 	private boolean termKeyWasPressed = false;
-	private transient String firsFinishedInput = "";
-	private Record recordOperation;
 	private boolean doneAllOps = false;
 
 	/**
@@ -71,10 +69,6 @@ public class ReceivedDTMF extends Operation {
 						compFuture.complete(this);
 						return true;
 					});
-					if (Objects.equals(firsFinishedInput, "")) {
-						firsFinishedInput = "dtmf";
-						logger.info("first finished input was received via dtmf");
-					}
 				}
 			}
 			
@@ -110,7 +104,7 @@ public class ReceivedDTMF extends Operation {
 	private CompletableFuture<Void> cancelAll() {
 		if (!isCanceled) {
 			isCanceled = true;
-			for (int i = currOpIndext - 1; i < nestedOperations.size(); i++) {
+			for (int i = (currOpIndext == 0)? currOpIndext : currOpIndext-1; i < nestedOperations.size(); i++) {
 				nestedOperations.get(i).cancel();
 			}
 		}
@@ -157,22 +151,6 @@ public class ReceivedDTMF extends Operation {
 
 	public void setTermKeyWasPressed(boolean termKeyWasPressed) {
 		this.termKeyWasPressed = termKeyWasPressed;
-	}
-
-	public String getFirsFinishedInput() {
-		return firsFinishedInput;
-	}
-
-	public void setFirsFinishedInput(String firsFinishedInputVia) {
-		this.firsFinishedInput = firsFinishedInputVia;
-	}
-
-	public Record getRecordOperation() {
-		return recordOperation;
-	}
-
-	public void setRecordOperation(Record recordOperation) {
-		this.recordOperation = recordOperation;
 	}
 
 	public boolean isDoneAllOps() {
