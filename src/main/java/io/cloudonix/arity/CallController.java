@@ -223,7 +223,7 @@ public abstract class CallController {
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
 		return hangup().run().handle((hangup, th2) -> null)
-				.thenCompose(v -> Objects.nonNull(th) ? FutureHelper.failedFuture(th)
+				.thenCompose(v -> Objects.nonNull(th) ? FutureHelper.completedExceptionally(th)
 						: CompletableFuture.completedFuture(value));
 	}
 

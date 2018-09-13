@@ -31,7 +31,7 @@ public class Answer extends Operation {
 			getAri().channels().answer(getChannelId());
 		} catch (RestException e) {
 			logger.severe("Failed answering the call: " + e);
-			return FutureHelper.failedFuture(new AnswerCallException(e));
+			return FutureHelper.completedExceptionally(new AnswerCallException(e));
 		}
 		logger.info("Call was answered");
 
