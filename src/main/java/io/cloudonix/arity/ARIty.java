@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -49,7 +49,7 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
-	private ExecutorService executor = Executors.newSingleThreadExecutor();
+	private ExecutorService executor = ForkJoinPool.commonPool();
 
 	/**
 	 * Constructor
