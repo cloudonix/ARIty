@@ -9,6 +9,8 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,6 +49,7 @@ public class ARIty implements AriCallback<Message> {
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
+	private ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	/**
 	 * Constructor
@@ -182,7 +185,6 @@ public class ARIty implements AriCallback<Message> {
 
 	protected CallController hangupDefault() {
 		return new CallController() {
-
 			public CompletableFuture<Void> run() {
 				return hangup().run().thenAccept(hangup -> {
 					if (Objects.isNull(lastException))
@@ -196,32 +198,13 @@ public class ARIty implements AriCallback<Message> {
 	@Override
 	public void onSuccess(Message event) {
 		if (event instanceof StasisStart) {
-			StasisStart ss = (StasisStart) event;
-
-			if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
-				logger.fine("Ignore h");
-				return;
-			}
-			// if the list contains the stasis start event with this channel id, remove it
-			// and continue
-			if (ignoredChannelIds.remove(ss.getChannel().getId())) {
-				return;
-			}
-			logger.info("asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
-			CallController cc = callSupplier.get();
-			cc.init(ss, ari, this);
-			try {
-				cc.run().exceptionally(t -> {
-					logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
-					cc.hangup().run();
-					return null;
-				});
-			} catch (Throwable t) {
-				logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
-				cc.hangup().run();
-			}
+			executor.submit(()->handleStasisStart(event));
 			return;
 		}
+		executor.submit(()->handleOtherEvents(event));
+	}
+
+	private void handleOtherEvents(Message event) {
 		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
 			return;
@@ -242,8 +225,34 @@ public class ARIty implements AriCallback<Message> {
 					break;
 				}
 			}
-
 		}
+	}
+
+	private void handleStasisStart(Message event) {
+		StasisStart ss = (StasisStart)event;
+		if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
+			logger.fine("Ignore h");
+			return;
+		}
+		// if the list contains the stasis start event with this channel id, remove it
+		// and continue
+		if (ignoredChannelIds.remove(ss.getChannel().getId())) {
+			return;
+		}
+		logger.info("asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
+		CallController cc = callSupplier.get();
+		cc.init(ss, ari, this);
+		try {
+			cc.run().exceptionally(t -> {
+				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
+				cc.hangup().run();
+				return null;
+			});
+		} catch (Throwable t) {
+			logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
+			cc.hangup().run();
+		}
+		return;
 	}
 
 	/**
