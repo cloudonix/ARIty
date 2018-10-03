@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class represents the Received DTMF operation
@@ -108,7 +109,7 @@ public class ReceivedDTMF extends Operation {
 				nestedOperations.get(i).cancel();
 			}
 		}
-		return CompletableFuture.completedFuture(null);
+		return FutureHelper.completedFuture();
 	}
 
 	/**
