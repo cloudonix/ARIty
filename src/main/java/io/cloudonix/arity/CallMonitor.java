@@ -1,5 +1,7 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
+
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 
 /**
@@ -29,12 +31,14 @@ public class CallMonitor {
 
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
-		onHangUp.run();
+		if (Objects.nonNull(onHangUp))
+			onHangUp.run();
 		return true;
 	}
 
 	/**
-	 * register the handler which will be called if hang up event accrued 
+	 * register the handler which will be called if hang up event accrued
+	 * 
 	 * @param hangUpHandler
 	 */
 	public void registerHangUpHandler(Runnable hangUpHandler) {
