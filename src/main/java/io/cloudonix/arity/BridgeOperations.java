@@ -184,10 +184,8 @@ public class BridgeOperations {
 	public CompletableFuture<Playback> playMediaToBridge(String fileToPlay) {
 		CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 		String playbackId = UUID.randomUUID().toString();
-
 		arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId,
 				new AriCallback<Playback>() {
-
 					@Override
 					public void onSuccess(Playback result) {
 						logger.fine("playing: " + fileToPlay);
@@ -220,15 +218,14 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String holdMusicFile) {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		String fileToPlay = (Objects.equals(holdMusicFile, "")) ? "sound:pls-hold-while-try" : holdMusicFile;
+		String fileToPlay = (Objects.equals(holdMusicFile, "")) ? "pls-hold-while-try" : holdMusicFile;
 		arity.getAri().bridges().startMoh(bridgeId, fileToPlay, new AriCallback<Void>() {
-
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Playing music on hold to bridge: " + bridgeId);
 				future.complete(result);
 			}
-
+			
 			@Override
 			public void onFailure(RestException e) {
 				logger.info("Failed playing music on hold to bridge: " + ErrorStream.fromThrowable(e));
@@ -246,10 +243,9 @@ public class BridgeOperations {
 	public CompletableFuture<Void> stopMusicOnHold() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		arity.getAri().bridges().stopMoh(bridgeId, new AriCallback<Void>() {
-
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("Playing music on hold to bridge: " + bridgeId);
+				logger.info(" Stoped playing music on hold to bridge: " + bridgeId);
 				future.complete(result);
 			}
 
@@ -273,7 +269,6 @@ public class BridgeOperations {
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
 		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
 				ifExists, beep, terminateOn, new AriCallback<LiveRecording>() {
-
 					@Override
 					public void onSuccess(LiveRecording result) {
 						logger.info("Strated Recording bridge with id: " + bridgeId + " and recording name is: "
@@ -307,7 +302,6 @@ public class BridgeOperations {
 	public CompletableFuture<Bridge> getBridge() {
 		CompletableFuture<Bridge> future = new CompletableFuture<Bridge>();
 		arity.getAri().bridges().get(bridgeId, new AriCallback<Bridge>() {
-
 			@Override
 			public void onSuccess(Bridge result) {
 				logger.info("Found bridge with id: " + bridgeId);
