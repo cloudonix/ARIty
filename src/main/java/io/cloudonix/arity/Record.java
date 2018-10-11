@@ -20,7 +20,7 @@ import io.cloudonix.future.helper.FutureHelper;
 public class Record extends CancelableOperations {
 
 	private String name;
-	private String fileFormat;
+	private String fileFormat = "ulaw";
 	private int maxDuration; // maximum duration of the recording
 	private int maxSilenceSeconds;
 	private boolean beep;
@@ -32,7 +32,7 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 	private boolean wasTalkingDetect = false;
 	private int talkingDuration = 0;
-	private String ifExists = "overwrite";
+	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
 
 	/**
 	 * Constructor
@@ -42,7 +42,8 @@ public class Record extends CancelableOperations {
 			boolean beep, String terminateOnKey) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.name = name;
-		this.fileFormat = fileFormat;
+		this.fileFormat = (Objects.nonNull(fileFormat) && !Objects.equals(fileFormat, "")) ? fileFormat
+				: this.fileFormat;
 		this.maxDuration = maxDuration;
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
