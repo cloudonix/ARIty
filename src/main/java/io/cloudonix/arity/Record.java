@@ -257,7 +257,6 @@ public class Record extends CancelableOperations {
 	 * @return
 	 */
 	public File getRecordAsFile() {
-		File recFile = new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
-		return (recFile.exists()) ? recFile : null;
+		return new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
 	}
 }
