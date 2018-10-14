@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.io.File;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Timer;
@@ -248,5 +249,15 @@ public class Record extends CancelableOperations {
 	public Record setIfExist(String ifExist) {
 		this.ifExists = ifExist;
 		return this;
+	}
+
+	/**
+	 * get recording as a file from asterisk recording folder
+	 * 
+	 * @return
+	 */
+	public File getRecordAsFile() {
+		File recFile = new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
+		return (recFile.exists()) ? recFile : null;
 	}
 }
