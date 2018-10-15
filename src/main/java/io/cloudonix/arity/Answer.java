@@ -3,9 +3,9 @@ package io.cloudonix.arity;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.AnswerCallException;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class represents the Answer operation (handle answering a call)
@@ -27,14 +27,20 @@ public class Answer extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Answer> run() {
-		try {
-			getAri().channels().answer(getChannelId());
-		} catch (RestException e) {
-			logger.severe("Failed answering the call: " + e);
-			return FutureHelper.completedExceptionally(new AnswerCallException(e));
-		}
-		logger.info("Call was answered");
+		CompletableFuture<Answer> future = new CompletableFuture<Answer>();
+		getAri().channels().answer(getChannelId(), new AriCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				logger.info("Call was answered");
+				future.complete(null);
+			}
 
-		return CompletableFuture.completedFuture(this);
+			@Override
+			public void onFailure(RestException e) {
+				logger.warning("Failed answer the call: " + e);
+				future.completeExceptionally(new AnswerCallException(e));
+			}
+		});
+		return future;
 	}
 }
