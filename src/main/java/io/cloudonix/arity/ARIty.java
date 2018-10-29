@@ -50,6 +50,7 @@ public class ARIty implements AriCallback<Message> {
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
 	private Exception lastException = null;
 	private ExecutorService executor = ForkJoinPool.commonPool();
+	private Consumer<Exception> ce;
 
 	/**
 	 * Constructor
@@ -68,19 +69,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
-		this.appName = appName;
-
-		try {
-			logger.info("Creating ari- application name: "+appName+" , login is: "+login+" , uri: "+uri);
-			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
-			logger.info("Ari created");
-			logger.info("Ari version: " + ari.getVersion());
-			ari.events().eventWebsocket(appName, true, this);
-			logger.info("Websocket is open");
-		} catch (ARIException e) {
-			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
-			throw new ConnectionFailedException(e);
-		}
+		this(uri, appName, login, pass, true, null);
 	}
 
 	/**
@@ -103,7 +92,33 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket)
 			throws ConnectionFailedException, URISyntaxException {
+		this(uri, appName, login, pass, openWebSocket, null);
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param uri
+	 *            URI
+	 * @param appName
+	 *            name of the stasis application
+	 * @param login
+	 *            user name
+	 * @param pass
+	 *            password
+	 * @param openWebSocket
+	 *            if need to open web socket in order to process events true, false
+	 *            otherwise
+	 * @param ce
+	 *            error handler
+	 * @throws ConnectionFailedException
+	 * @throws URISyntaxException
+	 */
+	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, Consumer<Exception> ce)
+			throws ConnectionFailedException, URISyntaxException {
 		this.appName = appName;
+		this.ce = (Objects.isNull(ce)) ? e -> {
+		} : ce;
 
 		try {
 			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
@@ -199,10 +214,10 @@ public class ARIty implements AriCallback<Message> {
 	@Override
 	public void onSuccess(Message event) {
 		if (event instanceof StasisStart) {
-			executor.submit(()->handleStasisStart(event));
+			executor.submit(() -> handleStasisStart(event));
 			return;
 		}
-		executor.submit(()->handleOtherEvents(event));
+		executor.submit(() -> handleOtherEvents(event));
 	}
 
 	private void handleOtherEvents(Message event) {
@@ -230,7 +245,7 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	private void handleStasisStart(Message event) {
-		StasisStart ss = (StasisStart)event;
+		StasisStart ss = (StasisStart) event;
 		if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
 			logger.fine("Ignore h");
 			return;
@@ -295,6 +310,7 @@ public class ARIty implements AriCallback<Message> {
 	@Override
 	public void onFailure(RestException e) {
 		logger.warning(e.getMessage());
+		ce.accept(e);
 	}
 
 	/**
