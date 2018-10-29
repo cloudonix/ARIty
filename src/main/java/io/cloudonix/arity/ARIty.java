@@ -71,7 +71,7 @@ public class ARIty implements AriCallback<Message> {
 		this.appName = appName;
 
 		try {
-			logger.info("Creating ari- application name: "+appName+" , login is: "+login);
+			logger.info("Creating ari- application name: "+appName+" , login is: "+login+" , uri: "+uri);
 			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
 			logger.info("Ari created");
 			logger.info("Ari version: " + ari.getVersion());
