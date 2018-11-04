@@ -172,7 +172,7 @@ public class Dial extends CancelableOperations {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			return true;
 		}
-		dialStatus = Objects.isNull(dialStatus) ? "" : dial.getDialstatus();
+		dialStatus = dial.getDialstatus();
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
 		if (!dialStatus.equals("ANSWER")) {
 			if (Objects.equals(dialStatus, "BUSY") || Objects.equals(dialStatus, "NOANSWER")) {
