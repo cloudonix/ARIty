@@ -196,10 +196,8 @@ public abstract class CallController {
 	/**
 	 * create conference with additional functionality
 	 * 
-	 * @param callController
-	 *            call controller instance
-	 * @param name
-	 *            name of the conference
+	 * @param confName
+	 *           conference name
 	 * @param beep
 	 *            true if play beep when channel enters the conference
 	 * @param mute
