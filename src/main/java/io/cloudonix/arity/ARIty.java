@@ -55,14 +55,10 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * Constructor
 	 * 
-	 * @param uri
-	 *            URI
-	 * @param appName
-	 *            name of the stasis application
-	 * @param login
-	 *            user name
-	 * @param pass
-	 *            password
+	 * @param uri     URI
+	 * @param appName name of the stasis application
+	 * @param login   user name
+	 * @param pass    password
 	 * 
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
@@ -75,17 +71,12 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * Constructor
 	 * 
-	 * @param uri
-	 *            URI
-	 * @param appName
-	 *            name of the stasis application
-	 * @param login
-	 *            user name
-	 * @param pass
-	 *            password
-	 * @param openWebSocket
-	 *            if need to open web socket in order to process events true, false
-	 *            otherwise
+	 * @param uri           URI
+	 * @param appName       name of the stasis application
+	 * @param login         user name
+	 * @param pass          password
+	 * @param openWebSocket if need to open web socket in order to process events
+	 *                      true, false otherwise
 	 * 
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
@@ -98,19 +89,13 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * Constructor
 	 * 
-	 * @param uri
-	 *            URI
-	 * @param appName
-	 *            name of the stasis application
-	 * @param login
-	 *            user name
-	 * @param pass
-	 *            password
-	 * @param openWebSocket
-	 *            if need to open web socket in order to process events true, false
-	 *            otherwise
-	 * @param ce
-	 *            error handler
+	 * @param uri           URI
+	 * @param appName       name of the stasis application
+	 * @param login         user name
+	 * @param pass          password
+	 * @param openWebSocket if need to open web socket in order to process events
+	 *                      true, false otherwise
+	 * @param ce            error handler
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
@@ -138,11 +123,8 @@ public class ARIty implements AriCallback<Message> {
 	 * The method register a new application to be executed according to the class
 	 * of the voice application
 	 * 
-	 * @param class
-	 *            instance of the class that contains the voice application (extends
-	 *            from callController)
-	 * @throws IllegalAccessException
-	 * @throws InstantiationException
+	 * @param class instance of the class that contains the voice application
+	 *        (extends from callController)
 	 */
 	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
 		callSupplier = new Supplier<CallController>() {
@@ -163,8 +145,8 @@ public class ARIty implements AriCallback<Message> {
 	 * The method register the voice application (the supplier that has a
 	 * CallController, meaning the application)
 	 * 
-	 * @param controllorSupplier
-	 *            the supplier that has the CallController (the voice application)
+	 * @param controllorSupplier the supplier that has the CallController (the voice
+	 *                           application)
 	 */
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
 		if (Objects.isNull(controllorSupplier))
@@ -275,8 +257,7 @@ public class ARIty implements AriCallback<Message> {
 	 * get the channel id of the current event. if no channel id to this event, null
 	 * is returned
 	 * 
-	 * @param event
-	 *            event message that we are checking
+	 * @param event event message that we are checking
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
@@ -317,14 +298,10 @@ public class ARIty implements AriCallback<Message> {
 	 * The method handles adding a future event from a specific class (event) and a
 	 * channel id to the future event list
 	 * 
-	 * @param class1
-	 *            class of the finished event (example: PlaybackFinished)
-	 * @param channelId
-	 *            id of the channel we want to know when future event comes
-	 * @param func
-	 *            function to be executed
-	 * @param runOnce
-	 *            true if run the event once, false otherwise
+	 * @param class1    class of the finished event (example: PlaybackFinished)
+	 * @param channelId id of the channel we want to know when future event comes
+	 * @param func      function to be executed
+	 * @param runOnce   true if run the event once, false otherwise
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func, boolean runOnce) {
 
@@ -354,8 +331,7 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * ignore Stasis start from this channel (package private method)
 	 * 
-	 * @param id
-	 *            channel id to ignore
+	 * @param id channel id to ignore
 	 */
 	void ignoreChannel(String id) {
 		ignoredChannelIds.add(id);
