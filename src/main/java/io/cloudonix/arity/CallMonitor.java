@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.util.Objects;
 
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.ChannelStateChange;
 
 /**
  * The class monitors the activity of the call
@@ -16,6 +17,7 @@ public class CallMonitor {
 	private ARIty arity;
 	private Runnable onHangUp;
 	private boolean isActive = true;
+	private boolean wasAnswered = false;
 
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.arity = arity;
@@ -29,10 +31,36 @@ public class CallMonitor {
 		arity.addFutureEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller, true);
 	}
 
+	/**
+	 * handle when a hang up of the channel accrues
+	 * 
+	 * @param hangup hang up event
+	 * @return
+	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
 		if (Objects.nonNull(onHangUp))
 			onHangUp.run();
+		return true;
+	}
+
+	/**
+	 * monitor when the channel is answered
+	 */
+	public void monitorCallAnswered() {
+		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer, false);
+	}
+
+	/**
+	 * handle when channel state changed
+	 * 
+	 * @param state channel state change event
+	 * @return
+	 */
+	public Boolean handleAnswer(ChannelStateChange state) {
+		if (!Objects.equals(state.getChannel().getState().toLowerCase(), "up"))
+			return false;
+		wasAnswered = true;
 		return true;
 	}
 
@@ -45,7 +73,21 @@ public class CallMonitor {
 		onHangUp = hangUpHandler;
 	}
 
+	/**
+	 * true if the the call was not hanged up, false otherwise
+	 * 
+	 * @return
+	 */
 	public boolean isActive() {
 		return isActive;
+	}
+
+	/**
+	 * true if the call was answered, false otherwise
+	 * 
+	 * @return
+	 */
+	public boolean wasAnswered() {
+		return wasAnswered;
 	}
 }
