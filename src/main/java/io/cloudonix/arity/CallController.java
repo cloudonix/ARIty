@@ -43,6 +43,7 @@ public abstract class CallController {
 				stasisStartEvent.getChannel(), getChannelTechnology(stasisStartEvent.getChannel()));
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
 		getCallMonitor().monitorCallHangUp();
+		getCallMonitor().monitorCallAnswered();
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
 
