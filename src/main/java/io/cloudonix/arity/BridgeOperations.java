@@ -92,7 +92,7 @@ public class BridgeOperations {
 			}
 			@Override
 			public void onFailure(RestException e) {
-				logger.severe("Failed creating dial bridge: " + ErrorStream.fromThrowable(e));
+				logger.severe("Failed creating dial bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -117,7 +117,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.severe("Failed destroying brdige with id: " + bridgeId + " :" + ErrorStream.fromThrowable(e));
+				logger.severe("Failed destroying brdige with id: " + bridgeId + " :" + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -142,7 +142,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.severe("Failed to connect channel to the bridge: " + ErrorStream.fromThrowable(e));
+				logger.severe("Failed to connect channel to the bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -167,7 +167,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.severe("Failed to remove channel from the bridge: " + ErrorStream.fromThrowable(e));
+				logger.severe("Failed to remove channel from the bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -201,7 +201,7 @@ public class BridgeOperations {
 
 					@Override
 					public void onFailure(RestException e) {
-						logger.info("Failed playing file " + fileToPlay + " : " + ErrorStream.fromThrowable(e));
+						logger.info("Failed playing file " + fileToPlay + " : " + e);
 						future.completeExceptionally(e);
 					}
 				});
@@ -228,7 +228,7 @@ public class BridgeOperations {
 			
 			@Override
 			public void onFailure(RestException e) {
-				logger.info("Failed playing music on hold to bridge: " + ErrorStream.fromThrowable(e));
+				logger.info("Failed playing music on hold to bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -286,7 +286,7 @@ public class BridgeOperations {
 
 					@Override
 					public void onFailure(RestException e) {
-						logger.info("Failed recording bridge: " + ErrorStream.fromThrowable(e));
+						logger.info("Failed recording bridge: " + e);
 						future.completeExceptionally(e);
 					}
 				});
