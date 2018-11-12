@@ -96,6 +96,10 @@ public class CallMonitor {
 		return wasAnswered;
 	}
 
+	/**
+	 * wait for hang up event
+	 * @return
+	 */
 	public CompletableFuture<Void> waitForHangup() {
 		CompletableFuture<Void>future = new CompletableFuture<Void>();
 		registerHangUpHandler(()->future.complete(null));
