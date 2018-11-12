@@ -31,7 +31,7 @@ public class Answer extends Operation {
 		getAri().channels().answer(getChannelId(), new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("Call was answered");
+				logger.info("Call with channel: "+getChannelId()+" was answered");
 				future.complete(null);
 			}
 
