@@ -161,7 +161,7 @@ public class BridgeOperations {
 		arity.getAri().bridges().removeChannel(bridgeId, channelId, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("Channel with id: " + channelId + " was removed to bridge: " + bridgeId);
+				logger.info("Channel with id: " + channelId + " was removed from bridge with id: " + bridgeId);
 				future.complete(result);
 			}
 
