@@ -31,19 +31,14 @@ public abstract class CallController {
 	/**
 	 * Initialise the call Controller with the needed fields
 	 * 
-	 * @param stasisStartEvent
-	 *            StasisStart
-	 * @param ari
-	 *            ARI instance
-	 * @param arity
-	 *            ARIty instance
+	 * @param stasisStartEvent StasisStart
+	 * @param ari              ARI instance
+	 * @param arity            ARIty instance
 	 */
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
 		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(),
 				stasisStartEvent.getChannel(), getChannelTechnology(stasisStartEvent.getChannel()));
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
-		getCallMonitor().monitorCallHangUp();
-		getCallMonitor().monitorCallAnswered();
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
 
@@ -86,8 +81,7 @@ public abstract class CallController {
 	/**
 	 * play media to a channel
 	 * 
-	 * @param file
-	 *            file to be played
+	 * @param file file to be played
 	 * @return
 	 */
 	public Play play(String file) {
@@ -97,8 +91,7 @@ public abstract class CallController {
 	/**
 	 * play stored recording to a channel
 	 * 
-	 * @param recName
-	 *            recording name to play
+	 * @param recName recording name to play
 	 * @return
 	 */
 	public Play playRecording(String recName) {
@@ -136,10 +129,9 @@ public abstract class CallController {
 	/**
 	 * the method creates a new receivedDTMF object
 	 * 
-	 * @param terminatingKey
-	 *            terminating key for stop receiving DTMF
-	 * @param inputLength
-	 *            length of the input that we expect receiving from the caller
+	 * @param terminatingKey terminating key for stop receiving DTMF
+	 * @param inputLength    length of the input that we expect receiving from the
+	 *                       caller
 	 * @return
 	 */
 	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLength) {
@@ -158,8 +150,7 @@ public abstract class CallController {
 	/**
 	 * the method created new Dial operation
 	 *
-	 * @param number
-	 *            destination number
+	 * @param number destination number
 	 * @return
 	 */
 	public Dial dial(String number, String callerId) {
@@ -169,14 +160,10 @@ public abstract class CallController {
 	/**
 	 * the method created new Dial operation
 	 *
-	 * @param number
-	 *            destination number
-	 * @param callerId
-	 *            id of the caller
-	 * @param headers
-	 *            headers to add to the other channel we are dialing to
-	 * @param timeout
-	 *            the time we wait until the callee to answer the call
+	 * @param number   destination number
+	 * @param callerId id of the caller
+	 * @param headers  headers to add to the other channel we are dialing to
+	 * @param timeout  the time we wait until the callee to answer the call
 	 * @return
 	 */
 	public Dial dial(String number, String callerId, Map<String, String> headers, int timeout) {
@@ -186,8 +173,7 @@ public abstract class CallController {
 	/**
 	 * the method creates a new Conference
 	 * 
-	 * @param confName
-	 *            name of the conference
+	 * @param confName name of the conference
 	 * @return
 	 */
 	public Conference conference(String confName) {
@@ -197,14 +183,10 @@ public abstract class CallController {
 	/**
 	 * create conference with additional functionality
 	 * 
-	 * @param confName
-	 *           conference name
-	 * @param beep
-	 *            true if play beep when channel enters the conference
-	 * @param mute
-	 *            true if channel need to be muted for audio
-	 * @param needToRecord
-	 *            true if need to record conference, false otherwise
+	 * @param confName     conference name
+	 * @param beep         true if play beep when channel enters the conference
+	 * @param mute         true if channel need to be muted for audio
+	 * @param needToRecord true if need to record conference, false otherwise
 	 */
 	public Conference conference(String confName, boolean beep, boolean mute, boolean needToRecord) {
 		return new Conference(this, confName, beep, mute, needToRecord);
@@ -214,10 +196,8 @@ public abstract class CallController {
 	 * the method verifies that the call is always hangs up, even if an error
 	 * occurred during any operation
 	 * 
-	 * @param value
-	 *            if no error occurred
-	 * @param th
-	 *            if an error occurred it will contain the error
+	 * @param value if no error occurred
+	 * @param th    if an error occurred it will contain the error
 	 * @return
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
@@ -229,12 +209,9 @@ public abstract class CallController {
 	/**
 	 * set channel variable
 	 * 
-	 * @param channelId
-	 *            id of the channel we want to set the variable to
-	 * @param varName
-	 *            name of the variable
-	 * @param varValue
-	 *            value of the variable
+	 * @param channelId id of the channel we want to set the variable to
+	 * @param varName   name of the variable
+	 * @param varValue  value of the variable
 	 * @return
 	 */
 	public CompletableFuture<Void> setChannelVariable(String channelId, String varName, String varValue) {
@@ -250,8 +227,7 @@ public abstract class CallController {
 	/**
 	 * get the value of a specific sip header
 	 * 
-	 * @param headerName
-	 *            the name of the header, for example: To
+	 * @param headerName the name of the header, for example: To
 	 * @return
 	 * @throws RestException
 	 */
@@ -268,8 +244,7 @@ public abstract class CallController {
 	/**
 	 * get the value of a specific PJSIP header
 	 * 
-	 * @param headerName
-	 *            the name of the header, for example: To
+	 * @param headerName the name of the header, for example: To
 	 * @return
 	 * @throws RestException
 	 */
@@ -288,10 +263,8 @@ public abstract class CallController {
 	/**
 	 * add sip header to a channel
 	 * 
-	 * @param headerName
-	 *            name of the new header
-	 * @param headerValue
-	 *            value of the new header
+	 * @param headerName  name of the new header
+	 * @param headerValue value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
@@ -306,10 +279,8 @@ public abstract class CallController {
 	/**
 	 * add pjsip header to a channel
 	 * 
-	 * @param headerName
-	 *            name of the new header
-	 * @param headerValue
-	 *            value of the new header
+	 * @param headerName  name of the new header
+	 * @param headerValue value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
@@ -324,8 +295,7 @@ public abstract class CallController {
 	/**
 	 * get the value of a channel variable
 	 * 
-	 * @param varName
-	 *            name of the channel variable we are asking for
+	 * @param varName name of the channel variable we are asking for
 	 * @return
 	 */
 	public CompletableFuture<String> getVariable(String varName) {
@@ -343,14 +313,13 @@ public abstract class CallController {
 	/**
 	 * change setting regarding to TALK_DETECT function
 	 * 
-	 * @param action
-	 *            'set' or 'remove'
-	 * @param actionValue
-	 *            if set action is used, action value will be in the form:
-	 *            'threshold1,threshold2' such that threshold 1 is the time in
-	 *            milliseconds before which a user is considered silent. and
-	 *            threshold 2 is the time in milliseconds after which a user is
-	 *            considered talking. use the empty string for no threshold
+	 * @param action      'set' or 'remove'
+	 * @param actionValue if set action is used, action value will be in the form:
+	 *                    'threshold1,threshold2' such that threshold 1 is the time
+	 *                    in milliseconds before which a user is considered silent.
+	 *                    and threshold 2 is the time in milliseconds after which a
+	 *                    user is considered talking. use the empty string for no
+	 *                    threshold
 	 * @return
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String action, String actionValue) {
@@ -489,10 +458,8 @@ public abstract class CallController {
 	/**
 	 * add data about the call
 	 * 
-	 * @param dataName
-	 *            name of the data we are adding
-	 * @param dataContent
-	 *            object that contains the content of the data
+	 * @param dataName    name of the data we are adding
+	 * @param dataContent object that contains the content of the data
 	 */
 	public void put(String dataName, Object dataContent) {
 		callState.put(dataName, dataContent);
@@ -501,8 +468,7 @@ public abstract class CallController {
 	/**
 	 * get data about the call
 	 * 
-	 * @param dataName
-	 *            name of the data we asking for
+	 * @param dataName name of the data we asking for
 	 */
 	public <T> T get(String dataName) {
 		return callState.get(dataName);
@@ -520,23 +486,17 @@ public abstract class CallController {
 	/**
 	 * create record operation with more settings
 	 * 
-	 * @param callController
-	 *            instant representing the call
-	 * @param name
-	 *            Recording's filename
-	 * @param format
-	 *            Format to encode audio in (wav, gsm..)
-	 * @param maxDuration
-	 *            Maximum duration of the recording, in seconds. 0 for no limit
-	 * @param maxSilence
-	 *            Maximum duration of silence before ending the recording, in
-	 *            seconds. 0 for no limit
-	 * @param beep
-	 *            true if we want to play beep when recording begins, false
-	 *            otherwise
-	 * @param termKey
-	 *            DTMF input to terminate recording (allowed values: none, any, *,
-	 *            #)
+	 * @param callController instant representing the call
+	 * @param name           Recording's filename
+	 * @param format         Format to encode audio in (wav, gsm..)
+	 * @param maxDuration    Maximum duration of the recording, in seconds. 0 for no
+	 *                       limit
+	 * @param maxSilence     Maximum duration of silence before ending the
+	 *                       recording, in seconds. 0 for no limit
+	 * @param beep           true if we want to play beep when recording begins,
+	 *                       false otherwise
+	 * @param termKey        DTMF input to terminate recording (allowed values:
+	 *                       none, any, *, #)
 	 * @return
 	 */
 	public Record record(String name, String format, int maxDuration, int maxSilence, boolean beep, String termKey) {
@@ -546,10 +506,8 @@ public abstract class CallController {
 	/**
 	 * Mute audio for channel
 	 * 
-	 * @param channelId
-	 *            id of the channel we want to mute
-	 * @param direction
-	 *            audio direction of the mute. Allowed values: both, in, out
+	 * @param channelId id of the channel we want to mute
+	 * @param direction audio direction of the mute. Allowed values: both, in, out
 	 * @return
 	 */
 	public Mute mute(String channelId, String direction) {
@@ -559,8 +517,7 @@ public abstract class CallController {
 	/**
 	 * Create bridge instance to handle all bridge operations
 	 * 
-	 * @param arity
-	 *            instance of ARIty
+	 * @param arity instance of ARIty
 	 * @return
 	 */
 	public BridgeOperations bridge(ARIty arity) {
@@ -570,21 +527,19 @@ public abstract class CallController {
 	/**
 	 * Create bridge instance to handle all bridge operations
 	 * 
-	 * @param arity
-	 *            instance of ARIty
-	 * @param recordFormat
-	 *            Format to encode audio in
-	 * @param maxDurationSeconds
-	 *            Maximum duration of the recording, in seconds. 0 for no limit
-	 * @param maxSilenceSeconds
-	 *            Maximum duration of silence, in seconds. 0 for no limit
-	 * @param ifExists
-	 *            Action to take if a recording with the same name already exists.
-	 *            Allowed values: fail, overwrite, append
-	 * @param beep
-	 *            true if need to play beep when recording begins, false otherwise
-	 * @param terminateOn
-	 *            DTMF input to terminate recording. Allowed values: none, any, *, #
+	 * @param arity              instance of ARIty
+	 * @param recordFormat       Format to encode audio in
+	 * @param maxDurationSeconds Maximum duration of the recording, in seconds. 0
+	 *                           for no limit
+	 * @param maxSilenceSeconds  Maximum duration of silence, in seconds. 0 for no
+	 *                           limit
+	 * @param ifExists           Action to take if a recording with the same name
+	 *                           already exists. Allowed values: fail, overwrite,
+	 *                           append
+	 * @param beep               true if need to play beep when recording begins,
+	 *                           false otherwise
+	 * @param terminateOn        DTMF input to terminate recording. Allowed values:
+	 *                           none, any, *, #
 	 */
 	public BridgeOperations bridge(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
@@ -595,8 +550,7 @@ public abstract class CallController {
 	/**
 	 * transfer Call Controller to the next Call controller
 	 * 
-	 * @param nextCallController
-	 *            Call Controller that we are getting the data from
+	 * @param nextCallController Call Controller that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
@@ -607,8 +561,7 @@ public abstract class CallController {
 	/**
 	 * if the channel is still active return true, false otherwise
 	 * 
-	 * @param channelId
-	 *            channel id of the call to be checked
+	 * @param channelId channel id of the call to be checked
 	 * @return
 	 * @throws RestException
 	 */

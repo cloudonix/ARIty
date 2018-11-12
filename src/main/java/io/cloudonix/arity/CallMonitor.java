@@ -1,6 +1,9 @@
 package io.cloudonix.arity;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
@@ -15,19 +18,21 @@ public class CallMonitor {
 
 	private String callerChannelId;
 	private ARIty arity;
-	private Runnable onHangUp;
+	private List<Runnable> onHangUp = new LinkedList<>();
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
 
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.arity = arity;
 		this.callerChannelId = callChannelId;
+		monitorCallHangUp();
+		monitorCallAnswered();
 	}
 
 	/**
 	 * Monitor hang up of the call event
 	 */
-	public void monitorCallHangUp() {
+	private void monitorCallHangUp() {
 		arity.addFutureEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller, true);
 	}
 
@@ -40,14 +45,14 @@ public class CallMonitor {
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
 		if (Objects.nonNull(onHangUp))
-			onHangUp.run();
+			onHangUp.forEach(Runnable::run);
 		return true;
 	}
 
 	/**
 	 * monitor when the channel is answered
 	 */
-	public void monitorCallAnswered() {
+	private void monitorCallAnswered() {
 		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer, false);
 	}
 
@@ -70,7 +75,7 @@ public class CallMonitor {
 	 * @param hangUpHandler
 	 */
 	public void registerHangUpHandler(Runnable hangUpHandler) {
-		onHangUp = hangUpHandler;
+		onHangUp.add(hangUpHandler);
 	}
 
 	/**
@@ -89,5 +94,11 @@ public class CallMonitor {
 	 */
 	public boolean wasAnswered() {
 		return wasAnswered;
+	}
+
+	public CompletableFuture<Void> waitForHangup() {
+		CompletableFuture<Void>future = new CompletableFuture<Void>();
+		registerHangUpHandler(()->future.complete(null));
+		return future;
 	}
 }
