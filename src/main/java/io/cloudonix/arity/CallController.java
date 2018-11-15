@@ -377,7 +377,9 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getExtension() {
-		return callState.getChannel().getDialplan().getExten();
+		return Objects.nonNull(getChannel()) && Objects.nonNull(callState.getChannel().getDialplan())
+				? String.valueOf(callState.getChannel().getDialplan().getExten())
+				: null;
 	}
 
 	/**
@@ -386,7 +388,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getAccountCode() {
-		return callState.getChannel().getAccountcode();
+		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getAccountcode()) : null;
 	}
 
 	/**
@@ -395,7 +397,9 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getCallerIdNumber() {
-		return callState.getChannel().getCaller().getNumber();
+		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getCaller())
+				? callState.getChannel().getCaller().getNumber()
+				: null;
 	}
 
 	/**
@@ -404,7 +408,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getChannelName() {
-		return callState.getChannel().getName();
+		return Objects.nonNull(getChannel()) ? getChannel().getName() : null;
 	}
 
 	/**
@@ -413,7 +417,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getChannelState() {
-		return callState.getChannel().getState();
+		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getState()) : null;
 	}
 
 	/**
@@ -422,7 +426,9 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getChannelCreationTime() {
-		return callState.getChannel().getCreationtime().toString();
+		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getCreationtime())
+				: null;
+
 	}
 
 	/**
@@ -431,7 +437,9 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getDialplanContext() {
-		return callState.getChannel().getDialplan().getContext();
+		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
+				? getChannel().getDialplan().getContext()
+				: null;
 	}
 
 	/**
@@ -440,7 +448,9 @@ public abstract class CallController {
 	 * @return
 	 */
 	public long getPriority() {
-		return callState.getChannel().getDialplan().getPriority();
+		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
+				? getChannel().getDialplan().getPriority()
+				: null;
 	}
 
 	/**
