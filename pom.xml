@@ -41,15 +41,18 @@
 			<url>http://cloudonix-dist.s3-website-us-west-1.amazonaws.com/maven2/releases</url>
 		</repository>
 
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
 	</repositories>
 	<dependencies>
 
 		<dependency>
-			<groupId>ch.loway.oss.ari4java</groupId>
+			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>0.4.5</version>
+			<version>master-SNAPSHOT</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>org.testcontainers</groupId>
