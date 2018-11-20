@@ -1,7 +1,12 @@
-cache:
- paths:
-   - .m2/repository
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2"
 
+cache:
+  paths:
+    - .m2/
+  # keep cache across branch
+  key: "$CI_BUILD_REF_NAME"
+  
 stages: 
   - package 
   - deploy
