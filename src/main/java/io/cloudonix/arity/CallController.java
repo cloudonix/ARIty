@@ -12,7 +12,6 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.future.helper.FutureHelper;
 
 /**
