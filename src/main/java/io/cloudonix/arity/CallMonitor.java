@@ -30,16 +30,16 @@ public class CallMonitor {
 	}
 
 	/**
-	 * Monitor hang up of the call event
+	 * monitor hang up of the call event
 	 */
 	private void monitorCallHangUp() {
 		arity.addFutureEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller, true);
 	}
 
 	/**
-	 * handle when a hang up of the channel accrues
+	 * handle when a hang up of the channel occurs
 	 * 
-	 * @param hangup hang up event
+	 * @param hangup ChannelHangupRequest event
 	 * @return
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {

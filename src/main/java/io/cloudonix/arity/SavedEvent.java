@@ -5,7 +5,8 @@ import java.util.function.Function;
 import ch.loway.oss.ari4java.generated.Message;
 
 /**
- * The class represents saved events with function channel id, and if this events occurs one or many times
+ * The class represents saved events with function channel id, and if this
+ * events occurs one or many times
  * 
  * @author naamag
  *
@@ -16,6 +17,15 @@ public class SavedEvent {
 	private String channelId;
 	private boolean runOnce;
 
+	/**
+	 * Constructor
+	 * 
+	 * @param channelId id of the channel the event is registered for
+	 * @param func      function to execute when the event arrives
+	 * @param runOnce   true if the event arrives one time, false otherwise (for
+	 *                  example: ChannelHangupRequest is an event that arrives only
+	 *                  once)
+	 */
 	public SavedEvent(String channelId, Function<Message, Boolean> func, boolean runOnce) {
 		this.channelId = channelId;
 		this.func = func;
