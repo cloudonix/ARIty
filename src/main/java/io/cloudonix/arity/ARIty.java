@@ -32,7 +32,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.errors.ErrorStream;
 
 /**
- * The class represents the creation of ari and websocket service that handles
+ * The class represents the creation of ARI and websocket service that handles
  * the incoming events
  * 
  * @author naamag

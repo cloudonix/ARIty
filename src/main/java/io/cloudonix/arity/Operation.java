@@ -8,7 +8,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 
 /**
- * A general class that represents an operation
+ * A general class that represents an Asterisk operation
  * 
  * @author naamag
  *
@@ -22,10 +22,9 @@ public abstract class Operation {
 	/**
 	 * Constructor
 	 * 
-	 * @param id
-	 *            id of the channel or bridge
-	 * @param arity
-	 * @param ari
+	 * @param channelId id of the channel or bridge
+	 * @param arity     instance of ARIty
+	 * @param ari       ARI instance
 	 */
 	public Operation(String channelId, ARIty arity, ARI ari) {
 		this.setChannelId(channelId);
@@ -66,8 +65,7 @@ public abstract class Operation {
 	 * the method receives an operation , creates a CompletableFuture and an
 	 * AriCallback, and execute the operation on AriCallback
 	 * 
-	 * @param op
-	 *            the operation that we want to execute
+	 * @param op the operation that we want to execute
 	 * @return
 	 */
 	protected <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
@@ -92,8 +90,7 @@ public abstract class Operation {
 	/**
 	 * set the channel id of the call
 	 * 
-	 * @param channelId
-	 *            new channel id
+	 * @param channelId new channel id
 	 */
 	public void setChannelId(String channelId) {
 		this.channelId = channelId;

@@ -18,6 +18,12 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
 import io.cloudonix.future.helper.FutureHelper;
 
+/**
+ * Class for recording a channel operation
+ * 
+ * @author naamag
+ *
+ */
 public class Record extends CancelableOperations {
 
 	private String name;
@@ -37,6 +43,18 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * Constructor
+	 * 
+	 * @param callController    instant representing the call
+	 * @param name              Recording's filename
+	 * @param fileFormat        Format to encode audio in (wav, gsm..)
+	 * @param maxDuration       Maximum duration of the recording, in seconds. 0 for
+	 *                          no limit
+	 * @param maxSilenceSeconds Maximum duration of silence before ending the
+	 *                          recording, in seconds. 0 for no limit
+	 * @param beep              true if we want to play beep when recording begins,
+	 *                          false otherwise
+	 * @param terminateOnKey    DTMF input to terminate recording (allowed values:
+	 *                          none, any, *, #)
 	 */
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
@@ -171,8 +189,7 @@ public class Record extends CancelableOperations {
 	/**
 	 * set the name of the recording
 	 * 
-	 * @param name
-	 *            name of the recording
+	 * @param name name of the recording
 	 */
 	public void setName(String name) {
 		this.name = name;
@@ -242,8 +259,7 @@ public class Record extends CancelableOperations {
 	 * before recording, set what to do if the recording is already exists. default
 	 * value is "overwrite"
 	 * 
-	 * @param ifExist
-	 *            allowed values: fail, overwrite, append
+	 * @param ifExist allowed values: fail, overwrite, append
 	 * @return
 	 */
 	public Record setIfExist(String ifExist) {

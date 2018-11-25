@@ -167,7 +167,7 @@ public class Play extends CancelableOperations {
 	/**
 	 * set the playback language before playing
 	 * 
-	 * @param channelLanguage
+	 * @param channelLanguage language to set
 	 * @return
 	 */
 	public Play setLanguage(String channelLanguage) {
