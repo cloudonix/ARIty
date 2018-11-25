@@ -282,7 +282,7 @@ public class ARIty implements AriCallback<Message> {
 
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.fine("Can not get channel id for event "+event+" :"+e);
+			logger.fine("Can not get channel id for event "+event);
 		}
 		return null;
 	}
