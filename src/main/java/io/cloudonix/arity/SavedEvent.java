@@ -5,7 +5,7 @@ import java.util.function.Function;
 import ch.loway.oss.ari4java.generated.Message;
 
 /**
- * The class represents saved events as a pair of function and channel id
+ * The class represents saved events with function channel id, and if this events occurs one or many times
  * 
  * @author naamag
  *
