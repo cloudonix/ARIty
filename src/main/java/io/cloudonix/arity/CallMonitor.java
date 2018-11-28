@@ -44,8 +44,7 @@ public class CallMonitor {
 	 */
 	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
-		if (Objects.nonNull(onHangUp))
-			onHangUp.forEach(Runnable::run);
+		onHangUp.forEach(Runnable::run);
 		return true;
 	}
 
