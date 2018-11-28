@@ -310,7 +310,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @param runOnce   true if run the event once, false otherwise
 	 */
 	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func, boolean runOnce) {
-
+		logger.fine("Registering for " + class1 + " events on channel " + channelId);
 		@SuppressWarnings("unchecked")
 		Function<Message, Boolean> futureEvent = (Message message) -> {
 			if (class1.isInstance(message))
