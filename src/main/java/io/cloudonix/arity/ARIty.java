@@ -306,7 +306,6 @@ public class ARIty implements AriCallback<Message> {
 
 		@SuppressWarnings("unchecked")
 		Function<Message, Boolean> futureEvent = (Message message) -> {
-
 			if (class1.isInstance(message))
 				return func.apply((T) message);
 			return false;
