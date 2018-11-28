@@ -24,7 +24,6 @@ import io.cloudonix.arity.errors.ErrorStream;
  *
  */
 public class BridgeOperations {
-
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;

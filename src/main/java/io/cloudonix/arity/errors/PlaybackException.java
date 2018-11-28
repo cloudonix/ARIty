@@ -1,7 +1,7 @@
 package io.cloudonix.arity.errors;
 
 /**
- * The class throws an exception when a playback can not be played
+ * The class throws an exception when a play back can not be played
  * @author naamag
  *
  */

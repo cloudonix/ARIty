@@ -12,7 +12,6 @@ import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.future.helper.FutureHelper;
 
 /**
@@ -305,7 +304,7 @@ public abstract class CallController {
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
-					logger.fine("Unable to find variable: " + varName + " :" + ErrorStream.fromThrowable(t));
+					logger.fine("Unable to find variable: " + varName);
 					return null;
 				});
 	}
@@ -326,8 +325,7 @@ public abstract class CallController {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
 				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + action + ")", actionValue, cb))
 				.exceptionally(t -> {
-					logger.info(
-							"Unable to " + action + " with value " + actionValue + ": " + ErrorStream.fromThrowable(t));
+					logger.info("Unable to " + action + " with value " + actionValue + ": " + t);
 					return null;
 				});
 
@@ -426,8 +424,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getChannelCreationTime() {
-		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getCreationtime())
-				: null;
+		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getCreationtime()) : null;
 
 	}
 

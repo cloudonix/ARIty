@@ -34,7 +34,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.errors.ErrorStream;
 
 /**
- * The class represents the creation of ari and websocket service that handles
+ * The class represents the creation of ARI and websocket service that handles
  * the incoming events
  * 
  * @author naamag
@@ -291,7 +291,7 @@ public class ARIty implements AriCallback<Message> {
 
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.fine("Can not get channel id for event "+event+" :"+e);
+			logger.fine("Can not get channel id for event "+event);
 		}
 		return null;
 	}
