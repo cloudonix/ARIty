@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
@@ -22,6 +23,8 @@ import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.ari_0_0_1.models.ChannelHangupRequest_impl_ari_0_0_1;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
@@ -226,10 +229,17 @@ public class ARIty implements AriCallback<Message> {
 		}
 	}
 
+	@SuppressWarnings("serial")
 	private void handleStasisStart(Message event) {
 		StasisStart ss = (StasisStart) event;
 		if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
-			logger.fine("Ignore h");
+			// fake a channel hangup request, because apparently that doesn't actually happen in AST14
+			handleOtherEvents(new ChannelHangupRequest_impl_ari_2_0_0() {{
+				this.setCause(0);
+				this.setChannel(ss.getChannel());
+				this.setTimestamp(new Date());
+				this.setType("hangup");
+			}});
 			return;
 		}
 		// if the list contains the stasis start event with this channel id, remove it
