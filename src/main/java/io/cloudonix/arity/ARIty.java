@@ -24,7 +24,7 @@ import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -284,11 +284,9 @@ public class ARIty implements AriCallback<Message> {
 					.substring(((RecordingFinished) event).getRecording().getTarget_uri().indexOf(":") + 1);
 
 		try {
-			Method method = msgClass.getDeclaredMethod("getChannel", null);
-			Object res2 = method.invoke(event, null);
-			if (Objects.nonNull(res2))
-				return ((Channel_impl_ari_2_0_0) res2).getId();
-
+			Object chan = msgClass.getDeclaredMethod("getChannel").invoke(event);
+			if (Objects.nonNull(chan))
+				return ((Channel)chan).getId();
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
 			logger.fine("Can not get channel id for event "+event);
