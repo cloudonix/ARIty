@@ -270,8 +270,6 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
-		Class<?> msgClass = event.getClass();
-
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
@@ -284,12 +282,13 @@ public class ARIty implements AriCallback<Message> {
 					.substring(((RecordingFinished) event).getRecording().getTarget_uri().indexOf(":") + 1);
 
 		try {
-			Object chan = msgClass.getDeclaredMethod("getChannel").invoke(event);
+			Class<?> msgClass = event.getClass();
+			Object chan = msgClass.getMethod("getChannel").invoke(event);
 			if (Objects.nonNull(chan))
 				return ((Channel)chan).getId();
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.fine("Can not get channel id for event "+event);
+			logger.fine("Can not get channel id for event " + event + ": " + e);
 		}
 		return null;
 	}
