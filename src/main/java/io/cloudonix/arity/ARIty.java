@@ -23,7 +23,6 @@ import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.generated.ari_0_0_1.models.ChannelHangupRequest_impl_ari_0_0_1;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Channel_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
