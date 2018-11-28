@@ -209,9 +209,9 @@ public class ARIty implements AriCallback<Message> {
 		if (Objects.isNull(channelId))
 			return;
 
+		logger.fine("Looking for event handler of " + Message.class + " for channel " + channelId);
 		// look for a future event in the event list
 		Iterator<SavedEvent> itr = futureEvents.iterator();
-
 		while (itr.hasNext()) {
 			SavedEvent currEntry = itr.next();
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
@@ -233,6 +233,7 @@ public class ARIty implements AriCallback<Message> {
 		StasisStart ss = (StasisStart) event;
 		if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
 			// fake a channel hangup request, because apparently that doesn't actually happen in AST14
+			logger.finest("Faking channel hangup request from 'h' extension");
 			handleOtherEvents(new ChannelHangupRequest_impl_ari_2_0_0() {{
 				this.setCause(0);
 				this.setChannel(ss.getChannel());
