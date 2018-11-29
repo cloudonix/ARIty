@@ -25,6 +25,7 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -209,7 +210,7 @@ public class ARIty implements AriCallback<Message> {
 		if (Objects.isNull(channelId))
 			return;
 
-		logger.fine("Looking for event handler of " + event.getClass() +":" + event.getType() + " for channel " + channelId);
+		logger.fine("Looking for event handler of " + event.getClass() + " for channel " + channelId);
 		// look for a future event in the event list
 		Iterator<SavedEvent> itr = futureEvents.iterator();
 		while (itr.hasNext()) {
@@ -217,6 +218,7 @@ public class ARIty implements AriCallback<Message> {
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
 
+			logger.fine("Matched channel ID for " + event.getClass() + " - " + channelId);
 			if (currEntry.getFunc().apply(event)) {
 				// remove from the list of future events
 				if (currEntry.isRunOnce()) {
@@ -271,11 +273,14 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
+		if (event instanceof DeviceStateChanged)
+			return null; // skip this, it never has a channel
+		
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
-		if (event instanceof PlaybackFinished_impl_ari_2_0_0)
-			return ((PlaybackFinished_impl_ari_2_0_0) event).getPlayback().getTarget_uri()
+		if (event instanceof PlaybackFinished)
+			return ((PlaybackFinished) event).getPlayback().getTarget_uri()
 					.substring(((PlaybackFinished) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
 		if (event instanceof RecordingFinished)
