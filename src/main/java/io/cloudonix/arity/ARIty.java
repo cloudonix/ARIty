@@ -278,8 +278,8 @@ public class ARIty implements AriCallback<Message> {
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
-		if (event instanceof PlaybackFinished_impl_ari_2_0_0)
-			return ((PlaybackFinished_impl_ari_2_0_0) event).getPlayback().getTarget_uri()
+		if (event instanceof PlaybackFinished)
+			return ((PlaybackFinished) event).getPlayback().getTarget_uri()
 					.substring(((PlaybackFinished) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
 		if (event instanceof RecordingFinished)
