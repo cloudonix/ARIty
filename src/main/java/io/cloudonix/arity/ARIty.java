@@ -209,7 +209,7 @@ public class ARIty implements AriCallback<Message> {
 		if (Objects.isNull(channelId))
 			return;
 
-		logger.fine("Looking for event handler of " + Message.class + " for channel " + channelId);
+		logger.fine("Looking for event handler of " + event.getClass() +":" + event.getType() + " for channel " + channelId);
 		// look for a future event in the event list
 		Iterator<SavedEvent> itr = futureEvents.iterator();
 		while (itr.hasNext()) {
