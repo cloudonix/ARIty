@@ -25,6 +25,7 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -271,6 +272,9 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
+		if (event instanceof DeviceStateChanged)
+			return null; // skip this, it never has a channel
+		
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
