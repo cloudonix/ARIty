@@ -210,7 +210,7 @@ public class ARIty implements AriCallback<Message> {
 		if (Objects.isNull(channelId))
 			return;
 
-		logger.fine("Looking for event handler of " + event.getClass() +":" + event.getType() + " for channel " + channelId);
+		logger.fine("Looking for event handler of " + event.getClass() + " for channel " + channelId);
 		// look for a future event in the event list
 		Iterator<SavedEvent> itr = futureEvents.iterator();
 		while (itr.hasNext()) {
@@ -218,6 +218,7 @@ public class ARIty implements AriCallback<Message> {
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
 
+			logger.fine("Matched channel ID for " + event.getClass() + " - " + channelId);
 			if (currEntry.getFunc().apply(event)) {
 				// remove from the list of future events
 				if (currEntry.isRunOnce()) {
