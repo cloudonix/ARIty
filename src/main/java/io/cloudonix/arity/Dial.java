@@ -23,6 +23,30 @@ import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
  *
  */
 public class Dial extends CancelableOperations {
+	
+	public enum Status {
+		UNKNOWN("UNKNOWN"), 
+		CHANUNAVAIL("CHANUNAVAIL"),
+		CONGESTION("CONGESTION"),
+		NOANSWER("NOANSWER"),
+		BUSY("BUSY"), 
+		RINGING("RINGING"),
+		ANSWER("ANSWER"), 
+		CANCEL("CANCEL"),
+		DONTCALL("DONTCALL"),
+		TORTURE("TORTURE"),
+		INVALIDARGS("INVALIDARGS");
+		
+		private String name;
+
+		private Status(String name) {
+			this.name = name;
+		}
+		
+		public String getName() {
+			return name;
+		}
+	}
 
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();
 	private String endPoint;
@@ -32,7 +56,7 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private long answeredTime = 0;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private transient String dialStatus = "unknown";
+	private transient Status dialStatus = Status.UNKNOWN;
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
@@ -170,14 +194,19 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
-		if (Objects.equals(dialStatus, "canceled")) {
+		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			return true;
 		}
-		dialStatus = dial.getDialstatus();
-		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + "  is: " + dialStatus);
-		if (!dialStatus.equals("ANSWER")) {
-			if (Objects.equals(dialStatus, "BUSY") || Objects.equals(dialStatus, "NOANSWER")) {
+		try {
+			dialStatus = Status.valueOf(dial.getDialstatus());
+		} catch (IllegalArgumentException e) {
+			logger.severe("Unknown dial status " + dial.getDialstatus() + ", ignoring for now");
+			dialStatus = Status.UNKNOWN;
+		}
+		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + " is: " + dialStatus);
+		if (dialStatus != Status.ANSWER) {
+			if (dialStatus == Status.BUSY || dialStatus == Status.NOANSWER) {
 				logger.info("The calle can not answer the call, hanging up the call");
 				this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
 				compFuture.complete(this);
@@ -257,8 +286,7 @@ public class Dial extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		logger.info("hange up channel with id: " + endPointChannelId);
-		if (Objects.equals(dialStatus.toLowerCase(),""))
-			dialStatus = "cancelled";
+		dialStatus = Status.CANCEL;
 		compFuture.complete(this);
 		return this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
@@ -287,7 +315,7 @@ public class Dial extends CancelableOperations {
 	 * 
 	 * @return
 	 */
-	public String getDialStatus() {
+	public Status getDialStatus() {
 		return dialStatus;
 	}
 
@@ -381,6 +409,6 @@ public class Dial extends CancelableOperations {
 	public String toString() {
 		return "[Dial " + callerId + "->" + endPoint + "|" + 
 				endPointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
-				"|" + dialStatus + "]";
+				"|" + dialStatus.name + "]";
 	}
 }
