@@ -28,6 +28,7 @@ public class Dial extends CancelableOperations {
 		UNKNOWN("UNKNOWN"), 
 		CHANUNAVAIL("CHANUNAVAIL"),
 		CONGESTION("CONGESTION"),
+		PROGRESS("PROGRESS"),
 		NOANSWER("NOANSWER"),
 		BUSY("BUSY"), 
 		RINGING("RINGING"),
@@ -62,7 +63,7 @@ public class Dial extends CancelableOperations {
 	private String otherChannelId = null;
 	private int timeout;
 	private Runnable channelStateUp = () -> {};
-	private Runnable channelStateRinging = null;
+	private Runnable channelStateRinging = () -> {};
 	private int headerCounter = 0;
 	private long callEndTime;
 
@@ -182,7 +183,7 @@ public class Dial extends CancelableOperations {
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
-					logger.info("Dial succeeded!");
+					logger.info("Dial started");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
 	}
@@ -199,24 +200,39 @@ public class Dial extends CancelableOperations {
 			return true;
 		}
 		try {
-			dialStatus = Status.valueOf(dial.getDialstatus());
+			String status = dial.getDialstatus();
+			if (!status.isEmpty()) // ignore empty status which can happen in response to originate (and means unknown)
+				dialStatus = Status.valueOf(status);
 		} catch (IllegalArgumentException e) {
 			logger.severe("Unknown dial status " + dial.getDialstatus() + ", ignoring for now");
 			dialStatus = Status.UNKNOWN;
 		}
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + " is: " + dialStatus);
-		if (dialStatus != Status.ANSWER) {
-			if (dialStatus == Status.BUSY || dialStatus == Status.NOANSWER) {
-				logger.info("The calle can not answer the call, hanging up the call");
-				this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
-				compFuture.complete(this);
-			}
+		switch (dialStatus) {
+		case ANSWER:
+			answeredTime = Instant.now().toEpochMilli();
+			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
+			onConnect();
+			return true;
+		case BUSY:
+		case NOANSWER:
+		case CANCEL:
+		case CHANUNAVAIL:
+		case CONGESTION:
+		case DONTCALL:
+		case INVALIDARGS:
+		case TORTURE:
+			logger.info("The callee can not answer the call, hanging up the call");
+			this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+			compFuture.complete(this);
+			return true;
+		case PROGRESS:
+		case RINGING:
+			onRinging();
 			return false;
+		case UNKNOWN:
 		}
-		answeredTime = Instant.now().toEpochMilli();
-		logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
-		onConnect();
-		return true;
+		return false;
 	}
 
 	/**
@@ -328,6 +344,14 @@ public class Dial extends CancelableOperations {
 		channelStateRinging = func;
 		return this;
 	}
+	
+	private void onRinging() {
+		try {
+			channelStateRinging.run();
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenRinging callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+		} 
+	}
 
 	/**
 	 * register handler for handling when channel state is Up
@@ -354,8 +378,8 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
-		if (channelState.getChannel().getState().equals("Ringing") && Objects.nonNull(channelStateRinging))
-			channelStateRinging.run();
+		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
+			onRinging();
 		return false;
 	}
 
