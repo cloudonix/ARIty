@@ -139,7 +139,7 @@ public class Dial extends CancelableOperations {
 	/**
 	 * The method dials to a number (end point)
 	 * 
-	 * @return
+	 * @return A promise to return this instance when the dial operation completes
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
