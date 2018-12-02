@@ -82,20 +82,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Bridge> createBridge() {
-		CompletableFuture<Bridge> future = new CompletableFuture<Bridge>();
-		arity.getAri().bridges().create("mixing", bridgeId, "dialBridge", new AriCallback<Bridge>() {
-			@Override
-			public void onSuccess(Bridge result) {
-				logger.info("Dial bridge was created");
-				future.complete(result);
-			}
-			@Override
-			public void onFailure(RestException e) {
-				logger.severe("Failed creating dial bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.toFuture(cb -> arity.getAri().bridges().create("mixing", bridgeId, "dialBridge", cb));
 	}
 
 	/**
@@ -104,23 +91,11 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> destroyBridge() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-
-		arity.getAri().bridges().destroy(bridgeId, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				recordings.clear();
-				logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.severe("Failed destroying brdige with id: " + bridgeId + " :" + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().destroy(bridgeId, cb))
+				.thenAccept(v -> {
+					recordings.clear();
+					logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
+				});
 	}
 
 	/**
@@ -131,21 +106,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> addChannelToBridge(String channelId) {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		arity.getAri().bridges().addChannel(bridgeId, channelId, "member", new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Channel with id: " + channelId + " was added to bridge: " + bridgeId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.severe("Failed to connect channel to the bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
 	}
 
 	/**
@@ -156,21 +117,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		arity.getAri().bridges().removeChannel(bridgeId, channelId, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Channel with id: " + channelId + " was removed from bridge with id: " + bridgeId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.severe("Failed to remove channel from the bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
 	}
 
 	/**
@@ -181,30 +128,21 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Playback> playMediaToBridge(String fileToPlay) {
-		CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 		String playbackId = UUID.randomUUID().toString();
-		arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId,
-				new AriCallback<Playback>() {
-					@Override
-					public void onSuccess(Playback result) {
-						logger.fine("playing: " + fileToPlay);
-						arity.addFutureEvent(PlaybackFinished.class, bridgeId, (pbf) -> {
-							if (!(pbf.getPlayback().getId().equals(playbackId)))
-								return false;
-							logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
-							future.complete(pbf.getPlayback());
-							return true;
-						}, true);
-						logger.fine("Future event of playbackFinished was added");
-					}
-
-					@Override
-					public void onFailure(RestException e) {
-						logger.info("Failed playing file " + fileToPlay + " : " + e);
-						future.completeExceptionally(e);
-					}
+		return Operation.<Playback>toFuture(cb -> arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
+				.thenCompose(result -> {
+					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
+					logger.fine("playing: " + fileToPlay);
+					arity.addFutureEvent(PlaybackFinished.class, bridgeId, (pbf) -> {
+						if (!(pbf.getPlayback().getId().equals(playbackId)))
+							return false;
+						logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
+						future.complete(pbf.getPlayback());
+						return true;
+					}, true);
+					logger.fine("Future event of playbackFinished was added");
+					return future;
 				});
-		return future;
 	}
 
 	/**
