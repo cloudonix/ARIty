@@ -180,7 +180,7 @@ public class Dial extends CancelableOperations {
 				false);
 		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, this::handleDialEvent, false);
 
-		return this.<Channel>toFuture(
+		return Operation.<Channel>toFuture(
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
@@ -224,7 +224,7 @@ public class Dial extends CancelableOperations {
 		case INVALIDARGS:
 		case TORTURE:
 			logger.info("The callee can not answer the call, hanging up the call");
-			this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+			Operation.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
 			onFail();
 			compFuture.complete(this);
 			return true;
@@ -303,10 +303,10 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public CompletableFuture<Void> cancel() {
-		logger.info("hange up channel with id: " + endPointChannelId);
+		logger.info("Hang up channel with id: " + endPointChannelId);
 		dialStatus = Status.CANCEL;
 		compFuture.complete(this);
-		return this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
+		return Operation.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
