@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
@@ -35,7 +37,7 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout;
-	private Runnable channelStateUp = null;
+	private Runnable channelStateUp = () -> {};
 	private Runnable channelStateRinging = null;
 	private int headerCounter = 0;
 	private long callEndTime;
@@ -184,8 +186,7 @@ public class Dial extends CancelableOperations {
 		}
 		answeredTime = Instant.now().toEpochMilli();
 		logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
-		if (Objects.nonNull(channelStateUp))
-			channelStateUp.run();
+		onConnect();
 		return true;
 	}
 
@@ -308,6 +309,14 @@ public class Dial extends CancelableOperations {
 	public Dial whenConnect(Runnable func) {
 		channelStateUp = func;
 		return this;
+	}
+	
+	private void onConnect() {
+		try {
+			channelStateUp.run();
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenConnect callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+		} 
 	}
 
 	/**
