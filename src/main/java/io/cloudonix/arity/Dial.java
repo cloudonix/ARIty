@@ -64,6 +64,7 @@ public class Dial extends CancelableOperations {
 	private int timeout;
 	private Runnable channelStateUp = () -> {};
 	private Runnable channelStateRinging = () -> {};
+	private Runnable channelStateFail = () -> {};
 	private int headerCounter = 0;
 	private long callEndTime;
 
@@ -224,6 +225,7 @@ public class Dial extends CancelableOperations {
 		case TORTURE:
 			logger.info("The callee can not answer the call, hanging up the call");
 			this.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+			onFail();
 			compFuture.complete(this);
 			return true;
 		case PROGRESS:
@@ -337,8 +339,8 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * notice when channel state is Ringing
-	 * 
-	 * @return
+	 * @param func callback handler
+	 * @return itself for chaining
 	 */
 	public Dial whenRinging(Runnable func) {
 		channelStateRinging = func;
@@ -355,8 +357,8 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * register handler for handling when channel state is Up
-	 * 
-	 * @return
+	 * @param func callback handler
+	 * @return itself for chaining
 	 */
 	public Dial whenConnect(Runnable func) {
 		channelStateUp = func;
@@ -368,6 +370,24 @@ public class Dial extends CancelableOperations {
 			channelStateUp.run();
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenConnect callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+		} 
+	}
+
+	/**
+	 * Register handler for receiving a terminal failure status if the dial failed
+	 * @param func callback handler
+	 * @return itself for chaining
+	 */
+	public Dial whenFailed(Runnable func) {
+		channelStateFail = func;
+		return this;
+	}
+	
+	private void onFail() {
+		try {
+			channelStateFail.run();
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenFailed callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
 		} 
 	}
 
