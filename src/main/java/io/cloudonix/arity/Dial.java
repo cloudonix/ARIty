@@ -32,7 +32,7 @@ public class Dial extends CancelableOperations {
 	private long mediaLength = 0;
 	private long answeredTime = 0;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private transient String dialStatus = null;
+	private transient String dialStatus = "unknown";
 	private Map<String, String> headers;
 	private String callerId;
 	private String otherChannelId = null;
@@ -139,7 +139,7 @@ public class Dial extends CancelableOperations {
 	/**
 	 * The method dials to a number (end point)
 	 * 
-	 * @return
+	 * @return A promise to return this instance when the dial operation completes
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
