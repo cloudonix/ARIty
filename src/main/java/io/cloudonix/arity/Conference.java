@@ -178,6 +178,7 @@ public class Conference extends Operation {
 					"channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
 			return false;
 		}
+		// TODO: ask Naama - do we really not remove channel from bridge if there's whenHangUp() handler?
 		if (Objects.nonNull(runHangup))
 			runHangup.run();
 		else {
