@@ -377,4 +377,10 @@ public class Dial extends CancelableOperations {
 	public long getAnsweredTime() {
 		return answeredTime;
 	}
+	
+	public String toString() {
+		return "[Dial " + callerId + "->" + endPoint + "|" + 
+				endPointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
+				"|" + dialStatus + "]";
+	}
 }
