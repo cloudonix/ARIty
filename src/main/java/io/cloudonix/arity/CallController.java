@@ -40,7 +40,7 @@ public abstract class CallController {
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
 	}
-
+	
 	/**
 	 * get the StasisStart from the call
 	 * 

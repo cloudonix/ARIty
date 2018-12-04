@@ -7,14 +7,13 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
+import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class represents the Dial operation
@@ -67,6 +66,7 @@ public class Dial extends CancelableOperations {
 	private Runnable channelStateFail = () -> {};
 	private int headerCounter = 0;
 	private long callEndTime;
+	private transient boolean ringing = false;
 
 	/**
 	 * Constructor
@@ -348,10 +348,13 @@ public class Dial extends CancelableOperations {
 	}
 	
 	private void onRinging() {
+		if(ringing)
+			return;
+		ringing  = true;
 		try {
 			channelStateRinging.run();
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenRinging callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+			logger.severe("Fatal error running whenRinging callback: " +ErrorStream.fromThrowable(t));
 		} 
 	}
 
@@ -366,10 +369,11 @@ public class Dial extends CancelableOperations {
 	}
 	
 	private void onConnect() {
+		onRinging();
 		try {
 			channelStateUp.run();
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenConnect callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+			logger.severe("Fatal error running whenConnect callback: " +ErrorStream.fromThrowable(t));
 		} 
 	}
 
@@ -387,7 +391,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateFail.run();
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenFailed callback: " + t + "\n" + Stream.of(t.getStackTrace()).map(f -> f.toString()).collect(Collectors.joining("\n")));
+			logger.severe("Fatal error running whenFailed callback: " +ErrorStream.fromThrowable(t));
 		} 
 	}
 

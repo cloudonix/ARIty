@@ -1,9 +1,7 @@
 package io.cloudonix.arity;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URISyntaxException;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
@@ -19,15 +17,13 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.PlaybackFinished_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -230,18 +226,10 @@ public class ARIty implements AriCallback<Message> {
 		}
 	}
 
-	@SuppressWarnings("serial")
 	private void handleStasisStart(Message event) {
 		StasisStart ss = (StasisStart) event;
-		if (Objects.equals(ss.getChannel().getDialplan().getExten(), "h")) {
-			// fake a channel hangup request, because apparently that doesn't actually happen in AST14
-			logger.finest("Faking channel hangup request from 'h' extension");
-			handleOtherEvents(new ChannelHangupRequest_impl_ari_2_0_0() {{
-				this.setCause(0);
-				this.setChannel(ss.getChannel());
-				this.setTimestamp(new Date());
-				this.setType("hangup");
-			}});
+		if ("h".equals(ss.getChannel().getDialplan().getExten())) {
+			logger.fine("Ignore h");
 			return;
 		}
 		// if the list contains the stasis start event with this channel id, remove it

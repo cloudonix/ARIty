@@ -27,7 +27,8 @@ public class Conference extends Operation {
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = null;
-	private Runnable runHangup = null;
+	private Runnable runHangup = () -> {
+	};
 	private boolean beep;
 	private boolean mute;
 	private boolean needToRecord;
@@ -38,13 +39,11 @@ public class Conference extends Operation {
 	/**
 	 * Constructor
 	 * 
-	 * @param callController
-	 *            call Controller instance
-	 * @param name
-	 *            name of the conference
+	 * @param callController call Controller instance
+	 * @param name           name of the conference
 	 */
 	public Conference(CallController callController, String name) {
-		this(callController,name,false,false,false);
+		this(callController, name, false, false, false);
 	}
 
 	/**
@@ -94,8 +93,8 @@ public class Conference extends Operation {
 	/**
 	 * add channel to the conference
 	 * 
-	 * @param newChannelId
-	 *            id of the new channel that we want to add to add to the conference
+	 * @param newChannelId id of the new channel that we want to add to add to the
+	 *                     conference
 	 */
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
 		if (Objects.isNull(bridgeId))
@@ -120,7 +119,7 @@ public class Conference extends Operation {
 					if (channelIdsInConf.size() == 1) {
 						bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
-							return  bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
+							return bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
 								compFuture.complete(this);
 								return compFuture;
@@ -134,7 +133,7 @@ public class Conference extends Operation {
 								logger.info("Start recording conference " + confName);
 								if (Objects.equals(recordName, ""))
 									recordName = UUID.randomUUID().toString();
-								bridgeOperations.recordBridge(recordName).thenAccept(recored->{
+								bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
 									conferenceRecord = recored;
 									logger.info("Done recording");
 								});
@@ -155,8 +154,7 @@ public class Conference extends Operation {
 	/**
 	 * register hang up event handler
 	 * 
-	 * @param func
-	 *            runnable function that will be running when hang up occurs
+	 * @param func runnable function that will be running when hang up occurs
 	 * @return
 	 */
 	public Conference whenHangUp(Runnable func) {
@@ -168,8 +166,7 @@ public class Conference extends Operation {
 	 * when hang up occurs, remove channel from conference and close conference if
 	 * empty
 	 * 
-	 * @param hangup
-	 *            hang up channel event instance
+	 * @param hangup hang up channel event instance
 	 * @return
 	 */
 	private boolean removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
@@ -178,16 +175,13 @@ public class Conference extends Operation {
 					"channel with id " + hangup.getChannel().getId() + " is not connected to conference " + confName);
 			return false;
 		}
-		if (Objects.nonNull(runHangup))
-			runHangup.run();
-		else {
-			bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
-				logger.info("Channel left conference " + confName);
-				if (channelIdsInConf.isEmpty())
-					closeConference().thenAccept(
-							v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
-			});
-		}
+		runHangup.run();
+		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
+			logger.info("Channel left conference " + confName);
+			if (channelIdsInConf.isEmpty())
+				closeConference()
+						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
+		});
 		logger.fine("Caller hang up, stop recording conference");
 		return true;
 	}
@@ -195,8 +189,7 @@ public class Conference extends Operation {
 	/**
 	 * Announce new channel joined/left a conference
 	 * 
-	 * @param status
-	 *            'joined' or 'left' conference
+	 * @param status 'joined' or 'left' conference
 	 */
 	private CompletableFuture<Playback> annouceUser(String status) {
 		if (Objects.equals(status, "joined"))
