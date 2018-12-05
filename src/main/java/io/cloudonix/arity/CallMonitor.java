@@ -1,6 +1,6 @@
 package io.cloudonix.arity;
 
-import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -18,7 +18,7 @@ public class CallMonitor {
 
 	private String callerChannelId;
 	private ARIty arity;
-	private List<Runnable> onHangUp = Collections.emptyList();
+	private List<Runnable> onHangUp = new LinkedList<Runnable>();
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
 
