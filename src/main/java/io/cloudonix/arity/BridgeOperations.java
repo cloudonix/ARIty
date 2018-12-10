@@ -232,7 +232,7 @@ public class BridgeOperations {
 	}
 
 	/**
-	 * get bridge details
+	 * get bridge if exists
 	 * 
 	 * @return
 	 */
@@ -264,7 +264,7 @@ public class BridgeOperations {
 	}
 
 	/**
-	 * get the id of the bridge
+	 * set the id of the bridge
 	 * 
 	 * @return
 	 */

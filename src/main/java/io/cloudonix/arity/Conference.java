@@ -11,6 +11,7 @@ import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -65,7 +66,14 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<Conference> run() {
 		if (Objects.isNull(bridgeId))
-			createOrConnectConference().thenAccept(bridgeRes -> bridgeId = bridgeRes.getId());
+			getBridge().thenAccept(bridgeRes ->{
+				if(Objects.isNull(bridgeRes)) {
+					logger.info("Creating bridge for conference");
+					bridgeOperations.createBridge().thenAccept(bridge->bridgeId=bridge.getId());
+				}
+				else
+					bridgeId = bridgeRes.getId();
+			});
 		return compFuture;
 	}
 
@@ -74,9 +82,8 @@ public class Conference extends Operation {
 	 * 
 	 * @return
 	 */
-	private CompletableFuture<Bridge> createOrConnectConference() {
-		bridgeOperations.setBridgeId(bridgeId);
-		return bridgeOperations.getBridge();
+	private CompletableFuture<Bridge> getBridge() {
+		return bridgeOperations.getBridge().exceptionally(t->null);
 	}
 
 	/**
