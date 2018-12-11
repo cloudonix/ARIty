@@ -11,7 +11,6 @@ import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -30,8 +29,8 @@ public class Conference extends Operation {
 	private String bridgeId = null;
 	private Runnable runHangup = () -> {
 	};
-	private boolean beep;
-	private boolean mute;
+	private boolean beep = false;
+	private boolean mute = false;
 	private boolean needToRecord;
 	private String recordName = "";
 	private LiveRecording conferenceRecord;
@@ -66,7 +65,7 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<Conference> run() {
 		if (Objects.isNull(bridgeId))
-			getBridge().thenAccept(bridgeRes ->{
+			getConferneceBridge().thenAccept(bridgeRes ->{
 				if(Objects.isNull(bridgeRes)) {
 					logger.info("Creating bridge for conference");
 					bridgeOperations.createBridge().thenAccept(bridge->bridgeId=bridge.getId());
@@ -78,11 +77,11 @@ public class Conference extends Operation {
 	}
 
 	/**
-	 * search conference bridge or create a new one if it does not exist
+	 * get conference bridge if exist
 	 * 
 	 * @return
 	 */
-	private CompletableFuture<Bridge> getBridge() {
+	private CompletableFuture<Bridge> getConferneceBridge() {
 		return bridgeOperations.getBridge().exceptionally(t->null);
 	}
 
@@ -128,7 +127,6 @@ public class Conference extends Operation {
 							logger.info("1 person in the conference");
 							return bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
-								compFuture.complete(this);
 								return compFuture;
 							});
 						});
@@ -146,6 +144,7 @@ public class Conference extends Operation {
 								});
 							}
 							logger.info("stoped playing music on hold to the conference bridge");
+							compFuture.complete(this);
 							return compFuture;
 						});
 					}
@@ -185,6 +184,7 @@ public class Conference extends Operation {
 		runHangup.run();
 		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
 			logger.info("Channel left conference " + confName);
+			channelIdsInConf.remove(hangup.getChannel().getId());
 			if (channelIdsInConf.isEmpty())
 				closeConference()
 						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
