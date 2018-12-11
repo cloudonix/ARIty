@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.generated.BridgeCreated;
+import ch.loway.oss.ari4java.generated.BridgeDestroyed;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.Message;
@@ -261,9 +263,9 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
-		if (event instanceof DeviceStateChanged)
+		if (event instanceof DeviceStateChanged || event instanceof BridgeCreated|| event instanceof BridgeDestroyed)
 			return null; // skip this, it never has a channel
-		
+
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
 
