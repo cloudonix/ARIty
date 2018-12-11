@@ -143,7 +143,7 @@ public class Conference extends Operation {
 									logger.info("Done recording");
 								});
 							}
-							logger.info("stoped playing music on hold to the conference bridge");
+							logger.info("Stoped playing music on hold to the conference bridge");
 							compFuture.complete(this);
 							return compFuture;
 						});
@@ -154,7 +154,6 @@ public class Conference extends Operation {
 					logger.info("Unable to add channel to conference " + t);
 					return null;
 				});
-
 	}
 
 	/**
