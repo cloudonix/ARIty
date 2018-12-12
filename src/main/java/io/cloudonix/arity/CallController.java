@@ -186,9 +186,10 @@ public abstract class CallController {
 	 * @param beep         true if play beep when channel enters the conference
 	 * @param mute         true if channel need to be muted for audio
 	 * @param needToRecord true if need to record conference, false otherwise
+	 * @param musicOnHoldFileName name of the file to be played when playing music on hold to conference. If non ""
 	 */
-	public Conference conference(String confName, boolean beep, boolean mute, boolean needToRecord) {
-		return new Conference(this, confName, beep, mute, needToRecord);
+	public Conference conference(String confName, boolean beep, boolean mute, boolean needToRecord, String musicOnHoldFileName) {
+		return new Conference(this, confName, beep, mute, needToRecord,musicOnHoldFileName);
 	}
 
 	/**
