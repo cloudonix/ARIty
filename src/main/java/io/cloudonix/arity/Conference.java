@@ -21,7 +21,7 @@ import io.cloudonix.future.helper.FutureHelper;
  */
 public class Conference extends Operation {
 
-	private CompletableFuture<Conference> compFuture = new CompletableFuture<>();
+	private CompletableFuture<Conference> compFuture = new CompletableFuture<>(); // Not sure if this future is needed..
 	private String confName;
 	// channel id's of all channels in the conference
 	private List<String> channelIdsInConf = new CopyOnWriteArrayList<>();
@@ -30,12 +30,13 @@ public class Conference extends Operation {
 	private String bridgeId = null;
 	private Runnable runHangup = () -> {
 	};
-	private boolean beep;
-	private boolean mute;
+	private boolean beep = false;
+	private boolean mute = false;
 	private boolean needToRecord;
 	private String recordName = "";
 	private LiveRecording conferenceRecord;
 	private BridgeOperations bridgeOperations;
+	private String musicOnHoldFileName;
 
 	/**
 	 * Constructor
@@ -44,14 +45,14 @@ public class Conference extends Operation {
 	 * @param name           name of the conference
 	 */
 	public Conference(CallController callController, String name) {
-		this(callController, name, false, false, false);
+		this(callController, name, false, false, false, "");
 	}
 
 	/**
 	 * Constructor with more functionality
 	 * 
 	 */
-	public Conference(CallController callController, String name, boolean beep, boolean mute, boolean needToRecord) {
+	public Conference(CallController callController, String name, boolean beep, boolean mute, boolean needToRecord, String musicOnHoldFileName) {
 		super(callController.getCallState().getChannelID(), callController.getCallState().getArity(),
 				callController.getCallState().getAri());
 		this.callController = callController;
@@ -59,6 +60,7 @@ public class Conference extends Operation {
 		this.beep = beep;
 		this.mute = mute;
 		this.needToRecord = needToRecord;
+		this.musicOnHoldFileName = musicOnHoldFileName;
 		this.bridgeOperations = new BridgeOperations(getArity());
 		this.bridgeOperations.setBeep(beep);
 	}
@@ -66,24 +68,23 @@ public class Conference extends Operation {
 	@Override
 	public CompletableFuture<Conference> run() {
 		if (Objects.isNull(bridgeId))
-			getBridge().thenAccept(bridgeRes ->{
-				if(Objects.isNull(bridgeRes)) {
+			getConferneceBridge().thenAccept(bridgeRes -> {
+				if (Objects.isNull(bridgeRes)) {
 					logger.info("Creating bridge for conference");
-					bridgeOperations.createBridge().thenAccept(bridge->bridgeId=bridge.getId());
-				}
-				else
+					bridgeOperations.createBridge().thenAccept(bridge -> bridgeId = bridge.getId());
+				} else
 					bridgeId = bridgeRes.getId();
 			});
 		return compFuture;
 	}
 
 	/**
-	 * search conference bridge or create a new one if it does not exist
+	 * get conference bridge if exist
 	 * 
 	 * @return
 	 */
-	private CompletableFuture<Bridge> getBridge() {
-		return bridgeOperations.getBridge().exceptionally(t->null);
+	private CompletableFuture<Bridge> getConferneceBridge() {
+		return bridgeOperations.getBridge().exceptionally(t -> null);
 	}
 
 	/**
@@ -110,26 +111,20 @@ public class Conference extends Operation {
 		return callController.answer().run().thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
-					if (!beep)
-						return CompletableFuture.completedFuture(null);
-					else
-						return bridgeOperations.playMediaToBridge("beep");
+					return beep ? bridgeOperations.playMediaToBridge("beep"): CompletableFuture.completedFuture(null);
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
 					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
 							true);
-					if (!mute)
-						return CompletableFuture.completedFuture(null);
-					else
-						return callController.mute(newChannelId, "out").run();
-				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
+					return mute ? callController.mute(newChannelId, "out").run() : CompletableFuture.completedFuture(null);
+				}).thenCompose(muteRes -> annouceUser("joined"))
+				.thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
 						bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
-							return bridgeOperations.startMusicOnHold("").thenCompose(v2 -> {
+							return bridgeOperations.startMusicOnHold(musicOnHoldFileName).thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
-								compFuture.complete(this);
-								return compFuture;
+								return FutureHelper.completedSuccessfully(this);
 							});
 						});
 					}
@@ -145,8 +140,8 @@ public class Conference extends Operation {
 									logger.info("Done recording");
 								});
 							}
-							logger.info("stoped playing music on hold to the conference bridge");
-							return compFuture;
+							logger.info("Stoped playing music on hold to the conference bridge");
+							return FutureHelper.completedSuccessfully(this);
 						});
 					}
 					logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
@@ -155,7 +150,6 @@ public class Conference extends Operation {
 					logger.info("Unable to add channel to conference " + t);
 					return null;
 				});
-
 	}
 
 	/**
@@ -185,6 +179,7 @@ public class Conference extends Operation {
 		runHangup.run();
 		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
 			logger.info("Channel left conference " + confName);
+			channelIdsInConf.remove(hangup.getChannel().getId());
 			if (channelIdsInConf.isEmpty())
 				closeConference()
 						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
@@ -260,5 +255,13 @@ public class Conference extends Operation {
 
 	public LiveRecording getConferenceRecord() {
 		return conferenceRecord;
+	}
+
+	public String getMusicOnHoldFileName() {
+		return musicOnHoldFileName;
+	}
+
+	public void setMusicOnHoldFileName(String musicOnHoldFileName) {
+		this.musicOnHoldFileName = musicOnHoldFileName;
 	}
 }

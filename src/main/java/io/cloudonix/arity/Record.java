@@ -36,7 +36,6 @@ public class Record extends CancelableOperations {
 	private CallController callController;
 	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
-	private CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 	private boolean wasTalkingDetect = false;
 	private int talkingDuration = 0;
 	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
@@ -76,17 +75,17 @@ public class Record extends CancelableOperations {
 	public CompletableFuture<Record> run() {
 		if (beep) {
 			logger.info("Play beep before recording");
-			callController.play("beep").run().thenAccept(res -> startRecording());
+			return callController.play("beep").run().thenAccept(res -> startRecording()).thenApply(res -> this);
 		} else
-			startRecording();
-		return liveRecFuture.thenApply(res -> this);
+			return startRecording().thenApply(res -> this);
 	}
 
 	/**
 	 * start recording
 	 * 
 	 */
-	private void startRecording() {
+	private CompletableFuture<LiveRecording> startRecording() {
+		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
 					@Override
@@ -139,7 +138,6 @@ public class Record extends CancelableOperations {
 							}
 							return false;
 						}, false);
-
 					}
 
 					@Override
@@ -147,6 +145,7 @@ public class Record extends CancelableOperations {
 						liveRecFuture.completeExceptionally(new RecordingException(name, e));
 					}
 				});
+		return liveRecFuture;
 	}
 
 	/**
