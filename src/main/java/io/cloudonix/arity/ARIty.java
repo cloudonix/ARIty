@@ -23,7 +23,9 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.DeviceStateChanged;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
+import ch.loway.oss.ari4java.generated.PlaybackStarted;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
+import ch.loway.oss.ari4java.generated.RecordingStarted;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -268,11 +270,18 @@ public class ARIty implements AriCallback<Message> {
 
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
+		
+		if(event instanceof PlaybackStarted)
+			return ((PlaybackStarted) event).getPlayback().getTarget_uri()
+					.substring(((PlaybackStarted) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
 		if (event instanceof PlaybackFinished)
 			return ((PlaybackFinished) event).getPlayback().getTarget_uri()
 					.substring(((PlaybackFinished) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
+		if(event instanceof RecordingStarted)
+			return ((RecordingStarted) event).getRecording().getTarget_uri()
+					.substring(((RecordingStarted) event).getRecording().getTarget_uri().indexOf(":") + 1);
 		if (event instanceof RecordingFinished)
 			return ((RecordingFinished) event).getRecording().getTarget_uri()
 					.substring(((RecordingFinished) event).getRecording().getTarget_uri().indexOf(":") + 1);
