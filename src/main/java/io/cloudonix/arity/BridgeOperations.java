@@ -67,7 +67,7 @@ public class BridgeOperations {
 	public BridgeOperations(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
 		this.arity = arity;
-		this.recordFormat = recordFormat;
+		this.recordFormat = Objects.equals(recordFormat, "")? this.recordFormat: recordFormat;
 		this.maxDurationSeconds = maxDurationSeconds;
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.ifExists = ifExists;
