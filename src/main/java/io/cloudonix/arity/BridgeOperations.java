@@ -27,7 +27,7 @@ public class BridgeOperations {
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
-	private String recordFormat;
+	private String recordFormat = ".ulaw";
 	private int maxDurationSeconds;
 	private int maxSilenceSeconds;
 	private String ifExists;
@@ -42,7 +42,7 @@ public class BridgeOperations {
 	 *            instance of ARIty
 	 */
 	public BridgeOperations(ARIty arity) {
-		this(arity,"wav",0,0,"overwrite",false,"#");
+		this(arity,"",0,0,"overwrite",false,"#");
 	}
 
 	/**
