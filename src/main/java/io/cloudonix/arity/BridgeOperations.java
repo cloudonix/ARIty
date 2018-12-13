@@ -51,7 +51,7 @@ public class BridgeOperations {
 	 * @param arity
 	 *            instance of ARIty
 	 * @param recordFormat
-	 *            Format to encode audio in
+	 *            Format to encode audio in (to use the default 'ulaw', use "")
 	 * @param maxDurationSeconds
 	 *            Maximum duration of the recording, in seconds. 0 for no limit
 	 * @param maxSilenceSeconds
