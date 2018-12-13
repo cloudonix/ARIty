@@ -27,7 +27,7 @@ public class BridgeOperations {
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
-	private String recordFormat = ".ulaw";
+	private String recordFormat = "ulaw";
 	private int maxDurationSeconds;
 	private int maxSilenceSeconds;
 	private String ifExists;
