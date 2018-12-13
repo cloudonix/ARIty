@@ -135,6 +135,7 @@ public class Conference extends Operation {
 					if (channelIdsInConf.size() == 2) {
 						logger.info("2 channels are at conefernce " + confName + " , conference started");
 						return bridgeOperations.stopMusicOnHold().thenCompose(v3 -> {
+							logger.info("Stoped playing music on hold to the conference bridge");
 							if (needToRecord) {
 								logger.info("Start recording conference " + confName);
 								if (Objects.equals(recordName, ""))
@@ -144,7 +145,6 @@ public class Conference extends Operation {
 									logger.info("Done recording");
 								});
 							}
-							logger.info("Stoped playing music on hold to the conference bridge");
 							compFuture.complete(this);
 							return compFuture;
 						});
