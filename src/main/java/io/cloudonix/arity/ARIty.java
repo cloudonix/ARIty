@@ -221,11 +221,8 @@ public class ARIty implements AriCallback<Message> {
 			logger.fine("Matched channel ID for " + event.getClass() + " - " + channelId);
 			if (currEntry.getFunc().apply(event)) {
 				// remove from the list of future events
-				if (currEntry.isRunOnce()) {
-					itr.remove();
-					logger.info("Future event was removed " + event.toString());
-					break;
-				}
+				itr.remove();
+				logger.info("Future event was removed " + event.toString());
 			}
 		}
 	}
@@ -265,13 +262,13 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	private String getEventChannelId(Message event) {
-		if (event instanceof DeviceStateChanged || event instanceof BridgeCreated|| event instanceof BridgeDestroyed)
+		if (event instanceof DeviceStateChanged || event instanceof BridgeCreated || event instanceof BridgeDestroyed)
 			return null; // skip this, it never has a channel
 
 		if (event instanceof Dial_impl_ari_2_0_0)
 			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
-		
-		if(event instanceof PlaybackStarted)
+
+		if (event instanceof PlaybackStarted)
 			return ((PlaybackStarted) event).getPlayback().getTarget_uri()
 					.substring(((PlaybackStarted) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
@@ -279,7 +276,7 @@ public class ARIty implements AriCallback<Message> {
 			return ((PlaybackFinished) event).getPlayback().getTarget_uri()
 					.substring(((PlaybackFinished) event).getPlayback().getTarget_uri().indexOf(":") + 1);
 
-		if(event instanceof RecordingStarted)
+		if (event instanceof RecordingStarted)
 			return ((RecordingStarted) event).getRecording().getTarget_uri()
 					.substring(((RecordingStarted) event).getRecording().getTarget_uri().indexOf(":") + 1);
 		if (event instanceof RecordingFinished)
@@ -290,7 +287,7 @@ public class ARIty implements AriCallback<Message> {
 			Class<?> msgClass = event.getClass();
 			Object chan = msgClass.getMethod("getChannel").invoke(event);
 			if (Objects.nonNull(chan))
-				return ((Channel)chan).getId();
+				return ((Channel) chan).getId();
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
 			logger.fine("Can not get channel id for event " + event + ": " + e);
@@ -305,15 +302,14 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method handles adding a future event from a specific class (event) and a
+	 * The method handles adding a future event from a specific class with the
 	 * channel id to the future event list
 	 * 
 	 * @param class1    class of the finished event (example: PlaybackFinished)
-	 * @param channelId id of the channel we want to know when future event comes
+	 * @param channelId id of the channel we want to follow it's future event/s
 	 * @param func      function to be executed
-	 * @param runOnce   true if run the event once, false otherwise
 	 */
-	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func, boolean runOnce) {
+	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func) {
 		logger.fine("Registering for " + class1 + " events on channel " + channelId);
 		@SuppressWarnings("unchecked")
 		Function<Message, Boolean> futureEvent = (Message message) -> {
@@ -321,7 +317,22 @@ public class ARIty implements AriCallback<Message> {
 				return func.apply((T) message);
 			return false;
 		};
-		futureEvents.add(new SavedEvent(channelId, futureEvent, runOnce));
+		futureEvents.add(new SavedEvent(channelId, futureEvent));
+	}
+
+	/**
+	 * The method handles adding a one time future event from a specific class with
+	 * the channel id to the future event list
+	 * 
+	 * @param class1    class of the finished event (example: PlaybackFinished)
+	 * @param channelId id of the channel we want to follow it's future event/s
+	 * @param consumer  the consumer to be executed
+	 */
+	protected <T> void addFutureOneTimeEvent(Class<T> class1, String channelId, Consumer<T> consumer) {
+		addFutureEvent(class1, channelId, t -> {
+			consumer.accept(t);
+			return true;
+		});
 	}
 
 	/**

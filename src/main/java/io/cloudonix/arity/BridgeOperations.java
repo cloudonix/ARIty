@@ -140,7 +140,7 @@ public class BridgeOperations {
 						logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 						future.complete(pbf.getPlayback());
 						return true;
-					}, true);
+					});
 					logger.fine("Future event of playbackFinished was added");
 					return future;
 				});
@@ -219,7 +219,7 @@ public class BridgeOperations {
 							recordings.put(recordingName, result);
 							future.complete(record.getRecording());
 							return true;
-						}, true);
+						});
 					}
 
 					@Override

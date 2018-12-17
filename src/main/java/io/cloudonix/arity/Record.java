@@ -116,7 +116,7 @@ public class Record extends CancelableOperations {
 								talkingDuration = recording.getTalking_duration();
 							liveRecFuture.complete(record.getRecording());
 							return true;
-						}, true);
+						});
 
 						// Recognise if Talking was detected during the recording
 						getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talkStarted -> {
@@ -126,7 +126,7 @@ public class Record extends CancelableOperations {
 								return true;
 							}
 							return false;
-						}, true);
+						});
 
 						// stop the recording by pressing the terminating key
 						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
@@ -137,7 +137,7 @@ public class Record extends CancelableOperations {
 								return true;
 							}
 							return false;
-						}, false);
+						});
 					}
 
 					@Override

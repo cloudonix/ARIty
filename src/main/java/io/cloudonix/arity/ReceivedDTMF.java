@@ -17,7 +17,6 @@ import io.cloudonix.future.helper.FutureHelper;
  */
 public class ReceivedDTMF extends Operation {
 
-	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
 	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
@@ -32,13 +31,10 @@ public class ReceivedDTMF extends Operation {
 	/**
 	 * Constructor
 	 * 
-	 * @param callController
-	 *            call instance
-	 * @param termKey
-	 *            define terminating key (otherwise '#' is the default)
-	 * @param length
-	 *            length of the input we are expecting to get from the caller. for
-	 *            no limitation -1
+	 * @param callController call instance
+	 * @param termKey        define terminating key (otherwise '#' is the default)
+	 * @param length         length of the input we are expecting to get from the
+	 *                       caller. for no limitation -1
 	 */
 	public ReceivedDTMF(CallController callController, String termKey, int length) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
@@ -61,22 +57,21 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
+		CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
-			if (dtmf.getDigit().equals(terminatingKey) || Objects.equals(inputLength, userInput.length())) {
+			if (dtmf.getDigit().equals(terminatingKey)) {
 				logger.info("Done receiving DTMF. all input: " + userInput);
-				if (dtmf.getDigit().equals(terminatingKey)) {
-					termKeyWasPressed = true;
-					cancelAll().thenApply(v -> {
-						compFuture.complete(this);
-						return true;
-					});
-				}
+				termKeyWasPressed = true;
+				cancelAll().thenAccept(v -> compFuture.complete(this));
+				return true;
 			}
-			
-			if (!termKeyWasPressed)
-				userInput = userInput + dtmf.getDigit();
+			userInput = userInput + dtmf.getDigit();
+			if (Objects.equals(inputLength, userInput.length())) {
+				cancelAll().thenAccept(v -> compFuture.complete(this));
+				return true;
+			}
 			return false;
-		}, false);
+		});
 
 		if (!nestedOperations.isEmpty()) {
 			logger.fine("there are verbs in the nested operation list");
@@ -105,7 +100,7 @@ public class ReceivedDTMF extends Operation {
 	private CompletableFuture<Void> cancelAll() {
 		if (!isCanceled) {
 			isCanceled = true;
-			for (int i = (currOpIndext == 0)? currOpIndext : currOpIndext-1; i < nestedOperations.size(); i++) {
+			for (int i = (currOpIndext == 0) ? currOpIndext : currOpIndext - 1; i < nestedOperations.size(); i++) {
 				nestedOperations.get(i).cancel();
 			}
 		}
@@ -144,7 +139,6 @@ public class ReceivedDTMF extends Operation {
 	public String getInput() {
 		return userInput;
 	}
-
 
 	public boolean isTermKeyWasPressed() {
 		return termKeyWasPressed;
