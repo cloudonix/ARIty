@@ -116,8 +116,7 @@ public class Conference extends Operation {
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty,
-							true);
+					getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty);
 					return mute ? callController.mute(newChannelId, "out").run()
 							: FutureHelper.completedSuccessfully(null);
 				}).thenCompose(muteRes -> annouceUser("joined"))
@@ -135,6 +134,7 @@ public class Conference extends Operation {
 					if (channelIdsInConf.size() == 2) {
 						logger.info("2 channels are at conefernce " + confName + " , conference started");
 						return bridgeOperations.stopMusicOnHold().thenCompose(v3 -> {
+							logger.info("Stoped playing music on hold to the conference bridge");
 							if (needToRecord) {
 								logger.info("Start recording conference " + confName);
 								if (Objects.equals(recordName, ""))
@@ -144,7 +144,6 @@ public class Conference extends Operation {
 									logger.info("Done recording");
 								});
 							}
-							logger.info("Stoped playing music on hold to the conference bridge");
 							compFuture.complete(this);
 							return compFuture;
 						});
@@ -175,9 +174,7 @@ public class Conference extends Operation {
 	 * @param hangup hang up channel event instance
 	 * @return
 	 */
-	private boolean removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
-		if (!channelIdsInConf.contains(hangup.getChannel().getId()))  // ignore channels that are not in this conference
-			return false;
+	private void removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
 		runHangup.run();
 		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
 			logger.info("Channel "+ hangup.getChannel().getId()+" was removed conference " + confName);
@@ -186,7 +183,6 @@ public class Conference extends Operation {
 				closeConference()
 						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
 		});
-		return true;
 	}
 
 	/**

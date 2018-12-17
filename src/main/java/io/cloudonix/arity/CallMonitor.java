@@ -33,7 +33,7 @@ public class CallMonitor {
 	 * monitor hang up of the call event
 	 */
 	private void monitorCallHangUp() {
-		arity.addFutureEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller, true);
+		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller);
 	}
 
 	/**
@@ -42,17 +42,16 @@ public class CallMonitor {
 	 * @param hangup ChannelHangupRequest event
 	 * @return
 	 */
-	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
+	private void handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
 		onHangUp.forEach(Runnable::run);
-		return true;
 	}
 
 	/**
 	 * monitor when the channel is answered
 	 */
 	private void monitorCallAnswered() {
-		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer, false);
+		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer);
 	}
 
 	/**

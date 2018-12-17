@@ -51,7 +51,7 @@ public class BridgeOperations {
 	 * @param arity
 	 *            instance of ARIty
 	 * @param recordFormat
-	 *            Format to encode audio in
+	 *            Format to encode audio in (to use the default 'ulaw', use "")
 	 * @param maxDurationSeconds
 	 *            Maximum duration of the recording, in seconds. 0 for no limit
 	 * @param maxSilenceSeconds
@@ -67,7 +67,8 @@ public class BridgeOperations {
 	public BridgeOperations(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
 		this.arity = arity;
-		this.recordFormat = Objects.equals(recordFormat, "")? this.recordFormat: recordFormat;
+		if(!Objects.equals(recordFormat, "") && Objects.nonNull(recordFormat))
+			this.recordFormat = recordFormat;
 		this.maxDurationSeconds = maxDurationSeconds;
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.ifExists = ifExists;
@@ -139,7 +140,7 @@ public class BridgeOperations {
 						logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 						future.complete(pbf.getPlayback());
 						return true;
-					}, true);
+					});
 					logger.fine("Future event of playbackFinished was added");
 					return future;
 				});
@@ -218,7 +219,7 @@ public class BridgeOperations {
 							recordings.put(recordingName, result);
 							future.complete(record.getRecording());
 							return true;
-						}, true);
+						});
 					}
 
 					@Override

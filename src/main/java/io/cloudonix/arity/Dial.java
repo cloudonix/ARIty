@@ -12,7 +12,6 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import io.cloudonix.arity.errors.ErrorStream;
 
 /**
@@ -174,11 +173,10 @@ public class Dial extends CancelableOperations {
 
 		getArity().ignoreChannel(endPointChannelId);
 		if (Objects.nonNull(getChannelId()))
-			getArity().addFutureEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller, true);
-		getArity().addFutureEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee, true);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent,
-				false);
-		getArity().addFutureEvent(Dial_impl_ari_2_0_0.class, endPointChannelId, this::handleDialEvent, false);
+			getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
+		getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
+		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent);
+		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>toFuture(
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
@@ -195,7 +193,7 @@ public class Dial extends CancelableOperations {
 	 * @param dial
 	 * @return
 	 */
-	private Boolean handleDialEvent(Dial_impl_ari_2_0_0 dial) {
+	private Boolean handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial) {
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			return true;
@@ -262,10 +260,9 @@ public class Dial extends CancelableOperations {
 	 *            ChannelHangupRequest event
 	 * @return
 	 */
-	private Boolean handleHangupCaller(ChannelHangupRequest hangup) {
+	private void handleHangupCaller(ChannelHangupRequest hangup) {
 		cancel();
 		logger.info("Caller hanged up the call");
-		return true;
 	}
 
 	/**
@@ -275,12 +272,11 @@ public class Dial extends CancelableOperations {
 	 *            ChannelHangupRequest event
 	 * @return
 	 */
-	private Boolean handleHangupCallee(ChannelHangupRequest hangup) {
+	private void handleHangupCallee(ChannelHangupRequest hangup) {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
 		logger.fine("future was completed for channel: " + hangup.getChannel().getId());
-		return true;
 	}
 
 	/**
@@ -360,6 +356,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * register handler for handling when channel state is Up
+	 * 
 	 * @param func callback handler
 	 * @return itself for chaining
 	 */
@@ -368,6 +365,9 @@ public class Dial extends CancelableOperations {
 		return this;
 	}
 	
+	/**
+	 * handle when the call was answered
+	 */
 	private void onConnect() {
 		onRinging();
 		try {
@@ -387,6 +387,9 @@ public class Dial extends CancelableOperations {
 		return this;
 	}
 	
+	/**
+	 * handle when fail to dial
+	 */
 	private void onFail() {
 		try {
 			channelStateFail.run();
@@ -398,7 +401,7 @@ public class Dial extends CancelableOperations {
 	/**
 	 * handler for ChannelStateChange event
 	 * 
-	 * @param channelState
+	 * @param channelState new state of the channel
 	 * @return
 	 */
 	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
@@ -428,7 +431,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * get the channel id of the dialed channel
+	 * get the channel id of the dialled channel
 	 * 
 	 * @return
 	 */

@@ -15,7 +15,6 @@ public class SavedEvent {
 
 	private Function<Message, Boolean> func;
 	private String channelId;
-	private boolean runOnce;
 
 	/**
 	 * Constructor
@@ -26,10 +25,9 @@ public class SavedEvent {
 	 *                  example: ChannelHangupRequest is an event that arrives only
 	 *                  once)
 	 */
-	public SavedEvent(String channelId, Function<Message, Boolean> func, boolean runOnce) {
+	public SavedEvent(String channelId, Function<Message, Boolean> func) {
 		this.channelId = channelId;
 		this.func = func;
-		this.runOnce = runOnce;
 	}
 
 	public Function<Message, Boolean> getFunc() {
@@ -38,9 +36,5 @@ public class SavedEvent {
 
 	public String getChannelId() {
 		return channelId;
-	}
-
-	public boolean isRunOnce() {
-		return runOnce;
 	}
 }
