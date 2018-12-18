@@ -21,6 +21,7 @@ public class CallMonitor {
 	private List<Runnable> onHangUp = new LinkedList<Runnable>();
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
+	private SavedEvent<ChannelStateChange>channelStateChangedSE;
 
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.arity = arity;
@@ -45,6 +46,7 @@ public class CallMonitor {
 	private void handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
 		onHangUp.forEach(Runnable::run);
+		channelStateChangedSE.unregister(); // need also to unregister from channel event
 	}
 
 	/**
@@ -60,11 +62,11 @@ public class CallMonitor {
 	 * @param state channel state change event
 	 * @return
 	 */
-	public Boolean handleAnswer(ChannelStateChange state) {
+	public void handleAnswer(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
 		if (!Objects.equals(state.getChannel().getState().toLowerCase(), "up"))
-			return false;
+			return;
 		wasAnswered = true;
-		return true;
+		channelStateChangedSE.unregister();
 	}
 
 	/**

@@ -30,10 +30,8 @@ public class Play extends CancelableOperations {
 	/**
 	 * constructor
 	 * 
-	 * @param callController
-	 *            call main logic object
-	 * @param fileName
-	 *            name of the file to be played
+	 * @param callController call main logic object
+	 * @param fileName       name of the file to be played
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
@@ -63,6 +61,7 @@ public class Play extends CancelableOperations {
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = getUriScheme() + playFileName;
 			getAri().channels().play(getChannelId(), fullPath, language, 0, 0, playbackId, new AriCallback<Playback>() {
+
 				@Override
 				public void onFailure(RestException e) {
 					logger.warning("Failed in playing playback " + e.getMessage());
@@ -77,13 +76,13 @@ public class Play extends CancelableOperations {
 					logger.info(
 							"Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 
-					getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb) -> {
+					// wait for PlaybackFinished event
+					getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb, se) -> {
 						if (!(playb.getPlayback().getId().equals(playbackId)))
-							return false;
+							return;
 						logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 						compPlaybackItr.complete(playb.getPlayback());
-						return true;
-
+						se.unregister();
 					});
 					logger.info("Future event of playbackFinished was added");
 				}

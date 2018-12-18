@@ -15,8 +15,7 @@ import io.cloudonix.future.helper.FutureHelper;
  * @author naamag
  *
  */
-public class ReceivedDTMF extends Operation {
-
+public class ReceivedDTMF extends CancelableOperations {
 	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
 	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
@@ -27,6 +26,7 @@ public class ReceivedDTMF extends Operation {
 	private boolean isCanceled;
 	private boolean termKeyWasPressed = false;
 	private boolean doneAllOps = false;
+	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 
 	/**
 	 * Constructor
@@ -57,21 +57,7 @@ public class ReceivedDTMF extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
-		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
-			if (dtmf.getDigit().equals(terminatingKey)) {
-				logger.info("Done receiving DTMF. all input: " + userInput);
-				termKeyWasPressed = true;
-				cancelAll().thenAccept(v -> compFuture.complete(this));
-				return true;
-			}
-			userInput = userInput + dtmf.getDigit();
-			if (Objects.equals(inputLength, userInput.length())) {
-				cancelAll().thenAccept(v -> compFuture.complete(this));
-				return true;
-			}
-			return false;
-		});
+		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), this::handleDTMF);
 
 		if (!nestedOperations.isEmpty()) {
 			logger.fine("there are verbs in the nested operation list");
@@ -95,7 +81,27 @@ public class ReceivedDTMF extends Operation {
 	}
 
 	/**
-	 * When stopped receiving DTMF cancel all operations
+	 * handle DTMF events
+	 * 
+	 * @param dtmf dtmf event
+	 * @param se the saved event handler for dtmf
+	 */
+	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
+		if (dtmf.getDigit().equals(terminatingKey)) {
+			logger.info("Done receiving DTMF. all input: " + userInput);
+			termKeyWasPressed = true;
+			cancelAll().thenAccept(v -> compFuture.complete(this));
+			se.unregister();
+		}
+		userInput = userInput + dtmf.getDigit();
+		if (Objects.equals(inputLength, userInput.length())) {
+			cancelAll().thenAccept(v -> compFuture.complete(this));
+			se.unregister();
+		}
+	}
+
+	/**
+	 * When stopped receiving DTMF, cancel all operations
 	 */
 	private CompletableFuture<Void> cancelAll() {
 		if (!isCanceled) {
@@ -154,5 +160,22 @@ public class ReceivedDTMF extends Operation {
 
 	public void setDoneAllOps(boolean doneAllOps) {
 		this.doneAllOps = doneAllOps;
+	}
+
+	@Override
+	public CompletableFuture<Void> cancel() {
+		logger.info("Cancelling receiving DTMF");
+		isCanceled = true;
+		return cancelAll().thenAccept(v -> {
+			compFuture.complete(this);
+		});
+	}
+
+	public boolean isCanceled() {
+		return isCanceled;
+	}
+
+	public void setCanceled(boolean isCanceled) {
+		this.isCanceled = isCanceled;
 	}
 }
