@@ -215,6 +215,7 @@ public class Dial extends CancelableOperations {
 			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
 			onConnect();
 			se.unregister();
+			dialSe.unregister();
 		case BUSY:
 		case NOANSWER:
 		case CANCEL:
@@ -276,9 +277,7 @@ public class Dial extends CancelableOperations {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
-		// also need to make sure we unregister from registered future events
 		channelStateChangedSe.unregister();
-		dialSe.unregister();
 		logger.fine("future was completed for channel: " + hangup.getChannel().getId());
 	}
 
