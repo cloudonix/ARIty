@@ -48,8 +48,12 @@ public class SavedEvent<T extends Message> implements Consumer<T> {
 	}
 
 	@Override
-	public void accept(T m) {
+	public void accept(Message m) {
 		if (class1.isInstance(m))
-			handler.accept((T) m, this);
+			handler.accept(class1.cast(m), this);
+	}
+
+	public Class<T> getClass1() {
+		return class1;
 	}
 }
