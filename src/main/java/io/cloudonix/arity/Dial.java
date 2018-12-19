@@ -66,6 +66,8 @@ public class Dial extends CancelableOperations {
 	private int headerCounter = 0;
 	private long callEndTime;
 	private transient boolean ringing = false;
+	private SavedEvent<ChannelStateChange> channelStateChangedSe;
+	private SavedEvent<ch.loway.oss.ari4java.generated.Dial> dialSe;
 
 	/**
 	 * Constructor
@@ -175,8 +177,8 @@ public class Dial extends CancelableOperations {
 		if (Objects.nonNull(getChannelId()))
 			getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
-		getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChangedEvent);
-		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
+		channelStateChangedSe = getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChanged);
+		dialSe = getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>toFuture(
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
@@ -190,13 +192,13 @@ public class Dial extends CancelableOperations {
 	/**
 	 * handle Dial event
 	 * 
-	 * @param dial
+	 * @param dial dial event
 	 * @return
 	 */
-	private Boolean handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial) {
+	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, SavedEvent<ch.loway.oss.ari4java.generated.Dial>se) {
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
-			return true;
+			se.unregister();
 		}
 		try {
 			String status = dial.getDialstatus();
@@ -212,7 +214,7 @@ public class Dial extends CancelableOperations {
 			answeredTime = Instant.now().toEpochMilli();
 			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
 			onConnect();
-			return true;
+			se.unregister();
 		case BUSY:
 		case NOANSWER:
 		case CANCEL:
@@ -225,14 +227,13 @@ public class Dial extends CancelableOperations {
 			Operation.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
 			onFail();
 			compFuture.complete(this);
-			return true;
+			se.unregister();
 		case PROGRESS:
 		case RINGING:
 			onRinging();
-			return false;
+			return;
 		case UNKNOWN:
 		}
-		return false;
 	}
 
 	/**
@@ -242,7 +243,6 @@ public class Dial extends CancelableOperations {
 	 */
 	private HashMap<String, String> addSipHeaders() {
 		HashMap<String, String> updateHeaders = new HashMap<>();
-
 		if (headers.isEmpty())
 			return updateHeaders;
 
@@ -276,6 +276,9 @@ public class Dial extends CancelableOperations {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
+		// also need to make sure we unregister from registered future events
+		channelStateChangedSe.unregister();
+		dialSe.unregister();
 		logger.fine("future was completed for channel: " + hangup.getChannel().getId());
 	}
 
@@ -404,10 +407,9 @@ public class Dial extends CancelableOperations {
 	 * @param channelState new state of the channel
 	 * @return
 	 */
-	public Boolean handleChannelStateChangedEvent(ChannelStateChange channelState) {
+	private void handleChannelStateChanged(ChannelStateChange channelState, SavedEvent<ChannelStateChange> se) {
 		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
 			onRinging();
-		return false;
 	}
 
 	/**

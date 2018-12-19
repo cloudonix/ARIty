@@ -25,7 +25,6 @@ import io.cloudonix.future.helper.FutureHelper;
  *
  */
 public class Record extends CancelableOperations {
-
 	private String name;
 	private String fileFormat = "ulaw";
 	private int maxDuration; // maximum duration of the recording
@@ -103,9 +102,9 @@ public class Record extends CancelableOperations {
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
-						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record) -> {
+						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record,se) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
-								return false;
+								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
 							recording = result;
 							recording.setDuration(
@@ -115,28 +114,25 @@ public class Record extends CancelableOperations {
 							if (wasTalkingDetect)
 								talkingDuration = recording.getTalking_duration();
 							liveRecFuture.complete(record.getRecording());
-							return true;
+							se.unregister();
 						});
 
 						// Recognise if Talking was detected during the recording
-						getArity().addFutureEvent(ChannelTalkingStarted.class, getChannelId(), talkStarted -> {
+						getArity().addFutureOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
 							if (Objects.equals(talkStarted.getChannel().getId(), getChannelId())) {
 								logger.info("Recognised tallking in the channel");
 								wasTalkingDetect = true;
-								return true;
 							}
-							return false;
 						});
 
 						// stop the recording by pressing the terminating key
-						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), dtmf -> {
+						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf,se) -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("Terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
 								timer.cancel();
-								return true;
+								se.unregister();
 							}
-							return false;
 						});
 					}
 

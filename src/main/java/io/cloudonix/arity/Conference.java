@@ -8,9 +8,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
-import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
+import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
 import io.cloudonix.future.helper.FutureHelper;
 
 /**
@@ -116,7 +116,7 @@ public class Conference extends Operation {
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, newChannelId, this::removeAndCloseIfEmpty);
+					getArity().addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId, this::removeAndCloseIfEmpty);
 					return mute ? callController.mute(newChannelId, "out").run()
 							: FutureHelper.completedSuccessfully(null);
 				}).thenCompose(muteRes -> annouceUser("joined"))
@@ -174,7 +174,7 @@ public class Conference extends Operation {
 	 * @param hangup hang up channel event instance
 	 * @return
 	 */
-	private void removeAndCloseIfEmpty(ChannelHangupRequest hangup) {
+	private void removeAndCloseIfEmpty(ChannelHangupRequest_impl_ari_2_0_0 hangup) {
 		runHangup.run();
 		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
 			logger.info("Channel "+ hangup.getChannel().getId()+" was removed conference " + confName);

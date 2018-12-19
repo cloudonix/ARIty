@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -42,7 +42,6 @@ import io.cloudonix.arity.errors.ErrorStream;
  *
  */
 public class ARIty implements AriCallback<Message> {
-
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private Queue<SavedEvent> futureEvents = new ConcurrentLinkedQueue<SavedEvent>();
 	private ARI ari;
@@ -214,16 +213,11 @@ public class ARIty implements AriCallback<Message> {
 		// look for a future event in the event list
 		Iterator<SavedEvent> itr = futureEvents.iterator();
 		while (itr.hasNext()) {
-			SavedEvent currEntry = itr.next();
+			SavedEvent<Message> currEntry = itr.next();
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
-
 			logger.fine("Matched channel ID for " + event.getClass() + " - " + channelId);
-			if (currEntry.getFunc().apply(event)) {
-				// remove from the list of future events
-				itr.remove();
-				logger.info("Future event was removed " + event.toString());
-			}
+			currEntry.accept(event);
 		}
 	}
 
@@ -307,17 +301,13 @@ public class ARIty implements AriCallback<Message> {
 	 * 
 	 * @param class1    class of the finished event (example: PlaybackFinished)
 	 * @param channelId id of the channel we want to follow it's future event/s
-	 * @param func      function to be executed
+	 * @param eventHandler      handler to call when the event arrives
 	 */
-	protected <T> void addFutureEvent(Class<T> class1, String channelId, Function<T, Boolean> func) {
+	protected <T extends Message> SavedEvent<T> addFutureEvent(Class<T> class1, String channelId, BiConsumer<T,SavedEvent<T>> eventHandler) {
 		logger.fine("Registering for " + class1 + " events on channel " + channelId);
-		@SuppressWarnings("unchecked")
-		Function<Message, Boolean> futureEvent = (Message message) -> {
-			if (class1.isInstance(message))
-				return func.apply((T) message);
-			return false;
-		};
-		futureEvents.add(new SavedEvent(channelId, futureEvent));
+		SavedEvent<T> se = new SavedEvent<T>(channelId, eventHandler, class1,this);
+		futureEvents.add(se);
+		return se;
 	}
 
 	/**
@@ -326,12 +316,12 @@ public class ARIty implements AriCallback<Message> {
 	 * 
 	 * @param class1    class of the finished event (example: PlaybackFinished)
 	 * @param channelId id of the channel we want to follow it's future event/s
-	 * @param consumer  the consumer to be executed
+	 * @param eventHandler      handler to call when the event arrives
 	 */
-	protected <T> void addFutureOneTimeEvent(Class<T> class1, String channelId, Consumer<T> consumer) {
-		addFutureEvent(class1, channelId, t -> {
-			consumer.accept(t);
-			return true;
+	protected <T extends Message> void addFutureOneTimeEvent(Class<T> class1, String channelId, Consumer<T> eventHandler) {
+		addFutureEvent(class1, channelId, (t,se) -> {
+			se.unregister();
+			eventHandler.accept(t);
 		});
 	}
 
@@ -403,5 +393,17 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARI getAri() {
 		return ari;
+	}
+
+	/**
+	 * remove saved event when no need to listen to it anymore
+	 * 
+	 * @param savedEvent the saved event to be removed
+	 */
+	public <T extends Message> void removeFutureEvent(SavedEvent<T>savedEvent) {
+		if(futureEvents.remove(savedEvent))
+			logger.info("Event "+savedEvent.getClass().getName()+" was removed for channel: "+savedEvent.getChannelId());
+		else
+			logger.severe("Event "+savedEvent.getClass().getName()+" was not removed for channel: "+savedEvent.getChannelId());
 	}
 }
