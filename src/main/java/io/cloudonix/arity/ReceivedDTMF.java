@@ -92,11 +92,13 @@ public class ReceivedDTMF extends CancelableOperations {
 			termKeyWasPressed = true;
 			cancelAll().thenAccept(v -> compFuture.complete(this));
 			se.unregister();
+			return;
 		}
 		userInput = userInput + dtmf.getDigit();
 		if (Objects.equals(inputLength, userInput.length())) {
 			cancelAll().thenAccept(v -> compFuture.complete(this));
 			se.unregister();
+			return;
 		}
 	}
 

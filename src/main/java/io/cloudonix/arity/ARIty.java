@@ -43,7 +43,7 @@ import io.cloudonix.arity.errors.ErrorStream;
  */
 public class ARIty implements AriCallback<Message> {
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	private Queue<SavedEvent> futureEvents = new ConcurrentLinkedQueue<SavedEvent>();
+	private Queue<SavedEvent<?>> futureEvents = new ConcurrentLinkedQueue<SavedEvent<?>>();
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
@@ -211,9 +211,9 @@ public class ARIty implements AriCallback<Message> {
 
 		logger.fine("Looking for event handler of " + event.getClass() + " for channel " + channelId);
 		// look for a future event in the event list
-		Iterator<SavedEvent> itr = futureEvents.iterator();
+		Iterator<SavedEvent<?>> itr = futureEvents.iterator();
 		while (itr.hasNext()) {
-			SavedEvent<Message> currEntry = itr.next();
+			SavedEvent<?> currEntry = itr.next();
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
 			logger.fine("Matched channel ID for " + event.getClass() + " - " + channelId);
@@ -402,8 +402,8 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeFutureEvent(SavedEvent<T>savedEvent) {
 		if(futureEvents.remove(savedEvent))
-			logger.info("Event "+savedEvent.getClass().getName()+" was removed for channel: "+savedEvent.getChannelId());
+			logger.info("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
 		else
-			logger.severe("Event "+savedEvent.getClass().getName()+" was not removed for channel: "+savedEvent.getChannelId());
+			logger.severe("Event "+savedEvent.getClass1().getName()+" was not removed for channel: "+savedEvent.getChannelId());
 	}
 }

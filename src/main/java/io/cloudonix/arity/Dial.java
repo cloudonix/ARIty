@@ -67,7 +67,6 @@ public class Dial extends CancelableOperations {
 	private long callEndTime;
 	private transient boolean ringing = false;
 	private SavedEvent<ChannelStateChange> channelStateChangedSe;
-	private SavedEvent<ch.loway.oss.ari4java.generated.Dial> dialSe;
 
 	/**
 	 * Constructor
@@ -178,7 +177,7 @@ public class Dial extends CancelableOperations {
 			getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
 		channelStateChangedSe = getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChanged);
-		dialSe = getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
+		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>toFuture(
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
@@ -199,6 +198,7 @@ public class Dial extends CancelableOperations {
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			se.unregister();
+			return;
 		}
 		try {
 			String status = dial.getDialstatus();
@@ -215,6 +215,7 @@ public class Dial extends CancelableOperations {
 			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
 			onConnect();
 			se.unregister();
+			return;
 		case BUSY:
 		case NOANSWER:
 		case CANCEL:
@@ -223,11 +224,12 @@ public class Dial extends CancelableOperations {
 		case DONTCALL:
 		case INVALIDARGS:
 		case TORTURE:
-			logger.info("The callee can not answer the call, hanging up the call");
+			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
 			Operation.<Void>toFuture(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
 			onFail();
 			compFuture.complete(this);
 			se.unregister();
+			return;
 		case PROGRESS:
 		case RINGING:
 			onRinging();
@@ -276,9 +278,7 @@ public class Dial extends CancelableOperations {
 		logger.info("The called endpoint hanged up the call");
 		claculateDurations();
 		compFuture.complete(this);
-		// also need to make sure we unregister from registered future events
 		channelStateChangedSe.unregister();
-		dialSe.unregister();
 		logger.fine("future was completed for channel: " + hangup.getChannel().getId());
 	}
 

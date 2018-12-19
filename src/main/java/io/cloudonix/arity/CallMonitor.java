@@ -66,7 +66,6 @@ public class CallMonitor {
 		if (!Objects.equals(state.getChannel().getState().toLowerCase(), "up"))
 			return;
 		wasAnswered = true;
-		channelStateChangedSE.unregister();
 	}
 
 	/**
