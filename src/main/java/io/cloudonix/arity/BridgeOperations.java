@@ -211,9 +211,9 @@ public class BridgeOperations {
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
 							logger.info("Finished recording: " + recordingName);
-							result.setDuration(
+							record.getRecording().setDuration(
 									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime))));
-							recordings.put(recordingName, result);
+							recordings.put(recordingName, record.getRecording());
 							future.complete(record.getRecording());
 							se.unregister();
 						});

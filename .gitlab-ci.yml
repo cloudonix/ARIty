@@ -19,7 +19,7 @@ package:
   artifacts: 
     paths: 
       - target
-  image: maven:3-jdk-11
+  image: maven:3-jdk-8
   
 deploy:
   stage: deploy
@@ -29,7 +29,7 @@ deploy:
   artifacts: 
     paths:
       - target/staging
-  image: maven:3-jdk-11
+  image: maven:3-jdk-8
   
 s3:
   stage: s3
