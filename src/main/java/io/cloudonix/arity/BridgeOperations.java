@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -198,6 +199,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<LiveRecording> recordBridge(String recordingName) {
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
+		long recordingStartTime = Instant.now().getEpochSecond();
 		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
 				ifExists, beep, terminateOn, new AriCallback<LiveRecording>() {
 					@Override
@@ -207,7 +209,10 @@ public class BridgeOperations {
 						arity.addFutureEvent(RecordingFinished.class, bridgeId, (record, se) -> {
 							if (!Objects.equals(record.getRecording().getName(), recordingName))
 								return;
+							long recordingEndTime = Instant.now().getEpochSecond();
 							logger.info("Finished recording: " + recordingName);
+							result.setDuration(
+									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime))));
 							recordings.put(recordingName, result);
 							future.complete(record.getRecording());
 							se.unregister();
@@ -272,6 +277,16 @@ public class BridgeOperations {
 	 */
 	public HashMap<String, LiveRecording> getRecordings() {
 		return recordings;
+	}
+
+	/**
+	 * get a specified recording by it's name if exists
+	 * 
+	 * @param recordName name of the recording
+	 * @return the recording object if saved, null otherwise
+	 */
+	public LiveRecording getRecodingByName(String recordName) {
+		return recordings.get(recordName);
 	}
 
 	/**
