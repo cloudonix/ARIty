@@ -88,7 +88,6 @@
 			<scope>test</scope>
 		</dependency>
 
-
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -103,6 +102,11 @@
 			<groupId>org.jitsi</groupId>
 			<artifactId>libjitsi</artifactId>
 			<version>1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jvoicexml</groupId>
+			<artifactId>org.jvoicexml.xml</artifactId>
+			<version>0.7.8</version>
 		</dependency>
 	</dependencies>
 
