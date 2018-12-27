@@ -2,6 +2,8 @@ package io.cloudonix.arity;
 
 import java.io.File;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,6 +40,7 @@ public class Record extends CancelableOperations {
 	private boolean wasTalkingDetect = false;
 	private int talkingDuration = 0;
 	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
+	private Instant recordingStartTime;
 
 	/**
 	 * Constructor
@@ -87,12 +90,13 @@ public class Record extends CancelableOperations {
 		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
 		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
+
 					@Override
 					public void onSuccess(LiveRecording result) {
 						if (!(result instanceof LiveRecording))
 							return;
 						logger.info("Recording started! recording name is: " + name);
-						long recordingStartTime = Instant.now().getEpochSecond();
+						recordingStartTime = Instant.now();
 						Timer timer = new Timer("Timer");
 						TimerTask task = new TimerTask() {
 							@Override
@@ -102,18 +106,18 @@ public class Record extends CancelableOperations {
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
-						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record,se) -> {
+						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record, se) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
-							recording = result;
-							recording.setDuration(
-									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime))));
+							recording = record.getRecording();
+							recording.setDuration(Integer.valueOf(
+									String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
 							logger.info("Finished recording! recording duration is: "
-									+ Math.abs(recordingEndTime - recordingStartTime) + " seconds");
+									+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
 							if (wasTalkingDetect)
 								talkingDuration = recording.getTalking_duration();
-							liveRecFuture.complete(record.getRecording());
+							liveRecFuture.complete(recording);
 							se.unregister();
 						});
 
@@ -126,7 +130,7 @@ public class Record extends CancelableOperations {
 						});
 
 						// stop the recording by pressing the terminating key
-						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf,se) -> {
+						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("Terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
@@ -269,5 +273,16 @@ public class Record extends CancelableOperations {
 	 */
 	public File getRecordAsFile() {
 		return new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
+	}
+
+	/**
+	 * get the recording start time
+	 * 
+	 * @return
+	 */
+	public String getRecordingStartTime() {
+		return Objects.nonNull(recordingStartTime)
+				? LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT).toString()
+				: null;
 	}
 }
