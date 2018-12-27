@@ -106,13 +106,13 @@ public class Record extends CancelableOperations {
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
-						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record,se) -> {
+						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record, se) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
 							recording = record.getRecording();
-							recording.setDuration(
-									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+							recording.setDuration(Integer.valueOf(
+									String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
 							logger.info("Finished recording! recording duration is: "
 									+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
 							if (wasTalkingDetect)
@@ -130,7 +130,7 @@ public class Record extends CancelableOperations {
 						});
 
 						// stop the recording by pressing the terminating key
-						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf,se) -> {
+						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("Terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;
@@ -274,13 +274,15 @@ public class Record extends CancelableOperations {
 	public File getRecordAsFile() {
 		return new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
 	}
-	
+
 	/**
 	 * get the recording start time
 	 * 
 	 * @return
 	 */
 	public String getRecordingStartTime() {
-		return LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT).toString();
+		return Objects.nonNull(recordingStartTime)
+				? LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT).toString()
+				: null;
 	}
 }
