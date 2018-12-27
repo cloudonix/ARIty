@@ -109,21 +109,19 @@ public class Conference extends Operation {
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
 		bridgeOperations.setBridgeId(bridgeId);
-		return callController.answer().run()
-				.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
+		return callController.answer().run().thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId, this::removeAndCloseIfEmpty);
+					getArity().addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId,
+							this::removeAndCloseIfEmpty);
 					return mute ? callController.mute(newChannelId, "out").run()
 							: FutureHelper.completedSuccessfully(null);
-				}).thenCompose(muteRes -> annouceUser("joined"))
-				.thenCompose(pb -> {
+				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
-						bridgeOperations.playMediaToBridge("conf-onlyperson")
-						.thenCompose(playRes -> {
+						bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
 							return bridgeOperations.startMusicOnHold(musicOnHoldFileName).thenCompose(v2 -> {
 								logger.info("Playing music to bridge with id " + bridgeId);
@@ -177,7 +175,7 @@ public class Conference extends Operation {
 	private void removeAndCloseIfEmpty(ChannelHangupRequest_impl_ari_2_0_0 hangup) {
 		runHangup.run();
 		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
-			logger.info("Channel "+ hangup.getChannel().getId()+" was removed conference " + confName);
+			logger.info("Channel " + hangup.getChannel().getId() + " was removed conference " + confName);
 			channelIdsInConf.remove(hangup.getChannel().getId());
 			if (channelIdsInConf.isEmpty())
 				closeConference()
@@ -239,9 +237,10 @@ public class Conference extends Operation {
 	public void setChannelsInConf(List<String> channelsInConf) {
 		this.channelIdsInConf = channelsInConf;
 	}
-	
+
 	/**
 	 * get recording name of the conference
+	 * 
 	 * @return
 	 */
 	public String getRecordName() {
@@ -250,6 +249,7 @@ public class Conference extends Operation {
 
 	/**
 	 * set recording name of the conference
+	 * 
 	 * @return
 	 */
 	public void setRecordName(String recordName) {
@@ -258,14 +258,16 @@ public class Conference extends Operation {
 
 	/**
 	 * get the recording of the conference
+	 * 
 	 * @return
 	 */
 	public LiveRecording getConferenceRecord() {
 		return conferenceRecord;
 	}
-	
+
 	/**
 	 * get music on hold file name of the conference
+	 * 
 	 * @return
 	 */
 	public String getMusicOnHoldFileName() {
@@ -274,18 +276,20 @@ public class Conference extends Operation {
 
 	/**
 	 * set music on hold file name of the conference
+	 * 
 	 * @return
 	 */
 	public void setMusicOnHoldFileName(String musicOnHoldFileName) {
 		this.musicOnHoldFileName = musicOnHoldFileName;
 	}
-	
+
 	/**
 	 * get recording start time
 	 * 
 	 * @return
 	 */
 	public String getRecordingStartTime() {
-		return bridgeOperations.getRecodingByName(recordName).getStartingTime();
+		RecordingData recordData = bridgeOperations.getRecodingByName(recordName);
+		return Objects.nonNull(recordData) ? recordData.getStartingTime() : null;
 	}
 }
