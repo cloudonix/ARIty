@@ -34,7 +34,7 @@ public class BridgeOperations {
 	private String ifExists;
 	private boolean beep;
 	private String terminateOn;
-	private HashMap<String, LiveRecording> recordings = new HashMap<>();
+	private HashMap<String, RecordingData> recordings = new HashMap<>();
 
 	/**
 	 * Constructor
@@ -199,7 +199,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<LiveRecording> recordBridge(String recordingName) {
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
-		long recordingStartTime = Instant.now().getEpochSecond();
+		Instant recordingStartTime = Instant.now();
 		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
 				ifExists, beep, terminateOn, new AriCallback<LiveRecording>() {
 					@Override
@@ -212,8 +212,9 @@ public class BridgeOperations {
 							long recordingEndTime = Instant.now().getEpochSecond();
 							logger.info("Finished recording: " + recordingName);
 							record.getRecording().setDuration(
-									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime))));
-							recordings.put(recordingName, record.getRecording());
+									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+							RecordingData recordingData = new RecordingData(recordingName, record.getRecording(), recordingStartTime);
+							recordings.put(recordingName, recordingData);
 							future.complete(record.getRecording());
 							se.unregister();
 						});
@@ -275,28 +276,28 @@ public class BridgeOperations {
 	 * 
 	 * @return
 	 */
-	public HashMap<String, LiveRecording> getRecordings() {
+	public HashMap<String, RecordingData> getRecordings() {
 		return recordings;
 	}
 
 	/**
-	 * get a specified recording by it's name if exists
+	 * get a recording's data by it's name if exists
 	 * 
 	 * @param recordName name of the recording
-	 * @return the recording object if saved, null otherwise
+	 * @return the recording's data if saved, null otherwise
 	 */
-	public LiveRecording getRecodingByName(String recordName) {
+	public RecordingData getRecodingByName(String recordName) {
 		return recordings.get(recordName);
 	}
 
 	/**
-	 * get a specified recording
+	 * get a specified recording's data
 	 * 
 	 * @param recordingName name of the recording we are looking for
 	 * @return
 	 */
-	public LiveRecording getRecording(String recordingName) {
-		for (Entry<String, LiveRecording> currRecording : recordings.entrySet()) {
+	public RecordingData getRecording(String recordingName) {
+		for (Entry<String, RecordingData> currRecording : recordings.entrySet()) {
 			if (Objects.equals(recordingName, currRecording.getKey()))
 				return currRecording.getValue();
 		}

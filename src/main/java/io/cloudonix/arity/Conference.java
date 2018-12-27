@@ -279,4 +279,13 @@ public class Conference extends Operation {
 	public void setMusicOnHoldFileName(String musicOnHoldFileName) {
 		this.musicOnHoldFileName = musicOnHoldFileName;
 	}
+	
+	/**
+	 * get recording start time
+	 * 
+	 * @return
+	 */
+	public String getRecordingStartTime() {
+		return bridgeOperations.getRecodingByName(recordName).getStartingTime();
+	}
 }
