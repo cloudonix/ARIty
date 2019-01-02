@@ -131,10 +131,11 @@ public abstract class CallController {
 	 * @param terminatingKey terminating key for stop receiving DTMF
 	 * @param inputLength    length of the input that we expect receiving from the
 	 *                       caller
+ 	 * @param timeLimit limit the time we allowed the DTMF to receive. For no limit, -1
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLength) {
-		return new ReceivedDTMF(this, terminatingKey, inputLength);
+	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLength, int timeLimit) {
+		return new ReceivedDTMF(this, terminatingKey, inputLength, timeLimit);
 	}
 
 	/**

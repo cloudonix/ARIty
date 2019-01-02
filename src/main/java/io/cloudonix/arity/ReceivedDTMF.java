@@ -27,6 +27,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	private boolean termKeyWasPressed = false;
 	private boolean doneAllOps = false;
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
+	private int timeLimit = -1; // in ms
 
 	/**
 	 * Constructor
@@ -35,11 +36,13 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param termKey        define terminating key (otherwise '#' is the default)
 	 * @param length         length of the input we are expecting to get from the
 	 *                       caller. for no limitation -1
+	 * @param timeLimit limit the time we allowed the DTMF to receive. For no limit, -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int length) {
+	public ReceivedDTMF(CallController callController, String termKey, int length, int timeLimit) {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.terminatingKey = termKey;
 		this.inputLength = length;
+		this.timeLimit = timeLimit;
 	}
 
 	/**
@@ -48,7 +51,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param callController
 	 */
 	public ReceivedDTMF(CallController callController) {
-		this(callController, "#", -1);
+		this(callController, "#", -1,-1);
 	}
 
 	/**
@@ -87,6 +90,12 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param se the saved event handler for dtmf
 	 */
 	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
+		if(dtmf.getDuration_ms() > timeLimit) {
+			logger.fine("Time limit to receive DTMF reached, done receiving DTMF");
+			compFuture.complete(this);
+			se.unregister();
+			return;
+		}
 		if (dtmf.getDigit().equals(terminatingKey)) {
 			logger.info("Done receiving DTMF. all input: " + userInput);
 			termKeyWasPressed = true;
