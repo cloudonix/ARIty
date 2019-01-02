@@ -23,7 +23,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	private CancelableOperations currOpertation = null;
 	private int inputLength;
 	private int currOpIndext;
-	private boolean isCanceled;
+	private boolean isCanceled = false;
 	private boolean termKeyWasPressed = false;
 	private boolean doneAllOps = false;
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
