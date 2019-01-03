@@ -10,7 +10,7 @@ import io.cloudonix.arity.ReceivedDTMF;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Sample of answering the call, playing "hello-world" and then wait for receiving DTMF from the caller (by default, to terminate receiving 
+ * Sample of answering the call, playing "followme/options" and then wait for receiving DTMF from the caller (by default, to terminate receiving 
  * DTMF the caller should press #) 
  * @author naamag
  *
@@ -31,8 +31,8 @@ public class PlayAndDTMF extends CallController{
 		arity.registerVoiceApp(call -> {
 			call.answer().run() 
 		 	.thenCompose(v ->
-		 		call.play("hello-world").loop(2).run()) 
-		 		.thenAccept(pb -> logger.info("finished playback! id: " + pb.getPlayback().getId()))
+		 		call.play("followme/options").loop(1).run()) // playback can be played more then once. if playing once no need to use loop()
+		 		.thenAccept(pb -> logger.info("Finished playback! id: " + pb.getPlayback().getId()))
 		 		.thenCompose(g -> call.receivedDTMF().run())
 		 		.thenAccept(v -> logger.info("RecievedDTMF is finished! The input is: " + ((ReceivedDTMF)v).getInput()))
 		 		.handle(call::endCall)
