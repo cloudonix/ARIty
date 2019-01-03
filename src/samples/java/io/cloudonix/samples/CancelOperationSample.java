@@ -14,7 +14,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
  * Sample for playing "conf-adminmenu-18" (menu options) and cancelling it after
- * 2 seconds
+ * 5 seconds
  * 
  * @author naamag
  *
@@ -69,7 +69,7 @@ public class CancelOperationSample extends CallController {
 				play.cancel();
 			}
 		};
-		timer.schedule(task, TimeUnit.SECONDS.toMillis(2));
+		timer.schedule(task, TimeUnit.SECONDS.toMillis(5));
 
 	}
 }
