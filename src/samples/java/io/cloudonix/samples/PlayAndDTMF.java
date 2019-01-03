@@ -35,7 +35,7 @@ public class PlayAndDTMF extends CallController {
 			call.answer().run()
 					.thenCompose(v -> call.play("followme/options").loop(1).run()) 
 					.thenAccept(pb -> logger.info("Finished playback! id: " + pb.getPlayback().getId()))
-					.thenCompose(g -> call.receivedDTMF("*", 1).run())
+					.thenCompose(g -> call.receivedDTMF("*", 2).run())
 					.thenAccept(v -> logger
 							.info("RecievedDTMF is finished! The input is: " + ((ReceivedDTMF) v).getInput()))
 					.handle(call::endCall).exceptionally(t -> {
