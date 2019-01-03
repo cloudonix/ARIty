@@ -119,4 +119,13 @@ public class ReceivedDTMF {
 		se.unregister();
 		compFuture.complete(this);
 	}
+	
+	/**
+	 * register an handler that will run when DTMF events arrives
+	 * 
+	 * @param handler
+	 */
+	public void registerHandler(Runnable handler) {
+		this.runDtmfHandler = handler;
+	}
 }
