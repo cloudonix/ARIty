@@ -22,6 +22,6 @@ public abstract class CancelableOperations extends Operation {
 	 * 
 	 * @return
 	 */
-	abstract CompletableFuture<Void> cancel();
+	abstract public CompletableFuture<Void> cancel();
 
 }

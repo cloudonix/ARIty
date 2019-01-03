@@ -46,7 +46,7 @@ public class Mute extends CancelableOperations {
 	}
 
 	@Override
-	CompletableFuture<Void> cancel() {
+	public CompletableFuture<Void> cancel() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		getAri().channels().unmute(channelId, direction, new AriCallback<Void>() {
 			@Override

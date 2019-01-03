@@ -1,33 +1,27 @@
 package io.cloudonix.arity;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
- * The class represents the Received DTMF operation
+ * The class represents the Received DTMF events
  * 
  * @author naamag
  *
  */
-public class ReceivedDTMF extends CancelableOperations {
+public class ReceivedDTMF {
 	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
-	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
 	private String terminatingKey;
-	private CancelableOperations currOpertation = null;
 	private int inputLength;
-	private int currOpIndext;
-	private boolean isCanceled = false;
 	private boolean termKeyWasPressed = false;
-	private boolean doneAllOps = false;
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
-	private int timeLimit = Integer.MAX_VALUE; // in ms
+	private ARIty arity;
+	private String channelId;
+	private Runnable runDtmfHandler = null;
 
 	/**
 	 * Constructor
@@ -36,14 +30,13 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param termKey        define terminating key (otherwise '#' is the default)
 	 * @param length         length of the input we are expecting to get from the
 	 *                       caller. for no limitation -1
-	 * @param timeLimit limit the time we allowed the DTMF to receive. For no limit, -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int length, int timeLimit) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+	public ReceivedDTMF(CallController callController, String termKey, int length) {
 		this.terminatingKey = termKey;
 		this.inputLength = length;
-		if(timeLimit != -1)
-			this.timeLimit = timeLimit;
+		this.arity = callController.getARItyService();
+		this.channelId = callController.getChannelID();
+		
 	}
 
 	/**
@@ -52,7 +45,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param callController
 	 */
 	public ReceivedDTMF(CallController callController) {
-		this(callController, "#", -1,-1);
+		this(callController, "#", -1);
 	}
 
 	/**
@@ -61,26 +54,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), this::handleDTMF);
-
-		if (!nestedOperations.isEmpty()) {
-			logger.fine("there are verbs in the nested operation list");
-			currOpertation = nestedOperations.get(0);
-			currOpIndext = 0;
-			CompletableFuture<? extends Operation> future = CompletableFuture.completedFuture(null);
-			for (int i = currOpIndext; i < nestedOperations.size(); i++) {
-				future = future.thenCompose(res -> {
-					if (!isCanceled) {
-						currOpertation = nestedOperations.get(currOpIndext);
-						currOpIndext++;
-						return currOpertation.run();
-					}
-					return CompletableFuture.completedFuture(null);
-				});
-			}
-			if (currOpIndext == nestedOperations.size() && !isCanceled)
-				doneAllOps = true;
-		}
+		arity.addFutureEvent(ChannelDtmfReceived.class, channelId, this::handleDTMF);
 		return compFuture;
 	}
 
@@ -91,51 +65,21 @@ public class ReceivedDTMF extends CancelableOperations {
 	 * @param se the saved event handler for dtmf
 	 */
 	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
-		if(dtmf.getDuration_ms() > timeLimit) {
-			logger.fine("Time limit to receive DTMF reached, done receiving DTMF");
-			compFuture.complete(this);
-			se.unregister();
+		if(Objects.nonNull(runDtmfHandler)) {
+			runDtmfHandler.run(); // run a handler from an app when receiving DTMF, need to unregister also when done
 			return;
 		}
 		if (dtmf.getDigit().equals(terminatingKey)) {
 			logger.info("Done receiving DTMF. all input: " + userInput);
 			termKeyWasPressed = true;
-			cancelAll().thenAccept(v -> compFuture.complete(this));
-			se.unregister();
+			unregister(se);
 			return;
 		}
 		userInput = userInput + dtmf.getDigit();
 		if (Objects.equals(inputLength, userInput.length())) {
-			cancelAll().thenAccept(v -> compFuture.complete(this));
-			se.unregister();
+			unregister(se);
 			return;
 		}
-	}
-
-	/**
-	 * When stopped receiving DTMF, cancel all operations
-	 */
-	private CompletableFuture<Void> cancelAll() {
-		if (!isCanceled) {
-			isCanceled = true;
-			for (int i = (currOpIndext == 0) ? currOpIndext : currOpIndext - 1; i < nestedOperations.size(); i++) {
-				nestedOperations.get(i).cancel();
-			}
-		}
-		return FutureHelper.completedFuture();
-	}
-
-	/**
-	 * add new operation to list of nested operation that run method will execute
-	 * one by one
-	 * 
-	 * @param operation
-	 * @return
-	 */
-
-	public ReceivedDTMF and(CancelableOperations operation) {
-		nestedOperations.add(operation);
-		return this;
 	}
 
 	/**
@@ -165,29 +109,23 @@ public class ReceivedDTMF extends CancelableOperations {
 	public void setTermKeyWasPressed(boolean termKeyWasPressed) {
 		this.termKeyWasPressed = termKeyWasPressed;
 	}
-
-	public boolean isDoneAllOps() {
-		return doneAllOps;
+	
+	/**
+	 * unregister from listening to DTMF events
+	 * 
+	 * @param se saved event we want to unregister from it
+	 */
+	public void unregister(SavedEvent<ChannelDtmfReceived>se) {
+		se.unregister();
+		compFuture.complete(this);
 	}
-
-	public void setDoneAllOps(boolean doneAllOps) {
-		this.doneAllOps = doneAllOps;
-	}
-
-	@Override
-	public CompletableFuture<Void> cancel() {
-		logger.info("Cancelling receiving DTMF");
-		isCanceled = true;
-		return cancelAll().thenAccept(v -> {
-			compFuture.complete(this);
-		});
-	}
-
-	public boolean isCanceled() {
-		return isCanceled;
-	}
-
-	public void setCanceled(boolean isCanceled) {
-		this.isCanceled = isCanceled;
+	
+	/**
+	 * register an handler that will run when DTMF events arrives
+	 * 
+	 * @param handler
+	 */
+	public void registerHandler(Runnable handler) {
+		this.runDtmfHandler = handler;
 	}
 }

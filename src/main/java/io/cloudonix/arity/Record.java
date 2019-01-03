@@ -213,7 +213,7 @@ public class Record extends CancelableOperations {
 	}
 
 	@Override
-	CompletableFuture<Void> cancel() {
+	public CompletableFuture<Void> cancel() {
 		if (Objects.nonNull(recording)) {
 			logger.fine("Recording has already stoped");
 			return FutureHelper.completedFuture();
