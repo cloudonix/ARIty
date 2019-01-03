@@ -6,7 +6,6 @@ import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import ch.loway.oss.ari4java.generated.Message;
 
 /**
  * The class represents the Received DTMF events
@@ -23,7 +22,7 @@ public class ReceivedDTMF {
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 	private ARIty arity;
 	private String channelId;
-	private BiConsumer<ChannelDtmfReceived, SavedEvent<? extends Message>> runDtmfHandler = null;
+	private BiConsumer<ChannelDtmfReceived, SavedEvent<ChannelDtmfReceived>> runDtmfHandler = null;
 
 	/**
 	 * Constructor
@@ -127,7 +126,7 @@ public class ReceivedDTMF {
 	 * 
 	 * @param handler
 	 */
-	public void registerHandler(BiConsumer<ChannelDtmfReceived, SavedEvent<? extends Message>> handler) {
+	public void registerHandler(BiConsumer<ChannelDtmfReceived, SavedEvent<ChannelDtmfReceived>> handler) {
 		this.runDtmfHandler = handler;
 	}
 }
