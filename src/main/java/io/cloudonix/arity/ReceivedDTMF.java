@@ -27,7 +27,7 @@ public class ReceivedDTMF extends CancelableOperations {
 	private boolean termKeyWasPressed = false;
 	private boolean doneAllOps = false;
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
-	private int timeLimit = -1; // in ms
+	private int timeLimit = Integer.MAX_VALUE; // in ms
 
 	/**
 	 * Constructor
@@ -42,7 +42,8 @@ public class ReceivedDTMF extends CancelableOperations {
 		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
 		this.terminatingKey = termKey;
 		this.inputLength = length;
-		this.timeLimit = timeLimit;
+		if(timeLimit != -1)
+			this.timeLimit = timeLimit;
 	}
 
 	/**
