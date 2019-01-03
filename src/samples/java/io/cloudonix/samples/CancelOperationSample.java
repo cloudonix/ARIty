@@ -1,19 +1,20 @@
 package io.cloudonix.samples;
 
 import java.net.URISyntaxException;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallController;
+import io.cloudonix.arity.Play;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Sample for playing "dictate/play_help" (menu options),"hello" and "goodbye" that can be cancelled.
- * 
- * Stop playing when done receiving DTMF from the caller - after the terminating key '#' was pressed (can be while
- * "dictate/play_help" or "hello" or "goodbye" is playing or after all of them
- * finished playing). Then before hanging up the call, play "thank-you" to the caller
+ * Sample for playing "conf-adminmenu-18" (menu options) and cancelling it after
+ * 2 seconds
  * 
  * @author naamag
  *
@@ -33,15 +34,16 @@ public class CancelOperationSample extends CallController {
 
 		// lambda case
 		arity.registerVoiceApp(call -> {
-			call.answer().run()
-					.thenCompose(anserRes -> call.receivedDTMF().and(call.play("dictate/play_help"))
-							.and(call.play("hello")).and(call.play("goodbye")).run())
-					.thenCompose(dtmf -> call.play("auth-thankyou").loop(2).run())
-					.thenAccept(playRes -> logger.info("Done receiving DTMF and playing")).handle(call::endCall)
-					.exceptionally(t -> {
-						logger.severe(t.toString());
-						return null;
-					});
+			call.answer().run().thenCompose(v -> {
+				Play play = call.play("conf-adminmenu-18");
+				startTimer(play);
+				return play.run();
+			}).thenAccept(p -> logger.info("Finished playback! id: " + p.getPlayback().getId()))
+			.handle(call::endCall)
+			.exceptionally(t -> {
+				logger.severe(t.toString());
+				return null;
+			});
 		});
 
 		while (true) {
@@ -51,5 +53,23 @@ public class CancelOperationSample extends CallController {
 				System.out.println("Thread is not sleeping");
 			}
 		}
+	}
+
+	/**
+	 * start a timer that will cancel playing the play back
+	 * 
+	 * @param play play instance
+	 */
+	private static void startTimer(Play play) {
+		Timer timer = new Timer("Timer");
+		TimerTask task = new TimerTask() {
+			@Override
+			public void run() {
+				logger.info("Canceling playback!!");
+				play.cancel();
+			}
+		};
+		timer.schedule(task, TimeUnit.SECONDS.toMillis(2));
+
 	}
 }
