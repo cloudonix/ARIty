@@ -1,13 +1,10 @@
 package io.cloudonix.arity;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * The class represents the Received DTMF events
@@ -18,17 +15,13 @@ import io.cloudonix.future.helper.FutureHelper;
 public class ReceivedDTMF {
 	private String userInput = "";
 	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
-	private List<CancelableOperations> nestedOperations = new ArrayList<>();;
 	private String terminatingKey;
-	private CancelableOperations currOpertation = null;
 	private int inputLength;
-	private int currOpIndext;
-	private boolean isCanceled = false;
 	private boolean termKeyWasPressed = false;
-	private boolean doneAllOps = false;
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 	private ARIty arity;
 	private String channelId;
+	private Runnable runDtmfHandler = null;
 
 	/**
 	 * Constructor
@@ -62,25 +55,6 @@ public class ReceivedDTMF {
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
 		arity.addFutureEvent(ChannelDtmfReceived.class, channelId, this::handleDTMF);
-
-		if (!nestedOperations.isEmpty()) {
-			logger.fine("there are verbs in the nested operation list");
-			currOpertation = nestedOperations.get(0);
-			currOpIndext = 0;
-			CompletableFuture<? extends Operation> future = CompletableFuture.completedFuture(null);
-			for (int i = currOpIndext; i < nestedOperations.size(); i++) {
-				future = future.thenCompose(res -> {
-					if (!isCanceled) {
-						currOpertation = nestedOperations.get(currOpIndext);
-						currOpIndext++;
-						return currOpertation.run();
-					}
-					return CompletableFuture.completedFuture(null);
-				});
-			}
-			if (currOpIndext == nestedOperations.size() && !isCanceled)
-				doneAllOps = true;
-		}
 		return compFuture;
 	}
 
@@ -91,45 +65,21 @@ public class ReceivedDTMF {
 	 * @param se the saved event handler for dtmf
 	 */
 	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
+		if(Objects.nonNull(runDtmfHandler)) {
+			runDtmfHandler.run(); // run a handler from an app when receiving DTMF, need to unregister also when done
+			return;
+		}
 		if (dtmf.getDigit().equals(terminatingKey)) {
 			logger.info("Done receiving DTMF. all input: " + userInput);
 			termKeyWasPressed = true;
-			cancelAll().thenAccept(v -> compFuture.complete(this));
-			se.unregister();
+			unregister(se);
 			return;
 		}
 		userInput = userInput + dtmf.getDigit();
 		if (Objects.equals(inputLength, userInput.length())) {
-			cancelAll().thenAccept(v -> compFuture.complete(this));
-			se.unregister();
+			unregister(se);
 			return;
 		}
-	}
-
-	/**
-	 * When stopped receiving DTMF, cancel all operations
-	 */
-	private CompletableFuture<Void> cancelAll() {
-		if (!isCanceled) {
-			isCanceled = true;
-			for (int i = (currOpIndext == 0) ? currOpIndext : currOpIndext - 1; i < nestedOperations.size(); i++) {
-				nestedOperations.get(i).cancel();
-			}
-		}
-		return FutureHelper.completedFuture();
-	}
-
-	/**
-	 * add new operation to list of nested operation that run method will execute
-	 * one by one
-	 * 
-	 * @param operation
-	 * @return
-	 */
-
-	public ReceivedDTMF and(CancelableOperations operation) {
-		nestedOperations.add(operation);
-		return this;
 	}
 
 	/**
@@ -159,20 +109,14 @@ public class ReceivedDTMF {
 	public void setTermKeyWasPressed(boolean termKeyWasPressed) {
 		this.termKeyWasPressed = termKeyWasPressed;
 	}
-
-	public boolean isDoneAllOps() {
-		return doneAllOps;
-	}
-
-	public void setDoneAllOps(boolean doneAllOps) {
-		this.doneAllOps = doneAllOps;
-	}
-
-	public boolean isCanceled() {
-		return isCanceled;
-	}
-
-	public void setCanceled(boolean isCanceled) {
-		this.isCanceled = isCanceled;
+	
+	/**
+	 * unregister from listening to DTMF events
+	 * 
+	 * @param se saved event we want to unregister from it
+	 */
+	public void unregister(SavedEvent<ChannelDtmfReceived>se) {
+		se.unregister();
+		compFuture.complete(this);
 	}
 }
