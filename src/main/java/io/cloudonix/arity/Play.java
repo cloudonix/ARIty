@@ -117,7 +117,7 @@ public class Play extends CancelableOperations {
 	}
 
 	@Override
-	CompletableFuture<Void> cancel() {
+	public CompletableFuture<Void> cancel() {
 		timesToPlay = 0;
 		if (Objects.isNull(playback))
 			return CompletableFuture.completedFuture(null);
