@@ -2,10 +2,11 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Consumer;
+import ch.loway.oss.ari4java.generated.Message;
 
 /**
  * The class represents the Received DTMF events
@@ -22,7 +23,7 @@ public class ReceivedDTMF {
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 	private ARIty arity;
 	private String channelId;
-	private Consumer<ChannelDtmfReceived> runDtmfHandler = null;
+	private BiConsumer<ChannelDtmfReceived, SavedEvent<? extends Message>> runDtmfHandler = null;
 
 	/**
 	 * Constructor
@@ -67,7 +68,7 @@ public class ReceivedDTMF {
 	 */
 	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
 		if(Objects.nonNull(runDtmfHandler)) {
-			runDtmfHandler.accept(dtmf); // execute function from an app when receiving DTMF, need to unregister also when done
+			runDtmfHandler.accept(dtmf,se); // execute function from an app when receiving DTMF, need to unregister also when done
 			return;
 		}
 		if (dtmf.getDigit().equals(terminatingKey)) {
@@ -126,7 +127,7 @@ public class ReceivedDTMF {
 	 * 
 	 * @param handler
 	 */
-	public void registerHandler(Consumer<ChannelDtmfReceived> handler) {
+	public void registerHandler(BiConsumer<ChannelDtmfReceived, SavedEvent<? extends Message>> handler) {
 		this.runDtmfHandler = handler;
 	}
 }
