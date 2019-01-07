@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>master-SNAPSHOT</version>
+			<version>cx-master-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
