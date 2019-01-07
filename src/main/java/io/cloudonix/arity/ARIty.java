@@ -352,10 +352,9 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public void disconnect() {
 		try {
-			ari.closeAction(ari.events());
-			logger.info("Closing the web socket");
+			ari.cleanup();
 		} catch (ARIException e) {
-			logger.info("Failed closing the web socket");
+			logger.warning("Failed disconeccting: " + e);
 		}
 	}
 
