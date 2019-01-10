@@ -23,7 +23,7 @@ public class Play extends CancelableOperations {
 	private String language;
 	private String playFileName;
 	private int timesToPlay = 1;
-	private String uriScheme = "sound:";
+	private String uriScheme = "sound";
 	private Playback playback;
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 
@@ -59,7 +59,7 @@ public class Play extends CancelableOperations {
 		if (timesToPlay != 0) {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
-			String fullPath = getUriScheme() + playFileName;
+			String fullPath = uriScheme +":"+ playFileName;
 			getAri().channels().play(getChannelId(), fullPath, language, 0, 0, playbackId, new AriCallback<Playback>() {
 
 				@Override
