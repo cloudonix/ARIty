@@ -89,11 +89,11 @@ public class Conference extends Operation {
 	}
 
 	/**
-	 * close conference when no users are connected to it
+	 * close conference
 	 * 
 	 * @return
 	 */
-	private CompletableFuture<Void> closeConference() {
+	public CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
 		compFuture.complete(this);
 		return bridgeOperations.destroyBridge();
