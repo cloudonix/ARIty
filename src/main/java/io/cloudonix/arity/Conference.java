@@ -72,7 +72,7 @@ public class Conference extends Operation {
 			getConferneceBridge().thenAccept(bridgeRes -> {
 				if (Objects.isNull(bridgeRes)) {
 					logger.info("Creating bridge for conference");
-					bridgeOperations.createBridge().thenAccept(bridge -> bridgeId = bridge.getId());
+					bridgeOperations.createBridge(confName).thenAccept(bridge -> bridgeId = bridge.getId());
 				} else
 					bridgeId = bridgeRes.getId();
 			});
