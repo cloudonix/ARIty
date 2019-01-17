@@ -35,6 +35,7 @@ public class BridgeOperations {
 	private boolean beep;
 	private String terminateOn;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
+	private String bridgeType = "mixing";
 
 	/**
 	 * Constructor
@@ -79,10 +80,12 @@ public class BridgeOperations {
 	/**
 	 * Create a new bridge
 	 * 
+	 * @param bridgeName name of the bridge to create
+	 * 
 	 * @return
 	 */
-	public CompletableFuture<Bridge> createBridge() {
-		return Operation.toFuture(cb -> arity.getAri().bridges().create("mixing", bridgeId, "dialBridge", cb));
+	public CompletableFuture<Bridge> createBridge(String bridgeName) {
+		return Operation.toFuture(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb));
 	}
 
 	/**
@@ -211,9 +214,10 @@ public class BridgeOperations {
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
 							logger.info("Finished recording: " + recordingName);
-							record.getRecording().setDuration(
-									Integer.valueOf(String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
-							RecordingData recordingData = new RecordingData(recordingName, record.getRecording(), recordingStartTime);
+							record.getRecording().setDuration(Integer.valueOf(
+									String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+							RecordingData recordingData = new RecordingData(recordingName, record.getRecording(),
+									recordingStartTime);
 							recordings.put(recordingName, recordingData);
 							future.complete(record.getRecording());
 							se.unregister();
@@ -321,5 +325,26 @@ public class BridgeOperations {
 			logger.warning("Bridge is null");
 			return null;
 		});
+	}
+
+	/**
+	 * get the type of the bridge
+	 * 
+	 * @return
+	 */
+	public String getBridgeType() {
+		return bridgeType;
+	}
+
+	/**
+	 * set the value of bridge. allowed values: mixing, dtmf_events, proxy_media,
+	 * holding (the default is 'mixing')
+	 * 
+	 * @param bridgeType
+	 * @return the update object
+	 */
+	public BridgeOperations setBridgeType(String bridgeType) {
+		this.bridgeType = bridgeType;
+		return this;
 	}
 }
