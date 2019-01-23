@@ -174,13 +174,11 @@ public class Conference extends Operation {
 	 */
 	private void removeAndCloseIfEmpty(ChannelHangupRequest_impl_ari_2_0_0 hangup) {
 		runHangup.run();
-		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
-			logger.info("Channel " + hangup.getChannel().getId() + " was removed conference " + confName);
-			channelIdsInConf.remove(hangup.getChannel().getId());
-			if (channelIdsInConf.isEmpty())
-				closeConference()
-						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
-		});
+		logger.info("Channel " + hangup.getChannel().getId() + " left conference: " + confName);
+		channelIdsInConf.remove(hangup.getChannel().getId());
+		if (channelIdsInConf.isEmpty())
+			closeConference()
+					.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
 	}
 
 	/**
