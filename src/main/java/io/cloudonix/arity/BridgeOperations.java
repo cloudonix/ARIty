@@ -154,7 +154,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String holdMusicFile) {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		String fileToPlay = (Objects.equals(holdMusicFile, "")) ? "pls-hold-while-try" : holdMusicFile;
+		String fileToPlay = (Objects.equals(holdMusicFile, "")) ? "followme/pls-hold-while-try" : holdMusicFile;
 		arity.getAri().bridges().startMoh(bridgeId, fileToPlay, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
