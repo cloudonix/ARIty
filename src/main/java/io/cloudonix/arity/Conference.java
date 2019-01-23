@@ -178,7 +178,11 @@ public class Conference extends Operation {
 		channelIdsInConf.remove(hangup.getChannel().getId());
 		if (channelIdsInConf.isEmpty())
 			closeConference()
-					.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
+					.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName))
+					.exceptionally(t->{
+						logger.warning("Conference bridge was already destroyed");
+						return null;
+					});
 	}
 
 	/**
