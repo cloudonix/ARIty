@@ -19,9 +19,7 @@ import io.cloudonix.future.helper.FutureHelper;
  * @author naamag
  *
  */
-public class Conference extends Operation {
-
-	private CompletableFuture<Conference> compFuture = new CompletableFuture<>(); // Not sure if this future is needed..
+public class Conference {
 	private String confName;
 	// channel id's of all channels in the conference
 	private List<String> channelIdsInConf = new CopyOnWriteArrayList<>();
@@ -37,6 +35,7 @@ public class Conference extends Operation {
 	private LiveRecording conferenceRecord;
 	private BridgeOperations bridgeOperations;
 	private String musicOnHoldFileName;
+	private ARIty arity;
 
 	/**
 	 * Constructor
@@ -54,38 +53,15 @@ public class Conference extends Operation {
 	 */
 	public Conference(CallController callController, String name, boolean beep, boolean mute, boolean needToRecord,
 			String musicOnHoldFileName) {
-		super(callController.getCallState().getChannelID(), callController.getCallState().getArity(),
-				callController.getCallState().getAri());
+		this.arity = callController.getARItyService();
 		this.callController = callController;
 		this.confName = name;
 		this.beep = beep;
 		this.mute = mute;
 		this.needToRecord = needToRecord;
 		this.musicOnHoldFileName = musicOnHoldFileName;
-		this.bridgeOperations = new BridgeOperations(getArity());
+		this.bridgeOperations = new BridgeOperations(arity);
 		this.bridgeOperations.setBeep(beep);
-	}
-
-	@Override
-	public CompletableFuture<Conference> run() {
-		if (Objects.isNull(bridgeId))
-			getConferneceBridge().thenAccept(bridgeRes -> {
-				if (Objects.isNull(bridgeRes)) {
-					logger.info("Creating bridge for conference");
-					bridgeOperations.createBridge(confName).thenAccept(bridge -> bridgeId = bridge.getId());
-				} else
-					bridgeId = bridgeRes.getId();
-			});
-		return compFuture;
-	}
-
-	/**
-	 * get conference bridge if exist
-	 * 
-	 * @return
-	 */
-	private CompletableFuture<Bridge> getConferneceBridge() {
-		return bridgeOperations.getBridge().exceptionally(t -> null);
 	}
 
 	/**
@@ -95,7 +71,6 @@ public class Conference extends Operation {
 	 */
 	public CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
-		compFuture.complete(this);
 		return bridgeOperations.destroyBridge();
 	}
 
@@ -106,51 +81,53 @@ public class Conference extends Operation {
 	 *                     conference
 	 */
 	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
+		CompletableFuture<Conference> confFuture = new CompletableFuture<Conference>();
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
-		bridgeOperations.setBridgeId(bridgeId);
-		return callController.answer().run().thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
+		return callController.answer().run()
+				.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
 					channelIdsInConf.add(newChannelId);
-					getArity().addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId,
+					arity.addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId,
 							this::removeAndCloseIfEmpty);
 					return mute ? callController.mute(newChannelId, "out").run()
 							: FutureHelper.completedSuccessfully(null);
 				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
 					if (channelIdsInConf.size() == 1) {
-						bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
+						return bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
-							return bridgeOperations.startMusicOnHold(musicOnHoldFileName).thenCompose(v2 -> {
-								logger.info("Playing music to bridge with id " + bridgeId);
-								return compFuture;
-							});
+							return bridgeOperations.startMusicOnHold(musicOnHoldFileName)
+									.thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId));
 						});
-					}
-					if (channelIdsInConf.size() == 2) {
-						logger.info("2 channels are at conefernce " + confName + " , conference started");
+					} else {
+						// at least 2 channels are in the conference
+						logger.info(
+								channelIdsInConf.size() + " are at conefernce " + confName + " , conference started");
 						return bridgeOperations.stopMusicOnHold().thenCompose(v3 -> {
 							logger.info("Stoped playing music on hold to the conference bridge");
 							if (needToRecord) {
 								logger.info("Start recording conference " + confName);
 								if (Objects.equals(recordName, ""))
 									recordName = UUID.randomUUID().toString();
-								bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
+								return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
 									conferenceRecord = recored;
 									logger.info("Done recording");
 								});
 							}
-							compFuture.complete(this);
-							return compFuture;
+							logger.fine("Not recording conference");
+							return CompletableFuture.completedFuture(null);
 						});
 					}
-					logger.fine("There are " + channelIdsInConf.size() + " channels in conference " + confName);
-					return compFuture;
 				}).exceptionally(t -> {
-					logger.info("Unable to add channel to conference " + t);
+					logger.info("Unable to add channel to conference: " + t);
+					confFuture.completeExceptionally(t);
 					return null;
+				}).thenCompose(v -> {
+					confFuture.complete(this);
+					return confFuture;
 				});
 	}
 
@@ -174,13 +151,15 @@ public class Conference extends Operation {
 	 */
 	private void removeAndCloseIfEmpty(ChannelHangupRequest_impl_ari_2_0_0 hangup) {
 		runHangup.run();
-		bridgeOperations.removeChannelFromBridge(hangup.getChannel().getId()).thenAccept(v1 -> {
-			logger.info("Channel " + hangup.getChannel().getId() + " was removed conference " + confName);
-			channelIdsInConf.remove(hangup.getChannel().getId());
-			if (channelIdsInConf.isEmpty())
-				closeConference()
-						.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName));
-		});
+		logger.info("Channel " + hangup.getChannel().getId() + " left conference: " + confName);
+		channelIdsInConf.remove(hangup.getChannel().getId());
+		if (channelIdsInConf.isEmpty())
+			closeConference()
+					.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName))
+					.exceptionally(t -> {
+						logger.warning("Conference bridge was already destroyed");
+						return null;
+					});
 	}
 
 	/**
@@ -291,5 +270,50 @@ public class Conference extends Operation {
 	public String getRecordingStartTime() {
 		RecordingData recordData = bridgeOperations.getRecodingByName(recordName);
 		return Objects.nonNull(recordData) ? recordData.getStartingTime() : null;
+	}
+
+	/**
+	 * check if there is a bridge for the conference
+	 * 
+	 * @return true if there is a bridge, false otherwise
+	 */
+	public CompletableFuture<Boolean> isConfereBridgeExists() {
+		return bridgeOperations.getBridge().thenApply(bridgeRes -> true).exceptionally(t -> false);
+	}
+
+	/**
+	 * create a bridge for the conference
+	 * 
+	 * @return the conference bridge
+	 */
+	public CompletableFuture<Bridge> createConferenceBridge() {
+		return bridgeOperations.createBridge(confName).thenApply(bridgeRes -> {
+			logger.info("Created a conference bridge");
+			return bridgeRes;
+		});
+	}
+
+	/**
+	 * set the bridge id of the conference bridge
+	 * 
+	 * @param bridgeId new bridge id for the conference bridge
+	 */
+	public void setBridgeId(String bridgeId) {
+		logger.fine("Changing bridge id to: " + bridgeId);
+		bridgeOperations.setBridgeId(bridgeId);
+	}
+	
+	/**
+	 * remove a channel from this conference
+	 * 
+	 * @param channelId the id of the channel we want to remove
+	 * @return
+	 */
+	public CompletableFuture<Void>removeChannelFromConf(String channelId){
+		if(!channelIdsInConf.contains(channelId)) {
+			logger.info("Channel with id: "+channelId+" is not in conference "+confName);
+			return FutureHelper.completedFuture();
+		}
+		return bridgeOperations.removeChannelFromBridge(channelId);
 	}
 }
