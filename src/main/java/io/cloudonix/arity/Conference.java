@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.ChannelHangupRequest_impl_ari_2_0_0;
+import io.cloudonix.arity.errors.ConferenceException;
 import io.cloudonix.future.helper.FutureHelper;
 
 /**
@@ -22,11 +22,10 @@ import io.cloudonix.future.helper.FutureHelper;
 public class Conference {
 	private String confName;
 	// channel id's of all channels in the conference
-	private List<String> channelIdsInConf = new CopyOnWriteArrayList<>();
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = null;
-	private Runnable runHangup = () -> {
+	private Runnable handleChannelLeftConference = () -> {
 	};
 	private boolean beep = false;
 	private boolean mute = false;
@@ -84,18 +83,22 @@ public class Conference {
 		CompletableFuture<Conference> confFuture = new CompletableFuture<Conference>();
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
-		return callController.answer().run().thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
+		return callController.answer().run()
+				.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
-					channelIdsInConf.add(newChannelId);
-					arity.addFutureOneTimeEvent(ChannelHangupRequest_impl_ari_2_0_0.class, newChannelId,
-							this::removeAndCloseIfEmpty);
+					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, newChannelId, this::channelLeftConference);
 					return mute ? callController.mute(newChannelId, "out").run()
 							: FutureHelper.completedSuccessfully(null);
-				}).thenCompose(muteRes -> annouceUser("joined")).thenCompose(pb -> {
-					if (channelIdsInConf.size() == 1) {
+				}).thenCompose(muteRes -> {
+					return annouceUser("joined").thenCompose(pb -> bridgeOperations.getNumberOfChannelsInBridge());
+				}).thenCompose(numOfChannelsInConf -> {
+					if (numOfChannelsInConf == -1)
+						return FutureHelper.completedExceptionally(
+								new ConferenceException("Failed getting size of conference bridge"));
+					if (numOfChannelsInConf == 1) {
 						return bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 							logger.info("1 person in the conference");
 							return bridgeOperations.startMusicOnHold(musicOnHoldClassName)
@@ -103,8 +106,7 @@ public class Conference {
 						});
 					} else {
 						// at least 2 channels are in the conference
-						logger.info(
-								channelIdsInConf.size() + " are at conefernce " + confName + " , conference started");
+						logger.info(numOfChannelsInConf + " are at conefernce " + confName + " , conference started");
 						return bridgeOperations.stopMusicOnHold().thenCompose(v3 -> {
 							logger.info("Stoped playing music on hold to the conference bridge");
 							if (needToRecord) {
@@ -122,43 +124,47 @@ public class Conference {
 					}
 				}).exceptionally(t -> {
 					logger.info("Unable to add channel to conference: " + t);
-					confFuture.completeExceptionally(t);
+					confFuture.completeExceptionally(new ConferenceException(t));
 					return null;
 				}).thenCompose(v -> {
-					confFuture.complete(this);
+					if (Objects.nonNull(confFuture))
+						confFuture.complete(this);
 					return confFuture;
 				});
 	}
 
 	/**
-	 * register hang up event handler
+	 * register handler to execute when channel left conference
 	 * 
-	 * @param func runnable function that will be running when hang up occurs
+	 * @param handler runnable function that will be running when channel left bridge occurs
 	 * @return
 	 */
-	public Conference whenHangUp(Runnable func) {
-		runHangup = func;
+	public Conference registerChannelLeftConferenceHandler(Runnable handler) {
+		handleChannelLeftConference = handler;
 		return this;
 	}
 
 	/**
-	 * when hang up occurs, remove channel from conference and close conference if
-	 * empty
+	 * handle when a channel left conference bridge
 	 * 
-	 * @param hangup hang up channel event instance
-	 * @return
+	 * @param channelLeftBridge channelLeftBridge event instance
 	 */
-	private void removeAndCloseIfEmpty(ChannelHangupRequest_impl_ari_2_0_0 hangup) {
-		runHangup.run();
-		logger.info("Channel " + hangup.getChannel().getId() + " left conference: " + confName);
-		channelIdsInConf.remove(hangup.getChannel().getId());
-		if (channelIdsInConf.isEmpty())
-			closeConference()
-					.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName))
-					.exceptionally(t -> {
-						logger.warning("Conference bridge was already destroyed");
-						return null;
-					});
+	private void channelLeftConference(ChannelLeftBridge channelLeftBridge) {
+		handleChannelLeftConference.run();
+		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + confName);
+		annouceUser("left").thenAccept(pb -> {
+			bridgeOperations.getNumberOfChannelsInBridge().thenAccept(numberOfChannelsInConf -> {
+				if (numberOfChannelsInConf == 0) {
+					closeConference()
+							.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName))
+							.exceptionally(t -> {
+								logger.warning("Conference bridge was already destroyed");
+								return null;
+							});
+				}
+
+			});
+		});
 	}
 
 	/**
@@ -194,8 +200,8 @@ public class Conference {
 	 * 
 	 * @return
 	 */
-	public int getCount() {
-		return channelIdsInConf.size();
+	public CompletableFuture<Integer> getCount() {
+		return bridgeOperations.getNumberOfChannelsInBridge();
 	}
 
 	/**
@@ -203,17 +209,8 @@ public class Conference {
 	 * 
 	 * @return
 	 */
-	public List<String> getChannelsInConf() {
-		return channelIdsInConf;
-	}
-
-	/**
-	 * set list of channels connected to the conference bridge
-	 * 
-	 * @return
-	 */
-	public void setChannelsInConf(List<String> channelsInConf) {
-		this.channelIdsInConf = channelsInConf;
+	public CompletableFuture<List<String>> getChannelsInConf() {
+		return bridgeOperations.getChannelsInBridge();
 	}
 
 	/**
@@ -310,10 +307,6 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> removeChannelFromConf(String channelId) {
-		if (!channelIdsInConf.contains(channelId)) {
-			logger.info("Channel with id: " + channelId + " is not in conference " + confName);
-			return FutureHelper.completedFuture();
-		}
 		return bridgeOperations.removeChannelFromBridge(channelId);
 	}
 }
