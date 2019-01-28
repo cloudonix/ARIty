@@ -348,4 +348,17 @@ public class BridgeOperations {
 		this.bridgeType = bridgeType;
 		return this;
 	}
+
+	/**
+	 * get how many channels are connected to this bridge
+	 * 
+	 * @return number of active channels in this bridge
+	 */
+	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
+		return getBridge().thenApply(bridgeRes->bridgeRes.getChannels().size())
+				.exceptionally(t->{
+					logger.severe("Failed getting bridge");
+					return -1;
+				});
+	}
 }
