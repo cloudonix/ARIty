@@ -16,7 +16,6 @@ import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 
 /**
  * The class handles all bridge operations
@@ -148,14 +147,16 @@ public class BridgeOperations {
 	/**
 	 * play music on hold to the bridge
 	 * 
-	 * @param holdMusicFile file of the music to be played while holding ("" for
-	 *                      default music)
+	 * @param musicOnHoldClass the class we want to load for playing music on hold
+	 *                         to the bridge, defining needed configuration for
+	 *                         playing (note: this class needs to be defined in
+	 *                         musiconhold.conf file). If no need for specific
+	 *                         configuration, use 'default'
 	 * @return
 	 */
-	public CompletableFuture<Void> startMusicOnHold(String holdMusicFile) {
+	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		String fileToPlay = (Objects.equals(holdMusicFile, "")) ? "followme/pls-hold-while-try" : holdMusicFile;
-		arity.getAri().bridges().startMoh(bridgeId, fileToPlay, new AriCallback<Void>() {
+		arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Playing music on hold to bridge: " + bridgeId);
@@ -187,7 +188,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.info("Failed playing music on hold to bridge: " + ErrorStream.fromThrowable(e));
+				logger.info("Failed playing music on hold to bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
