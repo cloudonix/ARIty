@@ -84,6 +84,8 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Bridge> createBridge(String bridgeName) {
+		logger.info("Creating bridge with name: " + bridgeName + ", with id: " + bridgeId + " , and bridge type: "
+				+ bridgeType);
 		return Operation.toFuture(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb));
 	}
 
@@ -93,6 +95,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> destroyBridge() {
+		logger.info("Destoying bridge with id: " + bridgeId);
 		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().destroy(bridgeId, cb)).thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
@@ -106,6 +109,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> addChannelToBridge(String channelId) {
+		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
 	}
 
@@ -116,6 +120,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
+		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
 	}
 
@@ -126,6 +131,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Playback> playMediaToBridge(String fileToPlay) {
+		logger.info("Play media to bridge with id: " + bridgeId + ", and media is: " + fileToPlay);
 		String playbackId = UUID.randomUUID().toString();
 		return Operation.<Playback>toFuture(
 				cb -> arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
@@ -188,7 +194,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.info("Failed playing music on hold to bridge: " + e);
+				logger.info("Failed stop playing music on hold to bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
@@ -202,6 +208,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<LiveRecording> recordBridge(String recordingName) {
+		logger.info("Record bridge with id: " + bridgeId + ", and recording name is: " + recordingName);
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
 		Instant recordingStartTime = Instant.now();
 		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
@@ -241,6 +248,7 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Bridge> getBridge() {
+		logger.info("Getting bridge with id: " + bridgeId + "...");
 		CompletableFuture<Bridge> future = new CompletableFuture<Bridge>();
 		arity.getAri().bridges().get(bridgeId, new AriCallback<Bridge>() {
 			@Override
@@ -320,11 +328,13 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<List<String>> getChannelsInBridge() {
+		logger.info("Getting all ids of active channels in bridge with id: " + bridgeId);
 		return getBridge().thenApply(bridge -> {
-			if (Objects.nonNull(bridge))
-				return bridge.getChannels();
-			logger.warning("Bridge is null");
-			return null;
+			if (Objects.isNull(bridge)) {
+				logger.warning("Bridge is null");
+				return null;
+			}
+			return bridge.getChannels();
 		});
 	}
 
@@ -345,6 +355,12 @@ public class BridgeOperations {
 	 * @return the update object
 	 */
 	public BridgeOperations setBridgeType(String bridgeType) {
+		logger.info("Setting type of bridge with id: " + bridgeId + " to type:" + bridgeType);
+		if (!Objects.equals(bridgeType, "mixing") && !Objects.equals(bridgeType, "dtmf_events")
+				&& !Objects.equals(bridgeType, "proxy_media") && !Objects.equals(bridgeType, "holding")) {
+			logger.warning("Invalid bridge type: " + bridgeType);
+			return this;
+		}
 		this.bridgeType = bridgeType;
 		return this;
 	}
@@ -355,10 +371,10 @@ public class BridgeOperations {
 	 * @return number of active channels in this bridge
 	 */
 	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
-		return getBridge().thenApply(bridgeRes->bridgeRes.getChannels().size())
-				.exceptionally(t->{
-					logger.severe("Failed getting bridge");
-					return -1;
-				});
+		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size()).exceptionally(t -> {
+			logger.severe("Failed getting bridge: " + t);
+			return -1;
+		});
 	}
 }
