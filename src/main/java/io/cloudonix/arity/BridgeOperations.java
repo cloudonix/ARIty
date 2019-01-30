@@ -194,7 +194,7 @@ public class BridgeOperations {
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.info("Failed playing music on hold to bridge: " + e);
+				logger.info("Failed stop playing music on hold to bridge: " + e);
 				future.completeExceptionally(e);
 			}
 		});
