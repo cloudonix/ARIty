@@ -21,12 +21,10 @@ import io.cloudonix.future.helper.FutureHelper;
  */
 public class Conference {
 	private String confName;
-	// channel id's of all channels in the conference
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = null;
-	private Runnable handleChannelLeftConference = () -> {
-	};
+	private Runnable handleChannelLeftConference = () -> {};
 	private boolean beep = false;
 	private boolean mute = false;
 	private boolean needToRecord;
