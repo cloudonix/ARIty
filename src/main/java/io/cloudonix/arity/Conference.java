@@ -24,7 +24,8 @@ public class Conference {
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private String bridgeId = null;
-	private Runnable handleChannelLeftConference = () -> {};
+	private Runnable handleChannelLeftConference = () -> {
+	};
 	private boolean beep = false;
 	private boolean mute = false;
 	private boolean needToRecord;
@@ -74,21 +75,27 @@ public class Conference {
 	/**
 	 * add channel to the conference
 	 * 
-	 * @param newChannelId id of the new channel that we want to add to add to the
-	 *                     conference
 	 */
-	public CompletableFuture<Conference> addChannelToConf(String newChannelId) {
+	public CompletableFuture<Conference> addChannelToConf() {
 		CompletableFuture<Conference> confFuture = new CompletableFuture<Conference>();
 		if (Objects.isNull(bridgeId))
 			bridgeId = confName;
-		return callController.answer().run()
-				.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(newChannelId))
+		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
+		if (callController.getCallMonitor().wasAnswered()) {
+			logger.info("Channel with id: "+callController.getChannelID()+ " was already answered");
+			answer.complete(null);
+		} else {
+			logger.fine("Need to answer the channel with id: "+callController.getChannelID());
+			answer = callController.answer().run();
+		}
+		return answer.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(callController.getChannelID()))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? bridgeOperations.playMediaToBridge("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
-					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, newChannelId, this::channelLeftConference);
-					return mute ? callController.mute(newChannelId, "out").run()
+					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, callController.getChannelID(),
+							this::channelLeftConference);
+					return mute ? callController.mute(callController.getChannelID(), "out").run()
 							: FutureHelper.completedSuccessfully(null);
 				}).thenCompose(muteRes -> {
 					return annouceUser("joined").thenCompose(pb -> bridgeOperations.getNumberOfChannelsInBridge());
@@ -134,7 +141,8 @@ public class Conference {
 	/**
 	 * register handler to execute when channel left conference
 	 * 
-	 * @param handler runnable function that will be running when channel left bridge occurs
+	 * @param handler runnable function that will be running when channel left
+	 *                bridge occurs
 	 * @return
 	 */
 	public Conference registerChannelLeftConferenceHandler(Runnable handler) {
@@ -152,6 +160,10 @@ public class Conference {
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + confName);
 		annouceUser("left").thenAccept(pb -> {
 			bridgeOperations.getNumberOfChannelsInBridge().thenAccept(numberOfChannelsInConf -> {
+				if (numberOfChannelsInConf == 1) {
+					logger.info("Only one channel left in bridge, play music on hold");
+					bridgeOperations.startMusicOnHold(musicOnHoldClassName);
+				}
 				if (numberOfChannelsInConf == 0) {
 					closeConference()
 							.thenAccept(v2 -> logger.info("Nobody in the conference, closed the conference" + confName))
