@@ -161,21 +161,8 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Playing music on hold to bridge: " + bridgeId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("Failed playing music on hold to bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		logger.fine("Try playing music on hold to bridge with id: "+bridgeId);
+		return Operation.<Void>toFuture(cb->arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass,cb));
 	}
 
 	/**
@@ -184,21 +171,9 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		arity.getAri().bridges().stopMoh(bridgeId, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info(" Stoped playing music on hold to bridge: " + bridgeId);
-				future.complete(result);
-			}
+	logger.fine("Try to stop playing music on hold to bridge with id: "+bridgeId);
+	return Operation.<Void>toFuture(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
 
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("Failed stop playing music on hold to bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
 	}
 
 	/**
@@ -234,7 +209,7 @@ public class BridgeOperations {
 
 					@Override
 					public void onFailure(RestException e) {
-						logger.info("Failed recording bridge: " + e);
+						logger.info("Failed recording bridge");
 						future.completeExceptionally(e);
 					}
 				});
@@ -248,22 +223,8 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Bridge> getBridge() {
-		logger.info("Getting bridge with id: " + bridgeId + "...");
-		CompletableFuture<Bridge> future = new CompletableFuture<Bridge>();
-		arity.getAri().bridges().get(bridgeId, new AriCallback<Bridge>() {
-			@Override
-			public void onSuccess(Bridge result) {
-				logger.info("Found bridge with id: " + bridgeId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("Failed getting bridge: " + e);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		logger.info("Trying to get bridge with id: " + bridgeId + "...");
+		return Operation.toFuture(cb->arity.getAri().bridges().get(bridgeId, cb));
 	}
 
 	/**
