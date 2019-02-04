@@ -338,4 +338,35 @@ public class BridgeOperations {
 			return -1;
 		});
 	}
+	
+	/**
+	 * check if the this bridge is an active bridge in Asterisk
+	 * 
+	 * @return true if the bridge is active, false otherwise
+	 */
+	public CompletableFuture<Boolean> isBridgeActive(){
+		CompletableFuture<Boolean> isActive = new CompletableFuture<Boolean>();
+		arity.getAri().bridges().list(new AriCallback<List<Bridge>>() {
+			@Override
+			public void onSuccess(List<Bridge> result) {
+				logger.info("Searching for bridge with id: "+bridgeId+" ...");
+				for(Bridge bridge : result) {
+					if(Objects.equals(bridgeId, bridge.getId())) {
+						logger.info("Found an active bridge!");
+						isActive.complete(true);
+						return;
+					}
+				}
+				logger.info("No active bridge with id: "+bridgeId+" was found");
+				isActive.complete(false);
+			}
+
+			@Override
+			public void onFailure(RestException e) {
+				logger.severe("Failed finding active bridge with id: "+bridgeId);
+				isActive.complete(false);
+			}
+		});
+		return isActive;
+	}
 }
