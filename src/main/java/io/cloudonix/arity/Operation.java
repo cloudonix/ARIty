@@ -16,7 +16,6 @@ import ch.loway.oss.ari4java.tools.RestException;
  *
  */
 public abstract class Operation {
-
 	private String channelId;
 	private ARIty arity;
 	private ARI ari;
@@ -29,13 +28,13 @@ public abstract class Operation {
 	 * @param ari       ARI instance
 	 */
 	public Operation(String channelId, ARIty arity, ARI ari) {
-		this.setChannelId(channelId);
+		this.channelId = channelId;
 		this.arity = arity;
 		this.ari = ari;
 	}
 
 	/**
-	 * get ari
+	 * get ARI instance
 	 * 
 	 * @return
 	 */
@@ -93,7 +92,7 @@ public abstract class Operation {
 	}
 
 	/**
-	 * set the channel id of the call
+	 * set the channel id on which we do the operation
 	 * 
 	 * @param channelId new channel id
 	 */

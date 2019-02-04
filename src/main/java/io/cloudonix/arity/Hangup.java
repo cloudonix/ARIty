@@ -3,16 +3,13 @@ package io.cloudonix.arity;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.tools.AriCallback;
-import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.HangUpException;
-
 /**
  * The class represents the Hang up operation (hangs up a call)
  * 
  * @author naamag
  *
  */
+
 public class Hangup extends Operation {
 
 	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
@@ -33,22 +30,11 @@ public class Hangup extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Hangup> run() {
-		CompletableFuture<Hangup> future = new CompletableFuture<Hangup>();
-		getAri().channels().hangup(getChannelId(), reason, new AriCallback<Void>() {
-
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Hanged up channel with id: " + getChannelId());
-				future.complete(null);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Failed hang up channel with id: " + getChannelId() + " : " + e);
-				future.completeExceptionally(new HangUpException(e));
-			}
-		});
-		return future;
+		return Operation.<Void>toFuture(cb->getAri().channels().hangup(getChannelId(),reason,cb))
+				.thenApply(res->{
+					logger.info("Channel with id: "+getChannelId()+" was hanged up");
+					return this;
+				});
 	}
 
 	/**
@@ -69,4 +55,5 @@ public class Hangup extends Operation {
 	public void setReason(String reason) {
 		this.reason = reason;
 	}
+	
 }
