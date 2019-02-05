@@ -106,29 +106,38 @@ public class Conference {
 						return annouceUser("joined").thenCompose(pb -> {
 							return bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
 								logger.info("1 person in the conference");
-								return bridgeOperations.startMusicOnHold(musicOnHoldClassName)
-										.thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId));
+								return bridgeOperations.startMusicOnHold(musicOnHoldClassName).exceptionally(t -> {
+									logger.warning("Failed playing music on hold to conference with bridge id: "
+											+ bridgeId + ": " + t);
+									return null;
+								}).thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId));
 
 							});
 						});
 					} else {
 						// at least 2 channels are in the conference
 						logger.info(numOfChannelsInConf + " are at conefernce " + confName + " , conference started");
-						return bridgeOperations.stopMusicOnHold().thenCompose(v -> annouceUser("joined"))
-								.thenCompose(pb -> {
-									logger.info("Stoped playing music on hold to the conference bridge");
-									if (needToRecord) {
-										logger.info("Start recording conference " + confName);
-										if (Objects.equals(recordName, ""))
-											recordName = UUID.randomUUID().toString();
-										return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
-											conferenceRecord = recored;
-											logger.info("Done recording");
+						return Objects.equals(numOfChannelsInConf, 2)
+								? bridgeOperations.stopMusicOnHold().exceptionally(t -> {
+									logger.warning(
+											"Failed stopping music on hold to conference with bridge id: " + bridgeId);
+									return null;
+								})
+								: FutureHelper.completedFuture().thenCompose(v -> annouceUser("joined"))
+										.thenCompose(pb -> {
+											logger.info("Stoped playing music on hold to the conference bridge");
+											if (needToRecord) {
+												logger.info("Start recording conference " + confName);
+												if (Objects.equals(recordName, ""))
+													recordName = UUID.randomUUID().toString();
+												return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
+													conferenceRecord = recored;
+													logger.info("Done recording");
+												});
+											}
+											logger.fine("Not recording conference");
+											return CompletableFuture.completedFuture(null);
 										});
-									}
-									logger.fine("Not recording conference");
-									return CompletableFuture.completedFuture(null);
-								});
 					}
 				}).exceptionally(t -> {
 					logger.info("Unable to add channel to conference: " + t);
