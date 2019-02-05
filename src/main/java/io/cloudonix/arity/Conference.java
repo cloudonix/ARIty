@@ -103,17 +103,17 @@ public class Conference {
 						return FutureHelper.completedExceptionally(
 								new ConferenceException("Failed getting size of conference bridge"));
 					if (numOfChannelsInConf == 1) {
-						return annouceUser("joined").thenCompose(pb -> {
-							return bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
-								logger.info("1 person in the conference");
-								return bridgeOperations.startMusicOnHold(musicOnHoldClassName).exceptionally(t -> {
+						return annouceUser("joined")
+								.thenCompose(pb -> bridgeOperations.playMediaToBridge("conf-onlyperson"))
+								.thenCompose(pb -> {
+									logger.info("1 person in the conference");
+									return bridgeOperations.startMusicOnHold(musicOnHoldClassName);
+								}).thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId))
+								.exceptionally(t -> {
 									logger.warning("Failed playing music on hold to conference with bridge id: "
 											+ bridgeId + ": " + t);
 									return null;
-								}).thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId));
-
-							});
-						});
+								});
 					} else {
 						// at least 2 channels are in the conference
 						logger.info(numOfChannelsInConf + " are at conefernce " + confName + " , conference started");
