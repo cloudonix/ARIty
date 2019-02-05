@@ -97,47 +97,44 @@ public class Conference {
 							this::channelLeftConference);
 					return mute ? callController.mute(callController.getChannelID(), "out").run()
 							: FutureHelper.completedSuccessfully(null);
-				}).thenCompose(muteRes -> bridgeOperations.getNumberOfChannelsInBridge())
-				.thenCompose(numOfChannelsInConf -> {
+				}).thenCompose(muteRes -> {
+					return annouceUser("joined").thenCompose(pb -> bridgeOperations.getNumberOfChannelsInBridge());
+				}).thenCompose(numOfChannelsInConf -> {
 					if (numOfChannelsInConf == -1)
 						return FutureHelper.completedExceptionally(
 								new ConferenceException("Failed getting size of conference bridge"));
 					if (numOfChannelsInConf == 1) {
-						return annouceUser("joined")
-								.thenCompose(pb -> bridgeOperations.playMediaToBridge("conf-onlyperson"))
-								.thenCompose(pb -> {
-									logger.info("1 person in the conference");
-									return bridgeOperations.startMusicOnHold(musicOnHoldClassName);
-								}).thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId))
-								.exceptionally(t -> {
-									logger.warning("Failed playing music on hold to conference with bridge id: "
-											+ bridgeId + ": " + t);
-									return null;
-								});
+						return bridgeOperations.playMediaToBridge("conf-onlyperson").thenCompose(playRes -> {
+							logger.info("1 person in the conference");
+							return bridgeOperations.startMusicOnHold(musicOnHoldClassName)
+									.thenAccept(v2 -> logger.info("Playing music to bridge with id " + bridgeId))
+									.exceptionally(t -> {
+										logger.warning("Failed playing music on hold to conference bridge with id: "
+												+ bridgeId + ": " + t);
+										return null;
+									});
+						});
 					} else {
 						// at least 2 channels are in the conference
 						logger.info(numOfChannelsInConf + " are at conefernce " + confName + " , conference started");
-						return Objects.equals(numOfChannelsInConf, 2)
-								? bridgeOperations.stopMusicOnHold().exceptionally(t -> {
-									logger.warning(
-											"Failed stopping music on hold to conference with bridge id: " + bridgeId);
-									return null;
-								})
-								: FutureHelper.completedFuture().thenCompose(v -> annouceUser("joined"))
-										.thenCompose(pb -> {
-											logger.info("Stoped playing music on hold to the conference bridge");
-											if (needToRecord) {
-												logger.info("Start recording conference " + confName);
-												if (Objects.equals(recordName, ""))
-													recordName = UUID.randomUUID().toString();
-												return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
-													conferenceRecord = recored;
-													logger.info("Done recording");
-												});
-											}
-											logger.fine("Not recording conference");
-											return CompletableFuture.completedFuture(null);
-										});
+						return bridgeOperations.stopMusicOnHold().exceptionally(t -> {
+							logger.warning("Failed stop playing music on hold to conference bridge with id: " + bridgeId
+									+ ": " + t);
+							return null;
+						}).thenCompose(v3 -> {
+							logger.info("Stoped playing music on hold to the conference bridge");
+							if (needToRecord) {
+								logger.info("Start recording conference " + confName);
+								if (Objects.equals(recordName, ""))
+									recordName = UUID.randomUUID().toString();
+								return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
+									conferenceRecord = recored;
+									logger.info("Done recording");
+								});
+							}
+							logger.fine("Not recording conference");
+							return CompletableFuture.completedFuture(null);
+						});
 					}
 				}).exceptionally(t -> {
 					logger.info("Unable to add channel to conference: " + t);
