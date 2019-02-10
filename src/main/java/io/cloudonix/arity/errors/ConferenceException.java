@@ -6,8 +6,7 @@ package io.cloudonix.arity.errors;
  * @author naamag
  *
  */
-public class ConferenceException extends Throwable {
-
+public class ConferenceException extends Exception {
 	private static final long serialVersionUID = 1L;
 	
 	public ConferenceException(String errorMessage) {

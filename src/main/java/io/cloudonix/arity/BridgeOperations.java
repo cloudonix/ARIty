@@ -63,7 +63,7 @@ public class BridgeOperations {
 	 * @param terminateOn        DTMF input to terminate recording. Allowed values:
 	 *                           none, any, *, #
 	 */
-	public BridgeOperations(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
+	public BridgeOperations(ARIty arity,String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
 		this.arity = arity;
 		if (!Objects.equals(recordFormat, "") && Objects.nonNull(recordFormat))
@@ -76,8 +76,10 @@ public class BridgeOperations {
 		this.bridgeId = UUID.randomUUID().toString();
 	}
 
+
 	/**
 	 * Create a new bridge
+	 * @param bridgeName 
 	 * 
 	 * @param bridgeName name of the bridge to create
 	 * 
@@ -333,10 +335,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
 		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size()).exceptionally(t -> {
-			logger.severe("Failed getting bridge: " + t);
-			return -1;
-		});
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
 	}
 	
 	/**

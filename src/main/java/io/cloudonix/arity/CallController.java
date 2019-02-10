@@ -170,16 +170,6 @@ public abstract class CallController {
 	}
 
 	/**
-	 * the method creates a new Conference
-	 * 
-	 * @param confName name of the conference
-	 * @return
-	 */
-	public Conference conference(String confName) {
-		return new Conference(this, confName);
-	}
-
-	/**
 	 * create conference with additional functionality
 	 * 
 	 * @param confName     conference name
@@ -188,8 +178,19 @@ public abstract class CallController {
 	 * @param needToRecord true if need to record conference, false otherwise
 	 * @param musicOnHoldFileName name of the file to be played when playing music on hold to conference. If non ""
 	 */
-	public Conference conference(String confName, boolean beep, boolean mute, boolean needToRecord, String musicOnHoldFileName) {
-		return new Conference(this, confName, beep, mute, needToRecord,musicOnHoldFileName);
+	public CompletableFuture<Conference> getConference(String bridgeId) {
+		Conference conf = new Conference(this);
+		return conf.getBridge(bridgeId).thenApply(b->conf);
+	}
+	
+	public CompletableFuture<Conference> createConference(String conferenceName, String bridgeId) {
+		Conference conf = new Conference(this);
+		return conf.createConferenceBridge(conferenceName, bridgeId).thenApply(b->conf);
+	}
+	
+	public CompletableFuture<Conference> createConference(String conferenceName) {
+		Conference conf = new Conference(this);
+		return conf.createConferenceBridge(conferenceName).thenApply(b->conf);
 	}
 
 	/**
@@ -549,7 +550,7 @@ public abstract class CallController {
 	 * @param terminateOn        DTMF input to terminate recording. Allowed values:
 	 *                           none, any, *, #
 	 */
-	public BridgeOperations bridge(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
+	public BridgeOperations bridge(ARIty arity,String bridgeName, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
 		return new BridgeOperations(arity, recordFormat, maxDurationSeconds, maxSilenceSeconds, ifExists, beep,
 				terminateOn);
