@@ -42,6 +42,7 @@ public class Conference {
 		this.arity = callController.getARItyService();
 		this.callController = callController;
 		this.bridgeOperations = new BridgeOperations(arity);
+		callController.setTalkingInChannel("set", "1500,750");
 		arity.addFutureEvent(ChannelTalkingStarted.class, callController.getChannelID(),this::memberTalkingStartedEvent);
 		arity.addFutureEvent(ChannelTalkingFinished.class, callController.getChannelID(),this::memberTalkingFinishedEvent);
 		
