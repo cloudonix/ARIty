@@ -51,6 +51,12 @@ public class Conference {
 	/**
 	 * add channel to the conference
 	 * 
+	 * @param beep         true if need to play 'beep' sound when channel joins to
+	 *                     conference, false otherwise
+	 * @param mute         true if the channel should only listen to conference
+	 *                     without talking, false otherwise
+	 * @param needToRecord true if need to record the conference, false otherwise
+	 * @return
 	 */
 	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean needToRecord) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
@@ -70,16 +76,20 @@ public class Conference {
 							this::channelLeftConference);
 					return mute ? callController.mute(callController.getChannelID(), "out").run()
 							: FutureHelper.completedSuccessfully(null);
-				}).thenCompose(muteRes -> annouceUser("joined"))
-				.exceptionally(Futures.on(Exception.class, t -> {
+				}).thenCompose(muteRes -> annouceUser("joined")).exceptionally(Futures.on(Exception.class, t -> {
 					logger.info("Unable to add channel to conference: " + t);
 					throw new ConferenceException(t);
-				})).thenApply(v->this);
+				})).thenApply(v -> this);
 	}
 
+	/**
+	 * record the conference
+	 * 
+	 * @return
+	 */
 	public CompletableFuture<Void> recordConference() {
 		logger.info("Start recording conference " + conferenceName);
-		if (Objects.isNull(recordName)) 
+		if (Objects.isNull(recordName))
 			recordName = UUID.randomUUID().toString();
 		return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
 			conferenceRecord = recored;
@@ -132,8 +142,7 @@ public class Conference {
 	 * @param status 'joined' or 'left' conference
 	 */
 	private CompletableFuture<Playback> annouceUser(String status) {
-		return (Objects.equals(status, "joined")) ? playMedia("confbridge-has-joined")
-				: playMedia("conf-hasleft");
+		return (Objects.equals(status, "joined")) ? playMedia("confbridge-has-joined") : playMedia("conf-hasleft");
 	}
 
 	/**
@@ -229,10 +238,10 @@ public class Conference {
 	}
 
 	/**
-	 * create a bridge for the conference
+	 * create a bridge for the conference with a known id of bridge
 	 * 
-	 * @param conferenceName
-	 * @param bridgeId
+	 * @param conferenceName name of the conference
+	 * @param bridgeId id of we want to set to conference bridge
 	 * 
 	 * @return the conference bridge
 	 */
@@ -245,6 +254,13 @@ public class Conference {
 		});
 	}
 
+	/**
+	 * create a bridge for the conference without selecting the bridge id
+	 * 
+	 * @param conferenceName name of the conference
+	 * 
+	 * @return the conference bridge
+	 */
 	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName) {
 		this.conferenceName = conferenceName;
 		return bridgeOperations.createBridge(conferenceName).thenApply(bridgeRes -> {
@@ -275,18 +291,38 @@ public class Conference {
 		return conferenceName;
 	}
 
+	/**
+	 * play media to the bridge
+	 * 
+	 * @param mediaToPlay name of the media to play
+	 * @return promise to a Playback
+	 */
 	public CompletableFuture<Playback> playMedia(String mediaToPlay) {
 		return bridgeOperations.playMediaToBridge(mediaToPlay);
 	}
 
+	/**
+	 * remove channel from conference
+	 * 
+	 * @param channelID id of the channel we want to remove
+	 * @return
+	 */
 	public CompletableFuture<Void> removeChannel(String channelID) {
 		return bridgeOperations.removeChannelFromBridge(channelID);
 	}
 
+	/**
+	 * start playing music on hold to conference bridge
+	 * @return
+	 */
 	public CompletableFuture<Void> startMusicOnHold() {
 		return bridgeOperations.startMusicOnHold(musicOnHoldClassName);
 	}
 
+	/**
+	 * stop playing to music on hold to conference bridge
+	 * @return
+	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 		return bridgeOperations.stopMusicOnHold();
 	}
