@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
+import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
+import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
@@ -31,11 +33,37 @@ public class Conference {
 	private String musicOnHoldClassName = "default";
 	private ARIty arity;
 	private String conferenceName;
+	private boolean mohStarted = false;
+	private boolean mohStopped = false;
+	private Runnable talkingStatedHandler = ()->{};
+	private Runnable talkingFinishedEvent = ()->{};
 
 	public Conference(CallController callController) {
 		this.arity = callController.getARItyService();
 		this.callController = callController;
 		this.bridgeOperations = new BridgeOperations(arity);
+		callController.setTalkingInChannel("set", "1500,750");
+		arity.addFutureEvent(ChannelTalkingStarted.class, callController.getChannelID(),this::memberTalkingStartedEvent);
+		arity.addFutureEvent(ChannelTalkingFinished.class, callController.getChannelID(),this::memberTalkingFinishedEvent);
+		
+	}
+	
+	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, SavedEvent<ChannelTalkingStarted>se) {
+		this.talkingStatedHandler.run();
+	}
+	
+	public void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, SavedEvent<ChannelTalkingFinished>se) {
+		this.talkingFinishedEvent .run();
+	}
+	
+	public Conference registerMemberStartedTalkingHandler(Runnable talkingStartedH) {
+		this.talkingStatedHandler = talkingStartedH;
+		return this;
+	}
+	
+	public Conference registerMemberFinishedTalkingHandler(Runnable talkingFinishedH) {
+		this.talkingFinishedEvent = talkingFinishedH;
+		return this;
 	}
 
 	/**
@@ -141,7 +169,7 @@ public class Conference {
 	 * 
 	 * @param status 'joined' or 'left' conference
 	 */
-	private CompletableFuture<Playback> annouceUser(String status) {
+	public CompletableFuture<Playback> annouceUser(String status) {
 		return (Objects.equals(status, "joined")) ? playMedia("confbridge-has-joined") : playMedia("conf-hasleft");
 	}
 
@@ -316,7 +344,18 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> startMusicOnHold() {
-		return bridgeOperations.startMusicOnHold(musicOnHoldClassName);
+		return bridgeOperations.startMusicOnHold(musicOnHoldClassName)
+				.thenApply(v->{
+					logger.fine("Started playing music on hold to conference bridge");
+					mohStarted = true;
+					return v;
+				}).exceptionally(t->{
+					if(t.getMessage().contains("Bridge not in Stasis application")) {
+						logger.fine("Music on hold already started, can't start it again");
+						mohStarted = false;
+					}
+					return null;
+				});
 	}
 
 	/**
@@ -324,6 +363,33 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		return bridgeOperations.stopMusicOnHold();
+		return bridgeOperations.stopMusicOnHold()
+				.thenApply(v->{
+					logger.fine("Stoped playing music on hold to conference bridge");
+					mohStopped = true;
+					return v;
+				}).exceptionally(t->{
+					if(t.getMessage().contains("Bridge not in Stasis application")) {
+						logger.fine("Music on hold already stoped, can't stop it again");
+						mohStopped = false;
+					}
+					return null;
+				});
+	}
+
+	public boolean isMohStarted() {
+		return mohStarted;
+	}
+
+	public void setMohStarted(boolean mohStarted) {
+		this.mohStarted = mohStarted;
+	}
+
+	public boolean isMohStopped() {
+		return mohStopped;
+	}
+
+	public void setMohStopped(boolean monStopped) {
+		this.mohStopped = monStopped;
 	}
 }

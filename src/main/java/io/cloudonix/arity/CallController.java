@@ -172,22 +172,31 @@ public abstract class CallController {
 	/**
 	 * create conference with additional functionality
 	 * 
-	 * @param confName     conference name
-	 * @param beep         true if play beep when channel enters the conference
-	 * @param mute         true if channel need to be muted for audio
-	 * @param needToRecord true if need to record conference, false otherwise
-	 * @param musicOnHoldFileName name of the file to be played when playing music on hold to conference. If non ""
+	 * @param bridgeId id of conference bridge we want to get
 	 */
 	public CompletableFuture<Conference> getConference(String bridgeId) {
 		Conference conf = new Conference(this);
 		return conf.getBridge(bridgeId).thenApply(b->conf);
 	}
 	
+	/**
+	 * create a new conference with wanted bridge id
+	 * 
+	 * @param conferenceName name of the conference
+	 * @param bridgeId id to set to conference bridge
+	 * @return
+	 */
 	public CompletableFuture<Conference> createConference(String conferenceName, String bridgeId) {
 		Conference conf = new Conference(this);
 		return conf.createConferenceBridge(conferenceName, bridgeId).thenApply(b->conf);
 	}
 	
+	/**
+	 * create a new conference with 
+	 * 
+	 * @param conferenceName name of the conference
+	 * @return
+	 */
 	public CompletableFuture<Conference> createConference(String conferenceName) {
 		Conference conf = new Conference(this);
 		return conf.createConferenceBridge(conferenceName).thenApply(b->conf);
