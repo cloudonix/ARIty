@@ -91,6 +91,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
 			<version>[4,)</version>
 		</dependency>
 		<dependency>
