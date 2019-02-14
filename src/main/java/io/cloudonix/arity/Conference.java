@@ -373,6 +373,10 @@ public class Conference {
 						logger.fine("Music on hold already stoped, can't stop it again");
 						mohStopped = false;
 					}
+					if(t.getMessage().contains("Bridge isn't playing music")) {
+						logger.fine("Bridge isn't playing music, so can't stop music on hold");
+						mohStopped = false;
+					}
 					return null;
 				});
 	}
