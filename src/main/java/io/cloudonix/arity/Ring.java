@@ -23,8 +23,8 @@ public class Ring extends CancelableOperations {
 	 * @param callController instance of CallController
 	 */
 	public Ring(CallController callController) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
-		this.channelId = callController.getChannelID();
+		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		this.channelId = callController.getChannelId();
 	}
 
 	/**

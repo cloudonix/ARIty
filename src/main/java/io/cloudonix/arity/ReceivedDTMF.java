@@ -36,7 +36,7 @@ public class ReceivedDTMF {
 		this.terminatingKey = termKey;
 		this.inputLength = length;
 		this.arity = callController.getARItyService();
-		this.channelId = callController.getChannelID();
+		this.channelId = callController.getChannelId();
 		
 	}
 

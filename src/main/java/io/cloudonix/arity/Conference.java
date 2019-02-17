@@ -43,8 +43,8 @@ public class Conference {
 		this.callController = callController;
 		this.bridgeOperations = new BridgeOperations(arity);
 		callController.setTalkingInChannel("set", "1500,750");
-		arity.addFutureEvent(ChannelTalkingStarted.class, callController.getChannelID(),this::memberTalkingStartedEvent);
-		arity.addFutureEvent(ChannelTalkingFinished.class, callController.getChannelID(),this::memberTalkingFinishedEvent);
+		arity.addFutureEvent(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
+		arity.addFutureEvent(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 		
 	}
 	
@@ -89,20 +89,20 @@ public class Conference {
 	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean needToRecord) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
 		if (callController.getCallMonitor().wasAnswered()) {
-			logger.info("Channel with id: " + callController.getChannelID() + " was already answered");
+			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
 			answer.complete(null);
 		} else {
-			logger.fine("Need to answer the channel with id: " + callController.getChannelID());
+			logger.fine("Need to answer the channel with id: " + callController.getChannelId());
 			answer = callController.answer().run();
 		}
-		return answer.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(callController.getChannelID()))
+		return answer.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(callController.getChannelId()))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? playMedia("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
-					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, callController.getChannelID(),
+					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
 							this::channelLeftConference);
-					return mute ? callController.mute(callController.getChannelID(), "out").run()
+					return mute ? callController.mute(callController.getChannelId(), "out").run()
 							: FutureHelper.completedSuccessfully(null);
 				}).thenCompose(muteRes -> annouceUser("joined")).exceptionally(Futures.on(Exception.class, t -> {
 					logger.info("Unable to add channel to conference: " + t);
@@ -352,8 +352,8 @@ public class Conference {
 				}).exceptionally(t->{
 					if(t.getMessage().contains("Bridge not in Stasis application")) {
 						logger.fine("Music on hold already started, can't start it again");
-						mohStarted = false;
 					}
+					mohStarted = false;
 					return null;
 				});
 	}
@@ -371,12 +371,8 @@ public class Conference {
 				}).exceptionally(t->{
 					if(t.getMessage().contains("Bridge not in Stasis application")) {
 						logger.fine("Music on hold already stoped, can't stop it again");
-						mohStopped = false;
 					}
-					if(t.getMessage().contains("Bridge isn't playing music")) {
-						logger.fine("Bridge isn't playing music, so can't stop music on hold");
-						mohStopped = false;
-					}
+					mohStopped = false;
 					return null;
 				});
 	}

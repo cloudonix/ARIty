@@ -99,7 +99,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers,
 			int timeout) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
 		this.endPoint = destination;
 		this.headers = headers;
 		this.callerId = callerId;
