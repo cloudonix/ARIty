@@ -19,7 +19,7 @@ public class Mute extends CancelableOperations {
 	private String direction;
 
 	public Mute(CallController callController, String channelId, String direction) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
 		this.channelId = channelId;
 		this.direction = direction;
 	}

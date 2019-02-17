@@ -60,7 +60,7 @@ public class Record extends CancelableOperations {
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
 			boolean beep, String terminateOnKey) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
 		this.name = name;
 		this.fileFormat = (Objects.nonNull(fileFormat) && !Objects.equals(fileFormat, "")) ? fileFormat
 				: this.fileFormat;

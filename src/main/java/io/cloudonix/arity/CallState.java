@@ -17,7 +17,7 @@ public class CallState {
 
 	private StasisStart callStasisStart;
 	private ARI ari;
-	private String channelID;
+	private String channelId;
 	private ARIty arity;
 	private Channel channel;
 	private String channelTechnology;
@@ -27,7 +27,7 @@ public class CallState {
 			String channelTechnology) {
 		this.ari = ari;
 		this.arity = arity;
-		this.channelID = channelID;
+		this.channelId = channelID;
 		this.channel = channel;
 		this.channelTechnology = channelTechnology;
 		this.callStasisStart = callStasisStart;
@@ -41,8 +41,8 @@ public class CallState {
 		return ari;
 	}
 
-	public String getChannelID() {
-		return channelID;
+	public String getChannelId() {
+		return channelId;
 	}
 
 	public ARIty getArity() {

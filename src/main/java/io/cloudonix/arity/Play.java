@@ -34,7 +34,7 @@ public class Play extends CancelableOperations {
 	 * @param fileName       name of the file to be played
 	 */
 	public Play(CallController callController, String fileName) {
-		super(callController.getChannelID(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
 		language = callController.getCallStasisStart().getChannel().getLanguage();
 		this.playFileName = fileName;
 	}

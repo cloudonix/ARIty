@@ -22,7 +22,6 @@ import io.cloudonix.future.helper.FutureHelper;
  *
  */
 public abstract class CallController {
-
 	private CallState callState;
 	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
@@ -73,8 +72,8 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public String getChannelID() {
-		return callState.getChannelID();
+	public String getChannelId() {
+		return callState.getChannelId();
 	}
 
 	/**
@@ -243,7 +242,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
 		return this.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.getChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", cb)).thenApply(v -> {
+				.getChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")", cb)).thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
@@ -261,7 +260,7 @@ public abstract class CallController {
 	public CompletableFuture<String> getPJSipHeader(String headerName) {
 		return this
 				.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
-						.getChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", cb))
+						.getChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")", cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -279,7 +278,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "SIP_HEADER(" + headerName + ")", headerValue, cb))
+				.setChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")", headerValue, cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
 					return null;
@@ -295,7 +294,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
+				.setChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
 					return null;
@@ -311,7 +310,7 @@ public abstract class CallController {
 	public CompletableFuture<String> getVariable(String varName) {
 		return this
 				.<Variable>futureFromAriCallBack(
-						cb -> callState.getAri().channels().getChannelVar(callState.getChannelID(), varName, cb))
+						cb -> callState.getAri().channels().getChannelVar(callState.getChannelId(), varName, cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -334,7 +333,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String action, String actionValue) {
 		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelID(), "TALK_DETECT(" + action + ")", actionValue, cb))
+				.setChannelVar(callState.getChannelId(), "TALK_DETECT(" + action + ")", actionValue, cb))
 				.exceptionally(t -> {
 					logger.info("Unable to " + action + " with value " + actionValue + ": " + t);
 					return null;
@@ -618,5 +617,16 @@ public abstract class CallController {
 	 */
 	public CallMonitor getCallMonitor() {
 		return callMonitor;
+	}
+	
+	/**
+	 * create a new channel redirect operation
+	 * 
+	 * @param endpoint the endpoint to redirect the channel to
+	 * 
+	 * @return
+	 */
+	public Redirect redirect(String endpoint) {
+		return new Redirect(this.getChannelId(), this.getARItyService(),this.getAri(), endpoint);
 	}
 }
