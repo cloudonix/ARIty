@@ -22,7 +22,6 @@ import io.cloudonix.future.helper.FutureHelper;
  *
  */
 public abstract class CallController {
-
 	private CallState callState;
 	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
@@ -73,7 +72,7 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public String getChannelID() {
+	public String getChannelId() {
 		return callState.getChannelID();
 	}
 
@@ -618,5 +617,16 @@ public abstract class CallController {
 	 */
 	public CallMonitor getCallMonitor() {
 		return callMonitor;
+	}
+	
+	/**
+	 * create a new channel redirect operation
+	 * 
+	 * @param endpoint the endpoint to redirect the channel to
+	 * 
+	 * @return
+	 */
+	public Redirect redirect(String endpoint) {
+		return new Redirect(this.getChannelId(), this.getARItyService(),this.getAri(), endpoint);
 	}
 }
