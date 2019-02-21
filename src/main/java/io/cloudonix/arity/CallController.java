@@ -622,11 +622,12 @@ public abstract class CallController {
 	/**
 	 * create a new channel redirect operation
 	 * 
+	 * @param channelId the id of the channel we redirecting
 	 * @param endpoint the endpoint to redirect the channel to
 	 * 
 	 * @return
 	 */
-	public Redirect redirect(String endpoint) {
-		return new Redirect(this.getChannelId(), this.getARItyService(),this.getAri(), endpoint);
+	public Redirect redirect(String channelId, String endpoint) {
+		return new Redirect(channelId, this.getARItyService(),this.getAri(), endpoint);
 	}
 }

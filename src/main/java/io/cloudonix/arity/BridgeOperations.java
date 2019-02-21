@@ -79,7 +79,6 @@ public class BridgeOperations {
 
 	/**
 	 * Create a new bridge
-	 * @param bridgeName 
 	 * 
 	 * @param bridgeName name of the bridge to create
 	 * 
