@@ -334,7 +334,19 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
 		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels())
+				.thenApply(channels->{
+					int count=0;
+					for(String channelId : channels) {
+						try {
+							arity.getAri().channels().get(channelId);
+							count++;
+						} catch (RestException e) {
+							// channel was not found,ignore
+						}
+					}
+					return count;
+				});
 	}
 	
 	/**
