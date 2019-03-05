@@ -350,6 +350,17 @@ public class BridgeOperations {
 	}
 	
 	/**
+	 * get how many channels are connected to this bridge
+	 * 
+	 * @return number of all channels in this bridge
+	 */
+	public CompletableFuture<Integer> getNumberOfAllChannelsInBridge() {
+		logger.info("Getting number of all channel in bridge with id: " + bridgeId);
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
+	}
+	
+	
+	/**
 	 * check if the this bridge is an active bridge in Asterisk
 	 * 
 	 * @return true if the bridge is active, false otherwise
