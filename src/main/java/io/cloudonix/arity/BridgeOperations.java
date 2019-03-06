@@ -239,6 +239,12 @@ public class BridgeOperations {
 		return Operation.toFuture(cb->arity.getAri().bridges().get(bridgeId, cb));
 	}
 	
+	/**
+	 * try to get the bridge few times
+	 * 
+	 * @param retries how many times to try getting the bridge
+	 * @return
+	 */
 	public CompletableFuture<Bridge> getBridgeWithRetries(int retries){
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
 		return arity.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb), retries);
