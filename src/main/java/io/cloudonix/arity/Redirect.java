@@ -30,7 +30,7 @@ public class Redirect extends Operation {
 			logger.warning("The endpoint to redirect the channel to is not given! abort redirect");
 			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
-		return Operation.<Void>toFuture(cb->getAri().channels().redirect(getChannelId(), endpoint,cb))
+		return Operation.<Void>retryOperation(cb->getAri().channels().redirect(getChannelId(), endpoint,cb))
 				.thenApply(v->null);
 	}
 

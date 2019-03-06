@@ -173,7 +173,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 	logger.fine("Try to stop playing music on hold to bridge with id: "+bridgeId);
-	return Operation.<Void>toFuture(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
+	return Operation.<Void>retryOperation(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
 	}
 
 	/**

@@ -78,7 +78,7 @@ public abstract class Operation {
 	 * @param op the operation that we want to execute
 	 * @return
 	 */
-	public static <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
+	private static <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
 		StackTraceElement[] caller = getCallingStack();
 		CompletableFuture<V> cf = new CompletableFuture<V>();
 		AriCallback<V> ariCallback = new AriCallback<V>() {
