@@ -5,11 +5,15 @@ import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -404,5 +408,34 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
 		else
 			logger.severe("Event "+savedEvent.getClass1().getName()+" was not removed for channel: "+savedEvent.getChannelId());
+	}
+	
+	/**
+	 * retry to execute ARI operation few times
+	 * 
+	 * @param op the ARI operation to execute
+	 * @param retries number of retries to execute the operation
+	 * 
+	 * @return
+	 */
+	public <V>CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op, int retries){
+		Timer timer = new Timer("Timer");
+		AtomicReference<CompletableFuture<V>> future = new AtomicReference<>(new CompletableFuture<>());
+		AtomicReference<Boolean> success = new AtomicReference<>(false);
+		AtomicReference<Integer>tries = new AtomicReference<>(0);
+		
+		while(!success.get() && tries.get()<retries) {
+			TimerTask task = new TimerTask() {
+				@Override
+				public void run() {
+					tries.set(tries.get()+1);
+					future.set(Operation.toFuture(op));
+					future.get().thenAccept(v->success.set(true))
+					.exceptionally(t->null);
+				}
+			};
+			timer.schedule(task, TimeUnit.SECONDS.toMillis(1));
+		}
+		return future.get();
 	}
 }

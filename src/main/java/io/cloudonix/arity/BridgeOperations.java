@@ -115,6 +115,18 @@ public class BridgeOperations {
 	}
 
 	/**
+	 * try to remove channel from the bridge few times
+	 * 
+	 * @param channelId id of the channel to remove from the bridge
+	 * @param retries number of retries to try
+	 * @return
+	 */
+	public CompletableFuture<Void> removeChannelFromBridgeWithRetries(String channelId,int retries) {
+		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
+		return arity.retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb), retries);
+	}
+	
+	/**
 	 * remove channel from the bridge
 	 * 
 	 * @param channelId id of the channel to remove from the bridge
@@ -174,7 +186,6 @@ public class BridgeOperations {
 	public CompletableFuture<Void> stopMusicOnHold() {
 	logger.fine("Try to stop playing music on hold to bridge with id: "+bridgeId);
 	return Operation.<Void>toFuture(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
-
 	}
 
 	/**
@@ -226,6 +237,11 @@ public class BridgeOperations {
 	public CompletableFuture<Bridge> getBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
 		return Operation.toFuture(cb->arity.getAri().bridges().get(bridgeId, cb));
+	}
+	
+	public CompletableFuture<Bridge> getBridgeWithRetries(int retries){
+		logger.info("Trying to get bridge with id: " + bridgeId + "...");
+		return arity.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb), retries);
 	}
 
 	/**
