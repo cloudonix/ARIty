@@ -179,17 +179,6 @@ public abstract class CallController {
 	}
 	
 	/**
-	 * try get conference according to it's bridge id a few timed
-	 * 
-	 * @param bridgeId id of conference bridge we want to get
-	 * @param retries the number of retries to get the conference
-	 */
-	public CompletableFuture<Conference> getConferenceWithRetries(String bridgeId, int retries) {
-		Conference conf = new Conference(this);
-		return conf.getBridgeWithRetries(bridgeId, retries).thenApply(b->conf);
-	}
-	
-	/**
 	 * create a new conference with wanted bridge id
 	 * 
 	 * @param conferenceName name of the conference

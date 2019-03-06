@@ -23,7 +23,7 @@ public class Answer extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Answer> run() {
-		return Operation.<Void>toFuture(cb -> getAri().channels().answer(getChannelId(), cb)).thenApply(res -> {
+		return Operation.<Void>retryOperation(cb -> getAri().channels().answer(getChannelId(), cb)).thenApply(res -> {
 			logger.info("Channel with id: " + getChannelId() + " was answered");
 			return this;
 		});

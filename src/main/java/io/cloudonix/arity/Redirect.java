@@ -31,7 +31,7 @@ public class Redirect extends Operation {
 			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		return Operation.<Void>toFuture(cb->getAri().channels().redirect(getChannelId(), endpoint,cb))
-				.thenApply(v->this);
+				.thenApply(v->null);
 	}
 
 	public String getEndpoint() {

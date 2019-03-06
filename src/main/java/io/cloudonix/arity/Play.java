@@ -122,7 +122,7 @@ public class Play extends CancelableOperations {
 		if (Objects.isNull(playback))
 			return CompletableFuture.completedFuture(null);
 		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
-		return Operation.<Void>toFuture(cb -> getAri().playbacks().stop(playback.getId(), cb))
+		return Operation.<Void>retryOperation(cb -> getAri().playbacks().stop(playback.getId(), cb))
 				.thenAccept(pb -> logger.info("Playback canceled. Playback id: " + playback.getId()));
 	}
 

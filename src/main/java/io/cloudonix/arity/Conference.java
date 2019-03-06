@@ -315,14 +315,6 @@ public class Conference {
 		});
 	}
 	
-	public CompletableFuture<Bridge> getBridgeWithRetries(String bridgeId, int retries) {
-		bridgeOperations.setBridgeId(bridgeId);
-		return bridgeOperations.getBridgeWithRetries(retries).thenApply(bridgeRes -> {
-			this.conferenceName = bridgeRes.getName();
-			return bridgeRes;
-		});
-	}
-	
 	public String getConferenceName() {
 		return conferenceName;
 	}
