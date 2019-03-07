@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,6 +16,7 @@ import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.future.helper.FutureHelper;
+import io.cloudonix.lib.Futures;
 
 /**
  * A general class that represents an Asterisk operation
@@ -158,5 +160,21 @@ public abstract class Operation {
 		if(Objects.nonNull(ex.get()))
 			f.completeExceptionally(ex.get());
 		return f;
+	}
+	
+	public static <V> CompletableFuture<V> retryOperation2(Consumer<AriCallback<V>> op) {
+		return retryOperation2(op, RETRIES);
+	}
+	
+	public static <V> CompletableFuture<V> retryOperation2(Consumer<AriCallback<V>> op, int triesLeft) {
+		return toFuture(op).handle((v,t) -> {
+			if (Objects.nonNull(t)) {
+				if (triesLeft > 0)
+					return retryOperation2(op, triesLeft - 1);
+				throw new CompletionException(t);
+			}
+			return Futures.completedFuture(v);
+		})
+		.thenCompose(x -> x);
 	}
 }
