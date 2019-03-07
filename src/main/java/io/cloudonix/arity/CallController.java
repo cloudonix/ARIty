@@ -169,7 +169,7 @@ public abstract class CallController {
 	}
 
 	/**
-	 * create conference with additional functionality
+	 * get conference according to it's bridge id
 	 * 
 	 * @param bridgeId id of conference bridge we want to get
 	 */

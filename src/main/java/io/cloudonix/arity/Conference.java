@@ -314,7 +314,7 @@ public class Conference {
 			return bridgeRes;
 		});
 	}
-
+	
 	public String getConferenceName() {
 		return conferenceName;
 	}

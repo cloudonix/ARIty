@@ -87,7 +87,7 @@ public class BridgeOperations {
 	public CompletableFuture<Bridge> createBridge(String bridgeName) {
 		logger.info("Creating bridge with name: " + bridgeName + ", with id: " + bridgeId + " , and bridge type: "
 				+ bridgeType);
-		return Operation.toFuture(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb));
+		return Operation.retryOperation(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb));
 	}
 
 	/**
@@ -97,7 +97,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> destroyBridge() {
 		logger.info("Destoying bridge with id: " + bridgeId);
-		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().destroy(bridgeId, cb)).thenAccept(v -> {
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().destroy(bridgeId, cb)).thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 		});
@@ -111,7 +111,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> addChannelToBridge(String channelId) {
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
-		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
 	}
 
 	/**
@@ -122,7 +122,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
-		return Operation.<Void>toFuture(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
 	}
 
 	/**
@@ -134,7 +134,7 @@ public class BridgeOperations {
 	public CompletableFuture<Playback> playMediaToBridge(String fileToPlay) {
 		logger.info("Play media to bridge with id: " + bridgeId + ", and media is: " + fileToPlay);
 		String playbackId = UUID.randomUUID().toString();
-		return Operation.<Playback>toFuture(
+		return Operation.<Playback>retryOperation(
 				cb -> arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
@@ -163,7 +163,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
 		logger.fine("Try playing music on hold to bridge with id: "+bridgeId);
-		return Operation.<Void>toFuture(cb->arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass,cb));
+		return Operation.<Void>retryOperation(cb->arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass,cb));
 	}
 
 	/**
@@ -173,8 +173,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 	logger.fine("Try to stop playing music on hold to bridge with id: "+bridgeId);
-	return Operation.<Void>toFuture(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
-
+	return Operation.<Void>retryOperation(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
 	}
 
 	/**
@@ -225,7 +224,18 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Bridge> getBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.toFuture(cb->arity.getAri().bridges().get(bridgeId, cb));
+		return Operation.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb));
+	}
+	
+	/**
+	 * try to get the bridge few times
+	 * 
+	 * @param retries how many times to try getting the bridge
+	 * @return
+	 */
+	public CompletableFuture<Bridge> getBridgeWithRetries(){
+		logger.info("Trying to get bridge with id: " + bridgeId + "...");
+		return Operation.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb));
 	}
 
 	/**
@@ -348,6 +358,17 @@ public class BridgeOperations {
 					return count;
 				});
 	}
+	
+	/**
+	 * get how many channels are connected to this bridge
+	 * 
+	 * @return number of all channels in this bridge
+	 */
+	public CompletableFuture<Integer> getNumberOfAllChannelsInBridge() {
+		logger.info("Getting number of all channel in bridge with id: " + bridgeId);
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
+	}
+	
 	
 	/**
 	 * check if the this bridge is an active bridge in Asterisk

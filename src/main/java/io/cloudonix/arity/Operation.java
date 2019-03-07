@@ -1,6 +1,8 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -8,6 +10,7 @@ import java.util.stream.Stream;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.lib.Futures;
 
 /**
  * A general class that represents an Asterisk operation
@@ -16,6 +19,8 @@ import ch.loway.oss.ari4java.tools.RestException;
  *
  */
 public abstract class Operation {
+	private static final long RETRY_TIME = 1;
+	private static final int RETRIES = 5;
 	private String channelId;
 	private ARIty arity;
 	private ARI ari;
@@ -69,7 +74,7 @@ public abstract class Operation {
 	 * @param op the operation that we want to execute
 	 * @return
 	 */
-	public static <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
+	private static <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
 		StackTraceElement[] caller = getCallingStack();
 		CompletableFuture<V> cf = new CompletableFuture<V>();
 		AriCallback<V> ariCallback = new AriCallback<V>() {
@@ -99,12 +104,38 @@ public abstract class Operation {
 	public void setChannelId(String channelId) {
 		this.channelId = channelId;
 	}
-	
+
 	public static StackTraceElement getCallingFrame() {
 		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(2).findFirst().orElse(null);
 	}
-	
+
 	public static StackTraceElement[] getCallingStack() {
-		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(1).collect(Collectors.toList()).toArray(new StackTraceElement[] {});
+		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(1).collect(Collectors.toList())
+				.toArray(new StackTraceElement[] {});
+	}
+
+	/**
+	 * retry to execute ARI operation few times
+	 * 
+	 * @param op the ARI operation to execute
+	 * 
+	 * @return
+	 */
+	
+	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op) {
+		return retryOperation(op, RETRIES);
+	}
+	
+	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op, int triesLeft) {
+		return toFuture(op).handle((v,t) -> {
+			if (Objects.nonNull(t)) {
+				if (triesLeft > 0)
+					return Futures.delay(RETRY_TIME).apply(null)
+							.thenCompose(v1->retryOperation(op, triesLeft - 1));
+				throw new CompletionException(t);
+			}
+			return Futures.completedFuture(v);
+		})
+		.thenCompose(x -> x);
 	}
 }

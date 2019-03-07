@@ -30,7 +30,7 @@ public class Hangup extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Hangup> run() {
-		return Operation.<Void>toFuture(cb->getAri().channels().hangup(getChannelId(),reason,cb))
+		return Operation.<Void>retryOperation(cb->getAri().channels().hangup(getChannelId(),reason,cb))
 				.thenApply(res->{
 					logger.info("Channel with id: "+getChannelId()+" was hanged up");
 					return this;
