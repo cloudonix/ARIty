@@ -1,13 +1,8 @@
 package io.cloudonix.arity;
 
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,7 +10,6 @@ import java.util.stream.Stream;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.future.helper.FutureHelper;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -127,50 +121,17 @@ public abstract class Operation {
 	 * 
 	 * @return
 	 */
+	
 	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op) {
-		CompletableFuture<V> f = new CompletableFuture<V>();
-		CompletableFuture<Void>tempFuture = CompletableFuture.completedFuture(null);
-		Timer timer = new Timer("Timer");
-		AtomicBoolean success = new AtomicBoolean(false);
-		AtomicReference<Throwable> ex =new AtomicReference<>();
-
-		for (int i = RETRIES; i > 0 && !success.get(); i--) {
-			tempFuture = tempFuture.thenCompose(v->{
-				return toFuture(op).thenAccept(v2 -> {
-					f.complete(v2);
-					success.set(true);
-				}).exceptionally(t -> {
-					ex.set(t);
-					return null;
-				}).thenCompose(v2->{
-					if(success.get())
-						return FutureHelper.completedFuture();
-					CompletableFuture<Void>timerFuture = new CompletableFuture<>();
-					TimerTask task = new TimerTask() {
-						@Override
-						public void run() {
-							timerFuture.complete(null);
-						}
-					};
-					timer.schedule(task, TimeUnit.SECONDS.toMillis(RETRY_TIME));
-					return timerFuture;
-				});
-			});
-		}
-		if(Objects.nonNull(ex.get()))
-			f.completeExceptionally(ex.get());
-		return f;
+		return retryOperation(op, RETRIES);
 	}
 	
-	public static <V> CompletableFuture<V> retryOperation2(Consumer<AriCallback<V>> op) {
-		return retryOperation2(op, RETRIES);
-	}
-	
-	public static <V> CompletableFuture<V> retryOperation2(Consumer<AriCallback<V>> op, int triesLeft) {
+	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op, int triesLeft) {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.nonNull(t)) {
 				if (triesLeft > 0)
-					return retryOperation2(op, triesLeft - 1);
+					return Futures.delay(RETRY_TIME).apply(null)
+							.thenCompose(v1->retryOperation(op, triesLeft - 1));
 				throw new CompletionException(t);
 			}
 			return Futures.completedFuture(v);
