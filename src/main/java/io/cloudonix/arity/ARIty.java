@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -404,5 +405,19 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
 		else
 			logger.severe("Event "+savedEvent.getClass1().getName()+" was not removed for channel: "+savedEvent.getChannelId());
+	}
+	
+	/**
+	 * get all active channels
+	 * 
+	 * @return
+	 */
+	public List<Channel> getActiveChannels(){
+		try {
+			return ari.channels().list();
+		} catch (RestException e) {
+			logger.fine("Unable to get list of active channels");
+			return null;
+		}
 	}
 }
