@@ -33,6 +33,11 @@ public class CallState {
 		this.callStasisStart = callStasisStart;
 	}
 
+	public CallState(ARI ari, ARIty arity) {
+		this.ari = ari;
+		this.arity = arity;
+	}
+
 	public StasisStart getCallStasisStart() {
 		return callStasisStart;
 	}
@@ -51,6 +56,10 @@ public class CallState {
 
 	public Channel getChannel() {
 		return channel;
+	}
+	
+	public void setChannel(Channel channel) {
+		this.channel = channel;
 	}
 
 	public Map<String, Object> getMetaData() {
@@ -86,5 +95,13 @@ public class CallState {
 	 */
 	public String getChannelTechnology() {
 		return channelTechnology;
+	}
+
+	public void setChannelId(String channelId) {
+		this.channelId = channelId;
+	}
+
+	public void setChannelTechnology(String channelTechnology) {
+		this.channelTechnology = channelTechnology;
 	}
 }
