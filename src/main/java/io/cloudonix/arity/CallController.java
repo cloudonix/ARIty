@@ -41,6 +41,17 @@ public abstract class CallController {
 	}
 	
 	/**
+	 * Initialise the call Controller with the needed fields
+	 * 
+	 * @param ari              ARI instance
+	 * @param arity            ARIty instance
+	 */
+	public void init(ARI ari, ARIty arity) {
+		callState = new CallState(ari, arity);
+		callMonitor = new CallMonitor(arity);
+	}
+	
+	/**
 	 * get the StasisStart from the call
 	 * 
 	 * @return

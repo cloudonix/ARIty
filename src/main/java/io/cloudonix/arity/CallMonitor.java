@@ -30,10 +30,14 @@ public class CallMonitor {
 		monitorCallAnswered();
 	}
 	
+	public CallMonitor(ARIty arity) {
+		this.arity = arity;
+	}
+
 	/**
 	 * monitor hang up of the call event
 	 */
-	private void monitorCallHangUp() {
+	public void monitorCallHangUp() {
 		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller);
 	}
 
@@ -52,7 +56,7 @@ public class CallMonitor {
 	/**
 	 * monitor when the channel is answered
 	 */
-	private void monitorCallAnswered() {
+	public void monitorCallAnswered() {
 		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer);
 	}
 
@@ -103,5 +107,13 @@ public class CallMonitor {
 		CompletableFuture<Void>future = new CompletableFuture<Void>();
 		registerHangUpHandler(()->future.complete(null));
 		return future;
+	}
+
+	public String getCallerChannelId() {
+		return callerChannelId;
+	}
+
+	public void setCallerChannelId(String callerChannelId) {
+		this.callerChannelId = callerChannelId;
 	}
 }
