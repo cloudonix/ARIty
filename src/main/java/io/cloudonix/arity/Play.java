@@ -35,15 +35,22 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
-		if(Objects.nonNull(callController.getCallStasisStart().getChannel().getLanguage()))
+		this.playFileName = fileName;
+		initLanguage(callController);
+	}
+
+
+	private void initLanguage(CallController callController) {
+		if(Objects.nonNull(callController.getCallStasisStart()) && Objects.nonNull(callController.getCallStasisStart().getChannel())
+				&& Objects.nonNull(callController.getCallStasisStart().getChannel().getLanguage()))
 			this.language = callController.getCallStasisStart().getChannel().getLanguage();
 		else {
-			if(Objects.nonNull(callController.getCallState().getChannel()))
+			if(Objects.nonNull(callController.getCallState()) && Objects.nonNull(callController.getCallState().getChannel()))
 				this.language = callController.getCallState().getChannel().getLanguage();
+			else
+				logger.fine("Using default language: "+language);
 		}
-		this.playFileName = fileName;
 	}
-	
 	
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
