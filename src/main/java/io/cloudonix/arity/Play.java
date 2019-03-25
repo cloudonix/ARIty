@@ -20,7 +20,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  */
 public class Play extends CancelableOperations {
 
-	private String language;
+	private String language="en";
 	private String playFileName;
 	private int timesToPlay = 1;
 	private String uriScheme = "sound";
@@ -35,10 +35,16 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String fileName) {
 		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
-		language = callController.getCallStasisStart().getChannel().getLanguage();
+		if(Objects.nonNull(callController.getCallStasisStart().getChannel().getLanguage()))
+			this.language = callController.getCallStasisStart().getChannel().getLanguage();
+		else {
+			if(Objects.nonNull(callController.getCallState().getChannel()))
+				this.language = callController.getCallState().getChannel().getLanguage();
+		}
 		this.playFileName = fileName;
 	}
-
+	
+	
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
 	 * 
