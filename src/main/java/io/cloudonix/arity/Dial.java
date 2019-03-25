@@ -67,6 +67,7 @@ public class Dial extends CancelableOperations {
 	private long callEndTime;
 	private transient boolean ringing = false;
 	private SavedEvent<ChannelStateChange> channelStateChangedSe;
+	private Channel channel;
 
 	/**
 	 * Constructor
@@ -183,6 +184,7 @@ public class Dial extends CancelableOperations {
 				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
+					this.channel =  channel;
 					logger.info("Dial started");
 					dialStart = Instant.now().toEpochMilli();
 				}).thenCompose(v -> compFuture);
@@ -463,5 +465,13 @@ public class Dial extends CancelableOperations {
 		return "[Dial " + callerId + "->" + endPoint + "|" + 
 				endPointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
 				"|" + dialStatus.name + "]";
+	}
+
+	public Channel getChannel() {
+		return channel;
+	}
+
+	public void setChannel(Channel channel) {
+		this.channel = channel;
 	}
 }
