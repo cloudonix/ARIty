@@ -28,7 +28,8 @@ public class AnswerAndPlay extends CallController {
 
 		// lambda case
 		arity.registerVoiceApp(call -> {
-			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
+			call.answer().run().thenCompose(v -> call.play("hello-world").loop(3).run())
+			.thenCompose(pb -> {
 				logger.info("finished playback! id: " + pb.getPlayback().getId());
 				return call.hangup().run();
 			}).handle(call::endCall).exceptionally(t -> {
