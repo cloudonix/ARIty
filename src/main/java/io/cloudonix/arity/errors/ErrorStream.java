@@ -5,6 +5,12 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Iterator;
 
+/**
+ * Convert an exception to a readable exception
+ * 
+ * @author odeda
+ *
+ */
 public class ErrorStream extends PrintStream implements Iterable<String> {
 
 	private StringBuilder data = new StringBuilder();
@@ -54,6 +60,7 @@ public class ErrorStream extends PrintStream implements Iterable<String> {
 
 	/**
 	 * helper method to print the error in a readable way
+	 * 
 	 * @param failure the error (throwable)
 	 * @return
 	 */

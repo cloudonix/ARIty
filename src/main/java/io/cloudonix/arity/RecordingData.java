@@ -6,6 +6,12 @@ import java.time.format.DateTimeFormatter;
 
 import ch.loway.oss.ari4java.generated.LiveRecording;
 
+/**
+ * Class representing data about a recording
+ * 
+ * @author naamag
+ *
+ */
 public class RecordingData {
 	private String recordingName;
 	private LiveRecording recording;

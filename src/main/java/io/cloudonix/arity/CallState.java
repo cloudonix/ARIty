@@ -8,7 +8,7 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
 
 /**
- * class that holds data of the call
+ * class that holds data about the call
  * 
  * @author naamag
  *
