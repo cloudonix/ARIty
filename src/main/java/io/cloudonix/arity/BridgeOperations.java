@@ -10,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.ChannelEnteredBridge;
+import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
@@ -35,6 +37,10 @@ public class BridgeOperations {
 	private String terminateOn;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
+	private Runnable handlerChannelLeftBridge = () -> {
+	};
+	private Runnable handlerChannelEnteredBridge = () -> {
+	};
 
 	/**
 	 * Constructor
@@ -63,7 +69,7 @@ public class BridgeOperations {
 	 * @param terminateOn        DTMF input to terminate recording. Allowed values:
 	 *                           none, any, *, #
 	 */
-	public BridgeOperations(ARIty arity,String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
+	public BridgeOperations(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
 			String ifExists, boolean beep, String terminateOn) {
 		this.arity = arity;
 		if (!Objects.equals(recordFormat, "") && Objects.nonNull(recordFormat))
@@ -75,7 +81,6 @@ public class BridgeOperations {
 		this.terminateOn = terminateOn;
 		this.bridgeId = UUID.randomUUID().toString();
 	}
-
 
 	/**
 	 * Create a new bridge
@@ -111,7 +116,19 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> addChannelToBridge(String channelId) {
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
+		arity.addFutureOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
+		return Operation
+				.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
+	}
+
+	/**
+	 * handle when a channel entered the bridge
+	 * 
+	 * @param channelEnteredtBridge
+	 */
+	private void handleChannelEnteredBridge(ChannelEnteredBridge channelEnteredtBridge) {
+		logger.fine("Channel with id: "+channelEnteredtBridge.getChannel().getId()+" entered the bridge");
+		handlerChannelEnteredBridge.run();
 	}
 
 	/**
@@ -122,7 +139,18 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
+		arity.addFutureOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
 		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
+	}
+
+	/**
+	 * handle when a channel left the bridge
+	 * 
+	 * @param channelLeftBridge
+	 */
+	private void handleChannelLeftBridge(ChannelLeftBridge channelLeftBridge) {
+		logger.fine("Channel with id: "+channelLeftBridge.getChannel().getId()+" left the bridge");
+		handlerChannelLeftBridge.run();
 	}
 
 	/**
@@ -162,8 +190,8 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
-		logger.fine("Try playing music on hold to bridge with id: "+bridgeId);
-		return Operation.<Void>retryOperation(cb->arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass,cb));
+		logger.fine("Try playing music on hold to bridge with id: " + bridgeId);
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, cb));
 	}
 
 	/**
@@ -172,8 +200,8 @@ public class BridgeOperations {
 	 * @return
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-	logger.fine("Try to stop playing music on hold to bridge with id: "+bridgeId);
-	return Operation.<Void>retryOperation(cb->arity.getAri().bridges().stopMoh(bridgeId,cb));
+		logger.fine("Try to stop playing music on hold to bridge with id: " + bridgeId);
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().stopMoh(bridgeId, cb));
 	}
 
 	/**
@@ -224,18 +252,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Bridge> getBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb));
-	}
-	
-	/**
-	 * try to get the bridge few times
-	 * 
-	 * @param retries how many times to try getting the bridge
-	 * @return
-	 */
-	public CompletableFuture<Bridge> getBridgeWithRetries(){
-		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.retryOperation(cb->arity.getAri().bridges().get(bridgeId, cb));
+		return Operation.retryOperation(cb -> arity.getAri().bridges().get(bridgeId, cb));
 	}
 
 	/**
@@ -344,21 +361,20 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
 		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels())
-				.thenApply(channels->{
-					int count=0;
-					for(String channelId : channels) {
-						try {
-							arity.getAri().channels().get(channelId);
-							count++;
-						} catch (RestException e) {
-							// channel was not found,ignore
-						}
-					}
-					return count;
-				});
+		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels()).thenApply(channels -> {
+			int count = 0;
+			for (String channelId : channels) {
+				try {
+					arity.getAri().channels().get(channelId);
+					count++;
+				} catch (RestException e) {
+					// channel was not found,ignore
+				}
+			}
+			return count;
+		});
 	}
-	
+
 	/**
 	 * get how many channels are connected to this bridge
 	 * 
@@ -368,36 +384,51 @@ public class BridgeOperations {
 		logger.info("Getting number of all channel in bridge with id: " + bridgeId);
 		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
 	}
-	
-	
+
 	/**
 	 * check if the this bridge is an active bridge in Asterisk
 	 * 
 	 * @return true if the bridge is active, false otherwise
 	 */
-	public CompletableFuture<Boolean> isBridgeActive(){
+	public CompletableFuture<Boolean> isBridgeActive() {
 		CompletableFuture<Boolean> isActive = new CompletableFuture<Boolean>();
 		arity.getAri().bridges().list(new AriCallback<List<Bridge>>() {
 			@Override
 			public void onSuccess(List<Bridge> result) {
-				logger.info("Searching for bridge with id: "+bridgeId+" ...");
-				for(Bridge bridge : result) {
-					if(Objects.equals(bridgeId, bridge.getId())) {
+				logger.info("Searching for bridge with id: " + bridgeId + " ...");
+				for (Bridge bridge : result) {
+					if (Objects.equals(bridgeId, bridge.getId())) {
 						logger.info("Found an active bridge!");
 						isActive.complete(true);
 						return;
 					}
 				}
-				logger.info("No active bridge with id: "+bridgeId+" was found");
+				logger.info("No active bridge with id: " + bridgeId + " was found");
 				isActive.complete(false);
 			}
 
 			@Override
 			public void onFailure(RestException e) {
-				logger.severe("Failed finding active bridge with id: "+bridgeId);
+				logger.severe("Failed finding active bridge with id: " + bridgeId);
 				isActive.complete(false);
 			}
 		});
 		return isActive;
+	}
+
+	public Runnable getHandlerChannelLeftBridge() {
+		return handlerChannelLeftBridge;
+	}
+
+	public void setHandlerChannelLeftBridge(Runnable handlerChannelLeftBridge) {
+		this.handlerChannelLeftBridge = handlerChannelLeftBridge;
+	}
+
+	public Runnable getHandlerChannelEnteredBridge() {
+		return handlerChannelEnteredBridge;
+	}
+
+	public void setHandlerChannelEnteredBridge(Runnable handlerChannelEnteredBridge) {
+		this.handlerChannelEnteredBridge = handlerChannelEnteredBridge;
 	}
 }
