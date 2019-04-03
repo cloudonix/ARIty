@@ -28,8 +28,8 @@ import javax.sip.message.Response;
 import org.jitsi.impl.neomedia.device.AudioSilenceMediaDevice;
 import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.MediaType;
 import org.jitsi.service.neomedia.format.MediaFormat;
+import org.jitsi.utils.MediaType;
 
 
 public class ARItySipLayer implements SipListener {
