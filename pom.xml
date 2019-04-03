@@ -47,11 +47,10 @@
 		</repository>
 	</repositories>
 	<dependencies>
-
 		<dependency>
-			<groupId>com.github.cloudonix</groupId>
+			<groupId>com.github.l3nz</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>cx-master-SNAPSHOT</version>
+			<version>REL-050</version>
 		</dependency>
 
 		<dependency>
