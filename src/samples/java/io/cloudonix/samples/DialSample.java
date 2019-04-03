@@ -9,7 +9,7 @@ import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Sample for simpl dial to another sip
+ * Sample for dial to another sip
  * 
  * @author naamag
  *
@@ -29,7 +29,9 @@ public class DialSample extends CallController {
 
 		// lambda case
 		arity.registerVoiceApp(call -> {
-			call.dial("SIP/123", "myCallerId").run().handle(call::endCall).exceptionally(t -> {
+			call.dial("SIP/123", "myCallerId").run()
+			.handle(call::endCall)
+			.exceptionally(t -> {
 				logger.severe(t.toString());
 				return null;
 			});
@@ -43,5 +45,4 @@ public class DialSample extends CallController {
 			}
 		}
 	}
-
 }

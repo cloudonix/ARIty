@@ -25,8 +25,7 @@ import io.cloudonix.lib.Futures;
 public class Conference {
 	private CallController callController;
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
-	private Runnable handleChannelLeftConference = () -> {
-	};
+	private Runnable handleChannelLeftConference = () -> {};
 	private String recordName = null;
 	private LiveRecording conferenceRecord;
 	private BridgeOperations bridgeOperations;
@@ -159,7 +158,6 @@ public class Conference {
 								return null;
 							});
 				}
-
 			});
 		});
 	}
@@ -315,6 +313,11 @@ public class Conference {
 		});
 	}
 	
+	/**
+	 * get conference name
+	 * 
+	 * @return
+	 */
 	public String getConferenceName() {
 		return conferenceName;
 	}

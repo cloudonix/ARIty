@@ -6,7 +6,6 @@ package io.cloudonix.arity.errors;
  *
  */
 public class ConnectionFailedException  extends Exception{
-
 	private static final long serialVersionUID = 1L;
 	
 	public ConnectionFailedException() {
@@ -16,6 +15,4 @@ public class ConnectionFailedException  extends Exception{
 	public ConnectionFailedException (Throwable t) {
 		super(t);	
 	}
-	
-	
 }

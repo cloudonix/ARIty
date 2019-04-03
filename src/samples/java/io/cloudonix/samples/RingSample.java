@@ -9,7 +9,7 @@ import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
- * Signal ringing to caller's channel
+ * Signal ringing to caller's channel (sending 180 ringing request)
  * 
  * @author naamag
  *
@@ -31,7 +31,8 @@ public class RingSample extends CallController{
 		arity.registerVoiceApp(call -> {
 			call.answer().run()
 			.thenCompose(v -> call.ring().run())
-			.handle(call::endCall).exceptionally(t -> {
+			.handle(call::endCall)
+			.exceptionally(t -> {
 				logger.severe(t.toString());
 				return null;
 			});

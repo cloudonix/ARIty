@@ -38,7 +38,8 @@ public class PlayAndDTMF extends CallController {
 					.thenCompose(g -> call.receivedDTMF("*", 2).run())
 					.thenAccept(v -> logger
 							.info("RecievedDTMF is finished! The input is: " + ((ReceivedDTMF) v).getInput()))
-					.handle(call::endCall).exceptionally(t -> {
+					.handle(call::endCall)
+					.exceptionally(t -> {
 						logger.severe(t.toString());
 						return null;
 					});
