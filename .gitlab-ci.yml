@@ -46,6 +46,6 @@ s3-snapshots:
     name: mesosphere/aws-cli
     entrypoint: [""]
   script: 
-    - s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
+    - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
   only: 
     - develop
