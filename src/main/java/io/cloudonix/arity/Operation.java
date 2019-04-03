@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * A general class that represents an Asterisk operation
@@ -130,11 +130,11 @@ public abstract class Operation {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.nonNull(t)) {
 				if (triesLeft > 0)
-					return Futures.delay(RETRY_TIME).apply(null)
+					return FutureHelper.delay(RETRY_TIME).apply(null)
 							.thenCompose(v1->retryOperation(op, triesLeft - 1));
 				throw new CompletionException(t);
 			}
-			return Futures.completedFuture(v);
+			return FutureHelper.completedFuture(v);
 		})
 		.thenCompose(x -> x);
 	}

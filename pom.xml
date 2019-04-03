@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.1.79</version>
+	<version>0.1.80</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -97,7 +97,7 @@
 		<dependency>
 			<groupId>io.cloudonix</groupId>
 			<artifactId>future-helper</artifactId>
-			<version>[0,)</version>
+			<version>[1.6.2,)</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jitsi</groupId>
