@@ -97,7 +97,7 @@
 		<dependency>
 			<groupId>io.cloudonix</groupId>
 			<artifactId>future-helper</artifactId>
-			<version>[0,)</version>
+			<version>[1.6,)</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jitsi</groupId>
