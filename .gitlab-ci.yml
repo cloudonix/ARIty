@@ -40,11 +40,12 @@ s3:
   only: 
     - master
  
-s3snapshots:
+s3-snapshots:
   stage: s3
+  image:
+    name: mesosphere/aws-cli
+    entrypoint: [""]
   script: 
     - s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
-  image: mesosphere/aws-cli
   only: 
     - develop
-  
