@@ -183,7 +183,7 @@ public class Dial extends CancelableOperations {
 		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>retryOperation(
-				cf -> getAri().channels().originate(endPoint, null, null, 1, null, getArity().getAppName(), null,
+				cf -> getAri().channels().originate(endPoint, null, null, null, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					this.channel =  channel;
