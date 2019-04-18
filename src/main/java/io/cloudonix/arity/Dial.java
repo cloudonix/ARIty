@@ -1,7 +1,9 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -60,9 +62,9 @@ public class Dial extends CancelableOperations {
 	private String callerId;
 	private String otherChannelId = null;
 	private int timeout;
-	private Runnable channelStateUp = () -> {};
-	private Runnable channelStateRinging = () -> {};
-	private Runnable channelStateFail = () -> {};
+	private List<Runnable> channelStateUp = new ArrayList<>();
+	private List<Runnable> channelStateRinging = new ArrayList<>();
+	private List<Runnable> channelStateFail = new ArrayList<>();
 	private int headerCounter = 0;
 	private long callEndTime;
 	private transient boolean ringing = false;
@@ -344,7 +346,7 @@ public class Dial extends CancelableOperations {
 	 * @return itself for chaining
 	 */
 	public Dial whenRinging(Runnable func) {
-		channelStateRinging = func;
+		channelStateRinging.add(func);
 		return this;
 	}
 	
@@ -353,7 +355,7 @@ public class Dial extends CancelableOperations {
 			return;
 		ringing  = true;
 		try {
-			channelStateRinging.run();
+			channelStateRinging.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenRinging callback: " +ErrorStream.fromThrowable(t));
 		} 
@@ -366,7 +368,7 @@ public class Dial extends CancelableOperations {
 	 * @return itself for chaining
 	 */
 	public Dial whenConnect(Runnable func) {
-		channelStateUp = func;
+		channelStateUp.add(func);
 		return this;
 	}
 	
@@ -376,7 +378,7 @@ public class Dial extends CancelableOperations {
 	private void onConnect() {
 		onRinging();
 		try {
-			channelStateUp.run();
+			channelStateUp.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenConnect callback: " +ErrorStream.fromThrowable(t));
 		} 
@@ -388,7 +390,7 @@ public class Dial extends CancelableOperations {
 	 * @return itself for chaining
 	 */
 	public Dial whenFailed(Runnable func) {
-		channelStateFail = func;
+		channelStateFail.add(func);
 		return this;
 	}
 	
@@ -397,7 +399,7 @@ public class Dial extends CancelableOperations {
 	 */
 	private void onFail() {
 		try {
-			channelStateFail.run();
+			channelStateFail.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenFailed callback: " +ErrorStream.fromThrowable(t));
 		} 
