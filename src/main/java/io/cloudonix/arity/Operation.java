@@ -19,7 +19,7 @@ import io.cloudonix.future.helper.FutureHelper;
  *
  */
 public abstract class Operation {
-	private static final long RETRY_TIME = 1;
+	private static final long RETRY_TIME = 1000;
 	private static final int RETRIES = 5;
 	private String channelId;
 	private ARIty arity;
