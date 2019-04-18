@@ -50,7 +50,7 @@
 		<dependency>
 			<groupId>ch.loway.oss.ari4java</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>0.5.0</version>
+			<version>0.5.1</version>
 		</dependency>
 
 		<dependency>
