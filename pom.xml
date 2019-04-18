@@ -48,11 +48,11 @@
 	</repositories>
 	<dependencies>
 		<dependency>
-			<groupId>ch.loway.oss.ari4java</groupId>
+			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>0.5.1</version>
+			<version>cx-master-SNAPSHOT</version>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
