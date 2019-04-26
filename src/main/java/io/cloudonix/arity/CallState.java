@@ -33,11 +33,6 @@ public class CallState {
 		this.callStasisStart = callStasisStart;
 	}
 
-	public CallState(ARI ari, ARIty arity) {
-		this.ari = ari;
-		this.arity = arity;
-	}
-
 	public StasisStart getCallStasisStart() {
 		return callStasisStart;
 	}
