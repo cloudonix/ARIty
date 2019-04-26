@@ -27,7 +27,7 @@ public abstract class CallController {
 	private Logger logger = Logger.getLogger(getClass().getName());
 
 	/**
-	 * Initialise the call Controller with the needed fields
+	 * Initialize the call Controller with the needed fields
 	 * 
 	 * @param stasisStartEvent StasisStart
 	 * @param ari              ARI instance
@@ -38,17 +38,6 @@ public abstract class CallController {
 				stasisStartEvent.getChannel(), getChannelTechnology(stasisStartEvent.getChannel()));
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
 		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
-	}
-	
-	/**
-	 * Initialise the call Controller with the needed fields
-	 * 
-	 * @param ari              ARI instance
-	 * @param arity            ARIty instance
-	 */
-	public void init(ARI ari, ARIty arity) {
-		callState = new CallState(ari, arity);
-		callMonitor = new CallMonitor(arity);
 	}
 	
 	/**
