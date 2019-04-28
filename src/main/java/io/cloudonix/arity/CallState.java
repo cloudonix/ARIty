@@ -5,6 +5,7 @@ import java.util.Map;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
+import ch.loway.oss.ari4java.generated.ChannelVarset;
 import ch.loway.oss.ari4java.generated.StasisStart;
 
 /**
@@ -22,6 +23,7 @@ public class CallState {
 	private Channel channel;
 	private String channelTechnology;
 	private Map<String, Object> metaData = new HashMap<>();
+	private Map<String, String> variables = new HashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARIty arity) {
 		this.ari = arity.getAri();
@@ -30,6 +32,9 @@ public class CallState {
 		this.channelId = channel.getId();
 		this.callStasisStart = callStasisStart;
 		this.channelTechnology = channel.getName().split("/")[0];
+		arity.addFutureEvent(ChannelVarset.class, channelId, (varset, se) -> {
+			variables.put(varset.getVariable(), varset.getValue());
+		});
 	}
 
 	public StasisStart getCallStasisStart() {
@@ -90,6 +95,15 @@ public class CallState {
 	 */
 	public boolean contains(String dataName) {
 		return metaData.containsKey(dataName);
+	}
+	
+	/**
+	 * Retrieve an asterisk variable that was set on the current channel
+	 * @param name variable name to read
+	 * @return variable value
+	 */
+	public String getVar(String name) {
+		return variables.get(name);
 	}
 
 	/**

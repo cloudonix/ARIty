@@ -34,8 +34,12 @@ public abstract class CallController {
 	 * @param arity            ARIty instance
 	 */
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
-		callState = new CallState(stasisStartEvent, arity);
-		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
+		init(new CallState(stasisStartEvent, arity));
+	}
+	
+	public void init(CallState callState) {
+		this.callState = callState;
+		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
 		initLogger();
 	}
 	
