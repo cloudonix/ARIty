@@ -2,7 +2,6 @@ package io.cloudonix.arity;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
@@ -16,31 +15,18 @@ import ch.loway.oss.ari4java.generated.ChannelStateChange;
  */
 public class CallMonitor {
 
-	private String callerChannelId;
-	private ARIty arity;
+	private String channelId;
 	private List<Runnable> onHangUp = new LinkedList<Runnable>();
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
 	private SavedEvent<ChannelStateChange>channelStateChangedSE;
 
 	public CallMonitor(ARIty arity, String callChannelId) {
-		this.arity = arity;
-		this.callerChannelId = callChannelId;
-		monitorCallHangUp();
-		monitorCallAnswered();
+		this.channelId = callChannelId;
+		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
+		arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleAnswer);
 	}
 	
-	public CallMonitor(ARIty arity) {
-		this.arity = arity;
-	}
-
-	/**
-	 * monitor hang up of the call event
-	 */
-	public void monitorCallHangUp() {
-		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, callerChannelId, this::handleHangupCaller);
-	}
-
 	/**
 	 * handle when a hang up of the channel occurs
 	 * 
@@ -54,22 +40,13 @@ public class CallMonitor {
 	}
 
 	/**
-	 * monitor when the channel is answered
-	 */
-	public void monitorCallAnswered() {
-		arity.addFutureEvent(ChannelStateChange.class, callerChannelId, this::handleAnswer);
-	}
-
-	/**
 	 * handle when channel state changed
 	 * 
 	 * @param state channel state change event
 	 * @return
 	 */
 	public void handleAnswer(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
-		if (!Objects.equals(state.getChannel().getState().toLowerCase(), "up"))
-			return;
-		wasAnswered = true;
+		wasAnswered |= state.getChannel().getState().toLowerCase().equals("up");
 	}
 
 	/**
@@ -110,10 +87,6 @@ public class CallMonitor {
 	}
 
 	public String getCallerChannelId() {
-		return callerChannelId;
-	}
-
-	public void setCallerChannelId(String callerChannelId) {
-		this.callerChannelId = callerChannelId;
+		return channelId;
 	}
 }
