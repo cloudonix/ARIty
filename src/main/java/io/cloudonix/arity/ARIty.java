@@ -235,7 +235,7 @@ public class ARIty implements AriCallback<Message> {
 		}
 		logger.info("asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
-		cc.init(ss, ari, this);
+		cc.init(ss, this);
 		try {
 			cc.run().exceptionally(t -> {
 				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
@@ -246,7 +246,6 @@ public class ARIty implements AriCallback<Message> {
 			logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
 			cc.hangup().run();
 		}
-		return;
 	}
 
 	/**
