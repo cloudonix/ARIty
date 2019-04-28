@@ -1,7 +1,7 @@
 package io.cloudonix.arity;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
@@ -22,8 +22,8 @@ public class CallState {
 	private ARIty arity;
 	private Channel channel;
 	private String channelTechnology;
-	private Map<String, Object> metaData = new HashMap<>();
-	private Map<String, String> variables = new HashMap<>();
+	private Map<String, Object> metaData = new ConcurrentHashMap<>();
+	private Map<String, String> variables = new ConcurrentHashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARIty arity) {
 		this.ari = arity.getAri();
