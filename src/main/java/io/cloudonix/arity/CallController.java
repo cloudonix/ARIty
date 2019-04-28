@@ -34,10 +34,13 @@ public abstract class CallController {
 	 * @param arity            ARIty instance
 	 */
 	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
-		callState = new CallState(stasisStartEvent, ari, arity, stasisStartEvent.getChannel().getId(),
-				stasisStartEvent.getChannel(), getChannelTechnology(stasisStartEvent.getChannel()));
+		callState = new CallState(stasisStartEvent, arity);
 		callMonitor = new CallMonitor(arity, stasisStartEvent.getChannel().getId());
-		logger = Logger.getLogger(getClass().getName() + ":" + stasisStartEvent.getChannel().getId());
+		initLogger();
+	}
+	
+	private void initLogger() {
+		logger = Logger.getLogger(getClass().getName() + ":" + callState.getChannelId());
 	}
 	
 	/**
@@ -450,9 +453,8 @@ public abstract class CallController {
 	}
 
 	/**
-	 * get the dialplan priority
-	 * 
-	 * @return
+	 * Retrieve the current priority of the extension that call this stasis application
+	 * @return priority number
 	 */
 	public long getPriority() {
 		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
@@ -461,40 +463,39 @@ public abstract class CallController {
 	}
 
 	/**
-	 * get the channel technology (ex: SIP or PJSIP)
-	 * 
-	 * @param channel
-	 * @return
-	 */
-	private String getChannelTechnology(Channel channel) {
-		String chanName = channel.getName();
-		String[] technology = chanName.split("/");
-		return technology[0];
-	}
-
-	/**
-	 * add data about the call
-	 * 
-	 * @param dataName    name of the data we are adding
-	 * @param dataContent object that contains the content of the data
+	 * Store custom data in the transferable call state
+	 * @param dataName    name of the data field to store
+	 * @param dataContent Data to store
 	 */
 	public void put(String dataName, Object dataContent) {
 		callState.put(dataName, dataContent);
 	}
 
 	/**
-	 * get data about the call
+	 * Load custom data from the transferable call state
 	 * 
-	 * @param dataName name of the data we asking for
+	 * The data will be cast to the expected data type, so make sure you always store and load the same type
+	 * for the same field name
+	 * 
+	 * @param dataName name of the data field to load
+	 * @return the value stored, casted to the expected type
 	 */
 	public <T> T get(String dataName) {
 		return callState.get(dataName);
 	}
+	
+	/**
+	 * Check if specific custom data field was stored in the transferable call state
+	 * @param dataName name of the data field to check
+	 * @return Whether the field has been previously stored in the call state, even if its value was stored as <tt>null</tt>
+	 */
+	public boolean contains(String dataName) {
+		return callState.contains(dataName);
+	}
 
 	/**
-	 * get callState of the current CallContorller
-	 * 
-	 * @return
+	 * Retrieve the current call state
+	 * @return the current call state object
 	 */
 	public CallState getCallState() {
 		return callState;
@@ -572,6 +573,7 @@ public abstract class CallController {
 	public CompletableFuture<Void> execute(CallController nextCallController) {
 		nextCallController.callState = callState;
 		nextCallController.callMonitor = callMonitor;
+		initLogger();
 		return nextCallController.run();
 	}
 

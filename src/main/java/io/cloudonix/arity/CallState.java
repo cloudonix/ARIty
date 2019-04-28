@@ -23,14 +23,13 @@ public class CallState {
 	private String channelTechnology;
 	private Map<String, Object> metaData = new HashMap<>();
 
-	public CallState(StasisStart callStasisStart, ARI ari, ARIty arity, String channelID, Channel channel,
-			String channelTechnology) {
-		this.ari = ari;
+	public CallState(StasisStart callStasisStart, ARIty arity) {
+		this.ari = arity.getAri();
 		this.arity = arity;
-		this.channelId = channelID;
-		this.channel = channel;
-		this.channelTechnology = channelTechnology;
+		this.channel = callStasisStart.getChannel();
+		this.channelId = channel.getId();
 		this.callStasisStart = callStasisStart;
+		this.channelTechnology = channel.getName().split("/")[0];
 	}
 
 	public StasisStart getCallStasisStart() {
@@ -62,41 +61,43 @@ public class CallState {
 	}
 
 	/**
-	 * add data to call state
-	 * 
-	 * @param dataName    name representing the data
-	 * @param dataContent object that contains the data
+	 * Store custom data in the transferable call state
+	 * @param dataName    name of the data field to store
+	 * @param dataContent Data to store
 	 */
 	public void put(String dataName, Object dataContent) {
 		metaData.put(dataName, dataContent);
 	}
 
 	/**
-	 * get the needed data from the state of the call
+	 * Load custom data from the transferable call state
 	 * 
-	 * @param dataName name of the data
-	 * @param class1   class representing the data
-	 * @return
+	 * The data will be cast to the expected data type, so make sure you always store and load the same type
+	 * for the same field name
+	 * 
+	 * @param dataName name of the data field to load
+	 * @return the value stored, casted to the expected type
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> T get(String dataName) {
 		return (T) metaData.get(dataName);
 	}
+	
+	/**
+	 * Check if specific custom data field was stored in the transferable call state
+	 * @param dataName name of the data field to check
+	 * @return Whether the field has been previously stored in the call state, even if its value was stored as <tt>null</tt>
+	 */
+	public boolean contains(String dataName) {
+		return metaData.containsKey(dataName);
+	}
 
 	/**
-	 * get channel technology. ex: SIP, PJSIP
-	 * 
+	 * The Asterick channel technology for the current channel. ex: SIP, PJSIP
 	 * @return
 	 */
 	public String getChannelTechnology() {
 		return channelTechnology;
 	}
 
-	public void setChannelId(String channelId) {
-		this.channelId = channelId;
-	}
-
-	public void setChannelTechnology(String channelTechnology) {
-		this.channelTechnology = channelTechnology;
-	}
 }
