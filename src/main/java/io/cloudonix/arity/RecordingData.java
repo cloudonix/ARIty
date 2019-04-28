@@ -40,12 +40,11 @@ public class RecordingData {
 	}
 
 	/**
-	 * get recoding start time as a time stamp, such as 2007-12-03T10:15:30
-	 * 
+	 * Read recoding start time as a time stamp, such as 2007-12-03T10:15:30
 	 * @return
 	 */
-	public String getStartingTime() {
-		return LocalDateTime.parse(startingTime.toString(), DateTimeFormatter.ISO_INSTANT).toString();
+	public LocalDateTime getStartingTime() {
+		return LocalDateTime.parse(startingTime.toString(), DateTimeFormatter.ISO_INSTANT);
 	}
 
 	public void setStartingTime(Instant startingTime) {
