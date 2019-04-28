@@ -51,7 +51,7 @@ public class Dial extends CancelableOperations {
 
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();
 	private String endPoint;
-	private String endPointChannelId = "";
+	private String endPointChannelId = UUID.randomUUID().toString();
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
@@ -172,9 +172,6 @@ public class Dial extends CancelableOperations {
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
-		if (Objects.equals(endPointChannelId, ""))
-			endPointChannelId = UUID.randomUUID().toString();
-
 		getArity().ignoreChannel(endPointChannelId);
 		if (Objects.nonNull(getChannelId()))
 			getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
