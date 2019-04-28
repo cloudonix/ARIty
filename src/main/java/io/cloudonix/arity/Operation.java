@@ -6,7 +6,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import ch.loway.oss.ari4java.ARI;
+import ch.loway.oss.ari4java.generated.ActionChannels;
+import ch.loway.oss.ari4java.generated.ActionPlaybacks;
+import ch.loway.oss.ari4java.generated.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.lib.Futures;
@@ -22,7 +24,6 @@ public abstract class Operation {
 	private static final int RETRIES = 5;
 	private String channelId;
 	private ARIty arity;
-	private ARI ari;
 
 	/**
 	 * Constructor
@@ -31,19 +32,9 @@ public abstract class Operation {
 	 * @param arity     instance of ARIty
 	 * @param ari       ARI instance
 	 */
-	public Operation(String channelId, ARIty arity, ARI ari) {
+	public Operation(String channelId, ARIty arity) {
 		this.channelId = channelId;
 		this.arity = arity;
-		this.ari = ari;
-	}
-
-	/**
-	 * get ARI instance
-	 * 
-	 * @return
-	 */
-	public ARI getAri() {
-		return ari;
 	}
 
 	/**
@@ -135,5 +126,17 @@ public abstract class Operation {
 					.thenCompose(v1->retryOperation(op, triesLeft - 1));
 		})
 		.thenCompose(x -> x);
+	}
+	
+	protected ActionChannels channels() {
+		return arity.getAri().channels();
+	}
+	
+	protected ActionPlaybacks playbacks() {
+		return arity.getAri().playbacks();
+	}
+	
+	protected ActionRecordings recordings() {
+		return arity.getAri().recordings();
 	}
 }

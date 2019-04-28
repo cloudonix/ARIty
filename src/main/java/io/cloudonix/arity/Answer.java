@@ -14,7 +14,7 @@ public class Answer extends Operation {
 	private final static Logger logger = Logger.getLogger(Answer.class.getName());
 
 	public Answer(CallController callController) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 	}
 
 	/**
@@ -23,7 +23,7 @@ public class Answer extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Answer> run() {
-		return Operation.<Void>retryOperation(cb -> getAri().channels().answer(getChannelId(), cb)).thenApply(res -> {
+		return Operation.<Void>retryOperation(cb -> channels().answer(getChannelId(), cb)).thenApply(res -> {
 			logger.info("Channel with id: " + getChannelId() + " was answered");
 			return this;
 		});

@@ -20,7 +20,7 @@ public class Redirect extends Operation {
 	private final static Logger logger = Logger.getLogger(Redirect.class.getName());
 
 	public Redirect(String channelId, ARIty arity, ARI ari,String endpoint) {
-		super(channelId, arity, ari);
+		super(channelId, arity);
 		this.endpoint = endpoint;
 	}
 
@@ -31,7 +31,7 @@ public class Redirect extends Operation {
 			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		logger.info("Now redirecting... channel id: "+getChannelId()+" , to: "+endpoint);
-		return Operation.<Void>retryOperation(cb->getAri().channels().redirect(getChannelId(), endpoint,cb))
+		return Operation.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint,cb))
 				.thenApply(v->null);
 	}
 

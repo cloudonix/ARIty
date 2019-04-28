@@ -88,7 +88,7 @@ public abstract class CallController {
 	 * 
 	 * @return
 	 */
-	public ARIty getARItyService() {
+	public ARIty getARIty() {
 		return callState.getArity();
 	}
 
@@ -650,6 +650,6 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Redirect redirect(String channelId, String endpoint) {
-		return new Redirect(channelId, this.getARItyService(),this.getAri(), endpoint);
+		return new Redirect(channelId, this.getARIty(),this.getAri(), endpoint);
 	}
 }

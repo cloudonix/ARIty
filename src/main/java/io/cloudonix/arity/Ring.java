@@ -23,7 +23,7 @@ public class Ring extends CancelableOperations {
 	 * @param callController instance of CallController
 	 */
 	public Ring(CallController callController) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 		this.channelId = callController.getChannelId();
 	}
 
@@ -33,7 +33,7 @@ public class Ring extends CancelableOperations {
 	@Override
 	public CompletableFuture<Ring> run() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		getAri().channels().ring(channelId, new AriCallback<Void>() {
+		channels().ring(channelId, new AriCallback<Void>() {
 
 			@Override
 			public void onSuccess(Void result) {
@@ -53,7 +53,7 @@ public class Ring extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		getAri().channels().ringStop(channelId, new AriCallback<Void>() {
+		channels().ringStop(channelId, new AriCallback<Void>() {
 
 			@Override
 			public void onSuccess(Void result) {

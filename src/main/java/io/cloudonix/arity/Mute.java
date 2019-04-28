@@ -19,7 +19,7 @@ public class Mute extends CancelableOperations {
 	private String direction;
 
 	public Mute(CallController callController, String channelId, String direction) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 		this.channelId = channelId;
 		this.direction = direction;
 	}
@@ -27,7 +27,7 @@ public class Mute extends CancelableOperations {
 	@Override
 	public CompletableFuture<Mute> run() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		getAri().channels().mute(channelId, direction, new AriCallback<Void>() {
+		channels().mute(channelId, direction, new AriCallback<Void>() {
 
 			@Override
 			public void onSuccess(Void result) {
@@ -48,7 +48,7 @@ public class Mute extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		getAri().channels().unmute(channelId, direction, new AriCallback<Void>() {
+		channels().unmute(channelId, direction, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Unmute channel " + channelId + " with audio direction " + direction);
