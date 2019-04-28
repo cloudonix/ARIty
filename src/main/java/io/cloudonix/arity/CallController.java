@@ -27,20 +27,38 @@ public abstract class CallController {
 	private Logger logger = Logger.getLogger(getClass().getName());
 
 	/**
-	 * Initialize the call Controller with the needed fields
+	 * Initialize the call Controller.
 	 * 
-	 * @param stasisStartEvent StasisStart
-	 * @param ari              ARI instance
-	 * @param arity            ARIty instance
+	 * This method is called by ARIty when starting to handle a Stasis call, and should not be called otherwise
+	 * 
+	 * @param stasisStartEvent StasisStart Stasis Start event that executes the call controller 
+	 * @param arity            ARIty instance that executed the call controller
 	 */
-	public void init(StasisStart stasisStartEvent, ARI ari, ARIty arity) {
+	final void init(StasisStart stasisStartEvent, ARIty arity) {
 		init(new CallState(stasisStartEvent, arity));
 	}
 	
-	public void init(CallState callState) {
+	/**
+	 * Initialize the call controller with an existing transferable call state.
+	 * 
+	 * This method is only called internally.
+	 * @param callState call state of the call to be executed on
+	 */
+	private final void init(CallState callState) {
 		this.callState = callState;
 		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
 		initLogger();
+		init();
+	}
+	
+	/**
+	 * Called just before the call controller is {@link #run()}.
+	 * Implementations may wish to override this method to have their own initialization logic.
+	 * When this method is called, the {@link #callMonitor} and {@link #callState} have already been
+	 * initialized. By default this message does nothing, so there's no need for implementations to call
+	 * <tt>super</tt>.
+	 */
+	protected void init() {
 	}
 	
 	private void initLogger() {
@@ -575,9 +593,7 @@ public abstract class CallController {
 	 * @param nextCallController Call Controller that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
-		nextCallController.callState = callState;
-		nextCallController.callMonitor = callMonitor;
-		initLogger();
+		nextCallController.init(callState);
 		return nextCallController.run();
 	}
 
