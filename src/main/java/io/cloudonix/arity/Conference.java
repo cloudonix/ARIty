@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -245,11 +246,10 @@ public class Conference {
 	}
 
 	/**
-	 * get recording start time
-	 * 
-	 * @return
+	 * Read recording start time
+	 * @return recording start time
 	 */
-	public String getRecordingStartTime() {
+	public LocalDateTime getRecordingStartTime() {
 		RecordingData recordData = bridgeOperations.getRecodingByName(recordName);
 		return Objects.nonNull(recordData) ? recordData.getStartingTime() : null;
 	}
