@@ -34,7 +34,7 @@ public class Play extends CancelableOperations {
 	 * @param fileName       name of the file to be played
 	 */
 	public Play(CallController callController, String fileName) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 		this.playFileName = fileName;
 		initLanguage(callController);
 	}
@@ -73,7 +73,7 @@ public class Play extends CancelableOperations {
 			// create a unique UUID for the playback
 			String playbackId = UUID.randomUUID().toString();
 			String fullPath = uriScheme +":"+ playFileName;
-			getAri().channels().play(getChannelId(), fullPath, language, 0, 0, playbackId, new AriCallback<Playback>() {
+			channels().play(getChannelId(), fullPath, language, 0, 0, playbackId, new AriCallback<Playback>() {
 
 				@Override
 				public void onFailure(RestException e) {
@@ -135,7 +135,7 @@ public class Play extends CancelableOperations {
 		if (Objects.isNull(playback))
 			return CompletableFuture.completedFuture(null);
 		logger.info("Trying to cancel a playback. Playback id: " + playback.getId());
-		return Operation.<Void>retryOperation(cb -> getAri().playbacks().stop(playback.getId(), cb))
+		return Operation.<Void>retryOperation(cb -> playbacks().stop(playback.getId(), cb))
 				.thenAccept(pb -> logger.info("Playback canceled. Playback id: " + playback.getId()));
 	}
 

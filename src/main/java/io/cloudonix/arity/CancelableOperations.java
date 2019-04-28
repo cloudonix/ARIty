@@ -2,8 +2,6 @@ package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
 
-import ch.loway.oss.ari4java.ARI;
-
 /**
  * This class is for operations that can be cancelled, such as Dial, Play etc.
  * 
@@ -12,8 +10,8 @@ import ch.loway.oss.ari4java.ARI;
  */
 public abstract class CancelableOperations extends Operation {
 
-	public CancelableOperations(String chanId, ARIty s, ARI a) {
-		super(chanId, s, a);
+	public CancelableOperations(String chanId, ARIty s) {
+		super(chanId, s);
 	}
 
 	/**

@@ -102,7 +102,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers,
 			int timeout) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 		this.endPoint = destination;
 		this.headers = headers;
 		this.callerId = callerId;
@@ -143,7 +143,7 @@ public class Dial extends CancelableOperations {
 	 *            the time we wait until for the callee to answer
 	 */
 	public Dial(ARIty arity, ARI ari, String callerId, String destination, Map<String, String> headers, int timeout) {
-		super(null, arity, ari);
+		super(null, arity);
 		this.endPoint = destination;
 		this.headers = headers;
 		this.callerId = callerId;
@@ -183,7 +183,7 @@ public class Dial extends CancelableOperations {
 		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>retryOperation(
-				cf -> getAri().channels().originate(endPoint, null, null, null, null, getArity().getAppName(), null,
+				cf -> channels().originate(endPoint, null, null, null, null, getArity().getAppName(), null,
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					this.channel =  channel;
@@ -229,7 +229,7 @@ public class Dial extends CancelableOperations {
 		case INVALIDARGS:
 		case TORTURE:
 			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
-			Operation.<Void>retryOperation(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb));
+			Operation.<Void>retryOperation(cb -> channels().hangup(endPointChannelId, "normal", cb));
 			onFail();
 			compFuture.complete(this);
 			se.unregister();
@@ -309,7 +309,7 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endPointChannelId);
 		dialStatus = Status.CANCEL;
 		compFuture.complete(this);
-		return Operation.<Void>retryOperation(cb -> getAri().channels().hangup(endPointChannelId, "normal", cb))
+		return Operation.<Void>retryOperation(cb -> channels().hangup(endPointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 

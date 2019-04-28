@@ -21,7 +21,7 @@ public class Hangup extends Operation {
 	 * @param callController instance that represents a call
 	 */
 	public Hangup(CallController callController) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 	}
 
 	/**
@@ -30,7 +30,7 @@ public class Hangup extends Operation {
 	 * @return
 	 */
 	public CompletableFuture<Hangup> run() {
-		return Operation.<Void>retryOperation(cb->getAri().channels().hangup(getChannelId(),reason,cb))
+		return Operation.<Void>retryOperation(cb->channels().hangup(getChannelId(),reason,cb))
 				.thenApply(res->{
 					logger.info("Channel with id: "+getChannelId()+" was hanged up");
 					return this;

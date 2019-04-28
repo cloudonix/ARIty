@@ -60,7 +60,7 @@ public class Record extends CancelableOperations {
 
 	public Record(CallController callController, String name, String fileFormat, int maxDuration, int maxSilenceSeconds,
 			boolean beep, String terminateOnKey) {
-		super(callController.getChannelId(), callController.getARItyService(), callController.getAri());
+		super(callController.getChannelId(), callController.getARIty());
 		this.name = name;
 		this.fileFormat = (Objects.nonNull(fileFormat) && !Objects.equals(fileFormat, "")) ? fileFormat
 				: this.fileFormat;
@@ -88,7 +88,7 @@ public class Record extends CancelableOperations {
 	 */
 	private CompletableFuture<LiveRecording> startRecording() {
 		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
-		getAri().channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
+		channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
 				terminateOnKey, new AriCallback<LiveRecording>() {
 
 					@Override
@@ -219,7 +219,7 @@ public class Record extends CancelableOperations {
 			return FutureHelper.completedFuture();
 		}
 		CompletableFuture<Void> recordFuture = new CompletableFuture<Void>();
-		getAri().recordings().stop(name, new AriCallback<Void>() {
+		recordings().stop(name, new AriCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
 				logger.info("Record " + name + " stoped");

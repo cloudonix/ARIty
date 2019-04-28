@@ -38,7 +38,7 @@ public class Conference {
 	private Runnable talkingFinishedEvent = ()->{};
 
 	public Conference(CallController callController) {
-		this.arity = callController.getARItyService();
+		this.arity = callController.getARIty();
 		this.callController = callController;
 		this.bridgeOperations = new BridgeOperations(arity);
 		callController.setTalkingInChannel("set", "1500,750");
