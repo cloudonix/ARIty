@@ -34,7 +34,7 @@ public abstract class CallController {
 	 * @param stasisStartEvent StasisStart Stasis Start event that executes the call controller 
 	 * @param arity            ARIty instance that executed the call controller
 	 */
-	final void init(StasisStart stasisStartEvent, ARIty arity) {
+	void init(StasisStart stasisStartEvent, ARIty arity) {
 		init(new CallState(stasisStartEvent, arity));
 	}
 	
@@ -44,7 +44,7 @@ public abstract class CallController {
 	 * This method is only called internally.
 	 * @param callState call state of the call to be executed on
 	 */
-	final void init(CallState callState) {
+	void init(CallState callState) {
 		this.callState = callState;
 		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
 		initLogger();
