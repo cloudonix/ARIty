@@ -623,12 +623,7 @@ public abstract class CallController {
 		});
 		return future;
 	}
-
-	/**
-	 * what to do if call controller hanged up (the caller's channel)
-	 */
-	public void onHangUp() {
-	}
+	
 
 	public abstract CompletableFuture<Void> run();
 
