@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -41,15 +42,15 @@ public class Play extends CancelableOperations {
 
 
 	private void initLanguage(CallController callController) {
-		if(Objects.nonNull(callController.getCallStasisStart()) && Objects.nonNull(callController.getCallStasisStart().getChannel())
-				&& Objects.nonNull(callController.getCallStasisStart().getChannel().getLanguage()))
-			this.language = callController.getCallStasisStart().getChannel().getLanguage();
-		else {
-			if(Objects.nonNull(callController.getCallState()) && Objects.nonNull(callController.getCallState().getChannel()))
-				this.language = callController.getCallState().getChannel().getLanguage();
-			else
-				logger.fine("Using default language: "+language);
+		Channel chan = callController.getChannel();
+		if (Objects.nonNull(chan) && Objects.nonNull(chan.getLanguage())) {
+			this.language = chan.getLanguage();
+			return;
 		}
+		if (Objects.nonNull(callController.getCallState()) && Objects.nonNull(callController.getCallState().getChannel()))
+			this.language = callController.getCallState().getChannel().getLanguage();
+		else
+			logger.fine("Using default language: "+language);
 	}
 	
 	/**

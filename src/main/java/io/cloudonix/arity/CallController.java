@@ -44,7 +44,7 @@ public abstract class CallController {
 	 * This method is only called internally.
 	 * @param callState call state of the call to be executed on
 	 */
-	private final void init(CallState callState) {
+	final void init(CallState callState) {
 		this.callState = callState;
 		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
 		initLogger();
@@ -65,15 +65,6 @@ public abstract class CallController {
 		logger = Logger.getLogger(getClass().getName() + ":" + callState.getChannelId());
 	}
 	
-	/**
-	 * get the StasisStart from the call
-	 * 
-	 * @return
-	 */
-	public StasisStart getCallStasisStart() {
-		return callState.getCallStasisStart();
-	}
-
 	/**
 	 * get the ari from the call
 	 * 

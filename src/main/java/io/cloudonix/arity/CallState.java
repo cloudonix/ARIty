@@ -16,7 +16,6 @@ import ch.loway.oss.ari4java.generated.StasisStart;
  */
 public class CallState {
 
-	private StasisStart callStasisStart;
 	private ARI ari;
 	private String channelId;
 	private ARIty arity;
@@ -26,19 +25,18 @@ public class CallState {
 	private Map<String, String> variables = new ConcurrentHashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARIty arity) {
+		this(callStasisStart.getChannel(), arity);
+	}
+
+	public CallState(Channel chan, ARIty arity) {
 		this.ari = arity.getAri();
 		this.arity = arity;
-		this.channel = callStasisStart.getChannel();
+		this.channel = chan;
 		this.channelId = channel.getId();
-		this.callStasisStart = callStasisStart;
 		this.channelTechnology = channel.getName().split("/")[0];
 		arity.addFutureEvent(ChannelVarset.class, channelId, (varset, se) -> {
 			variables.put(varset.getVariable(), varset.getValue());
 		});
-	}
-
-	public StasisStart getCallStasisStart() {
-		return callStasisStart;
 	}
 
 	public ARI getAri() {
