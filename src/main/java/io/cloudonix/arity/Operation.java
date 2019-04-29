@@ -58,11 +58,10 @@ public abstract class Operation {
 	public abstract CompletableFuture<? extends Operation> run();
 
 	/**
-	 * the method receives an operation , creates a CompletableFuture and an
-	 * AriCallback, and execute the operation on AriCallback
+	 * Convert an ari4java async operation (with onSuccess/onFailure callback) to a Java 8 {@link CompletableFuture}
 	 * 
-	 * @param op the operation that we want to execute
-	 * @return
+	 * @param op a Lambda that takes a one-off {@link AriCallback} instance and uses it to run an ARI operation
+	 * @return a promise for the completion of the ARI operation
 	 */
 	private static <V> CompletableFuture<V> toFuture(Consumer<AriCallback<V>> op) {
 		StackTraceElement[] caller = getCallingStack();

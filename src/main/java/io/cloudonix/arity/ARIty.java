@@ -183,7 +183,6 @@ public class ARIty implements AriCallback<Message> {
 	 * @param e
 	 * @return
 	 */
-
 	protected CallController hangupDefault() {
 		return new CallController() {
 			public CompletableFuture<Void> run() {
@@ -194,6 +193,24 @@ public class ARIty implements AriCallback<Message> {
 				});
 			}
 		};
+	}
+	
+	/**
+	 * Initialize an existing call controller for an existing channel
+	 * 
+	 * Use this to have ARIty set up the ARIty call state and call monitor for an existing channel. ARIty will retrieve the channel
+	 * from ARI and then initialize the provided Call Controller instance, eventually calling {@link CallController#init()}.
+	 * 
+	 * It is highly recommended to use a new call controller instance with this method and not an instance that has already been run.
+	 * 
+	 * @param controller Call controller to set up
+	 * @param channelId Asterisk channel ID to request from Asterisk
+	 */
+	public <T extends CallController> CompletableFuture<T> initFromChannel(T controller, String channelId) {
+		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
+				.thenApply(chan -> new CallState(chan, this))
+				.thenAccept(controller::init)
+				.thenApply(v -> controller);
 	}
 
 	@Override
