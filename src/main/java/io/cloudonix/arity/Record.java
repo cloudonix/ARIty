@@ -276,13 +276,12 @@ public class Record extends CancelableOperations {
 	}
 
 	/**
-	 * get the recording start time
-	 * 
-	 * @return
+	 * Read the recording start time
+	 * @return time the recording started
 	 */
-	public String getRecordingStartTime() {
+	public LocalDateTime getRecordingStartTime() {
 		return Objects.nonNull(recordingStartTime)
-				? LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT).toString()
+				? LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT)
 				: null;
 	}
 }
