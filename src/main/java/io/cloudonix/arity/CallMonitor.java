@@ -1,8 +1,10 @@
 package io.cloudonix.arity;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
@@ -14,48 +16,75 @@ import ch.loway.oss.ari4java.generated.ChannelStateChange;
  *
  */
 public class CallMonitor {
+	
+	public static enum States {
+		Down("Down"),
+		Rsrvd("Rsrvd"),
+		OffHook("OffHook"),
+		Dialing("Dialing"),
+		Ring("Ring"),
+		Ringing("Ringing"),
+		Up("Up"),
+		Busy("Busy"),
+		DialingOffhook("Dialing Offhook"),
+		PreRing("Pre-ring"),
+		Hangup(""), // not on official state, just for ease of use
+		Unknown("Unknown");
+		
+		private String stateName;
+
+		States(String stateName) {
+			this.stateName = stateName;
+		}
+		
+		public static States find(String state) {
+			return Arrays.stream(values()).filter(s -> s.stateName.equalsIgnoreCase(state)).findFirst().orElse(Unknown);
+		}
+	}
 
 	private String channelId;
-	private List<Runnable> onHangUp = new LinkedList<Runnable>();
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
 	private SavedEvent<ChannelStateChange>channelStateChangedSE;
+	private ConcurrentHashMap<States, List<Runnable>> stateListeners = new ConcurrentHashMap<>();
 
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.channelId = callChannelId;
 		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
-		arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleAnswer);
+		arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleStateChange);
+	}
+	
+	private List<Runnable> getListeners(States state) {
+		return stateListeners.computeIfAbsent(state, s -> new LinkedList<>());
 	}
 	
 	/**
-	 * handle when a hang up of the channel occurs
-	 * 
+	 * Handle the hangup case which is not an actual state
 	 * @param hangup ChannelHangupRequest event
-	 * @return
 	 */
 	private void handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
-		onHangUp.forEach(Runnable::run);
+		getListeners(States.Hangup).forEach(Runnable::run);
 		channelStateChangedSE.unregister(); // need also to unregister from channel event
 	}
 
 	/**
-	 * handle when channel state changed
-	 * 
+	 * Handle the state change event
 	 * @param state channel state change event
-	 * @return
 	 */
-	public void handleAnswer(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
-		wasAnswered |= state.getChannel().getState().toLowerCase().equals("up");
+	public void handleStateChange(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
+		States stat = States.find(state.getChannel().getState());
+		wasAnswered |= stat == States.Up;
+		
 	}
 
 	/**
-	 * register the handler which will be called if hang up event accrued
-	 * 
-	 * @param hangUpHandler
+	 * Register state event handlers
+	 * @param state The state to listen for
+	 * @param handler the handler to run when the state has changed to the specified state
 	 */
-	public void registerHangUpHandler(Runnable hangUpHandler) {
-		onHangUp.add(hangUpHandler);
+	public void registerStateHandler(States state, Runnable handler) {
+		getListeners(state).add(handler);
 	}
 
 	/**
@@ -82,10 +111,14 @@ public class CallMonitor {
 	 */
 	public CompletableFuture<Void> waitForHangup() {
 		CompletableFuture<Void>future = new CompletableFuture<Void>();
-		registerHangUpHandler(()->future.complete(null));
+		registerStateHandler(States.Hangup, ()->future.complete(null));
 		return future;
 	}
 
+	/**
+	 * Retrieve the originator's channel ID
+	 * @return channel id for the monitored call
+	 */
 	public String getCallerChannelId() {
 		return channelId;
 	}
