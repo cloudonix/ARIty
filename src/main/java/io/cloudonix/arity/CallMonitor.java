@@ -72,7 +72,7 @@ public class CallMonitor {
 	 * Handle the state change event
 	 * @param state channel state change event
 	 */
-	public void handleStateChange(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
+	private void handleStateChange(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
 		States stat = States.find(state.getChannel().getState());
 		wasAnswered |= stat == States.Up;
 		
