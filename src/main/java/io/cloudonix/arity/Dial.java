@@ -59,7 +59,6 @@ public class Dial extends CancelableOperations {
 	private transient Status dialStatus = Status.UNKNOWN;
 	private Map<String, String> headers;
 	private String callerId;
-	private String otherChannelId = null;
 	private int timeout;
 	private List<Runnable> channelStateUp = new ArrayList<>();
 	private List<Runnable> channelStateRinging = new ArrayList<>();
@@ -69,6 +68,11 @@ public class Dial extends CancelableOperations {
 	private transient boolean ringing = false;
 	private SavedEvent<ChannelStateChange> channelStateChangedSe;
 	private Channel channel;
+	// for local channels, which by default we don't do
+	private String otherChannelId = null;
+	private String extension = null;
+	private String context = null;
+	private Long priority = null;
 
 	/**
 	 * Constructor
@@ -150,17 +154,21 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * method sets channel id's for creation of local channels
+	 * Connect the outbound channel to a local channel that will start in the specified dial plan.
 	 * 
-	 * @param channelId
-	 *            id of the channel we are creating for dial
-	 * @param otherChannelId
-	 *            other channel id when using local channels
-	 * @return
+	 * Dial plan values (context, extension and priority) can be set to null (or 0) for starting the
+	 * local channel in the default context and the null extension (which is only going to match catch alls).
+	 * 
+	 * @param context Context to run the local channel in
+	 * @param extension Extension to dial in the dial plan context
+	 * @param priority Priority to start in the context, set to 0 if you're not sure
+	 * @return itself for fluent calls
 	 */
-	public Dial localChannelDial(String channelId, String otherChannelId) {
-		this.endPointChannelId = channelId;
-		this.otherChannelId = otherChannelId;
+	public Dial withLocalChannel(String context, String extension, long priority) {
+		otherChannelId = UUID.randomUUID().toString();
+		this.context = context;
+		this.extension = extension;
+		this.priority = priority;
 		return this;
 	}
 
@@ -179,7 +187,7 @@ public class Dial extends CancelableOperations {
 		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>retryOperation(
-				cf -> channels().originate(endPoint, null, null, null, null, getArity().getAppName(), null,
+				cf -> channels().originate(endPoint, extension, context, priority, null, getArity().getAppName(), "",
 						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
 				.thenAccept(channel -> {
 					this.channel =  channel;
