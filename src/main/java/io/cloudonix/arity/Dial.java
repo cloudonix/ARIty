@@ -152,6 +152,20 @@ public class Dial extends CancelableOperations {
 		this.callerId = callerId;
 		this.timeout = timeout;
 	}
+	
+	/**
+	 * Override the originator channel ID for the channel to be created by Dial.
+	 * 
+	 * If this Dial was created with a {@link CallController}, then the originator channel ID is
+	 * already set from the <tt>CallController</tt> channel ID, but this call may be used to unset it by
+	 * passing <tt>null</tt> as the value.
+	 * @param channelId Originator channel id
+	 * @return iself for fluent calls
+	 */
+	public Dial withOriginator(String channelId) {
+		setChannelId(channelId);
+		return this;
+	}
 
 	/**
 	 * Connect the outbound channel to a local channel that will start in the specified dial plan.
@@ -188,7 +202,7 @@ public class Dial extends CancelableOperations {
 
 		return Operation.<Channel>retryOperation(
 				cf -> channels().originate(endPoint, extension, context, priority, null, getArity().getAppName(), "",
-						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, null, "", cf))
+						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, getChannelId(), null, cf))
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
