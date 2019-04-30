@@ -51,7 +51,6 @@ public class ARIty implements AriCallback<Message> {
 	// save the channel id of new calls (for ignoring another stasis start event, if
 	// needed)
 	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
-	private Exception lastException = null;
 	private ExecutorService executor = ForkJoinPool.commonPool();
 	private Consumer<Exception> ce;
 
@@ -135,9 +134,10 @@ public class ARIty implements AriCallback<Message> {
 			@Override
 			public CallController get() {
 				try {
-					return controllerClass.newInstance();
-				} catch (InstantiationException | IllegalAccessException e) {
-					lastException = e;
+					return controllerClass.getConstructor().newInstance();
+				} catch (Throwable e) {
+					logger.severe("Failed to instantiate call controller from no-args c'tor of " + controllerClass
+							+ ": " + ErrorStream.fromThrowable(e));
 					return hangupDefault();
 				}
 			}
@@ -187,9 +187,7 @@ public class ARIty implements AriCallback<Message> {
 		return new CallController() {
 			public CompletableFuture<Void> run() {
 				return hangup().run().thenAccept(hangup -> {
-					if (Objects.isNull(lastException))
-						logger.severe("Your Application is not registered!");
-					logger.severe("Invalid application!");
+					logger.severe("Your Application is not registered!");
 				});
 			}
 		};
@@ -250,7 +248,7 @@ public class ARIty implements AriCallback<Message> {
 		if (ignoredChannelIds.remove(ss.getChannel().getId())) {
 			return;
 		}
-		logger.info("asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
+		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
 		cc.init(ss, this);
 		try {
@@ -351,10 +349,6 @@ public class ARIty implements AriCallback<Message> {
 		return appName;
 	}
 
-	public Exception getLastException() {
-		return lastException;
-	}
-
 	/**
 	 * ignore Stasis start from this channel (package private method)
 	 * 
@@ -418,9 +412,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeFutureEvent(SavedEvent<T>savedEvent) {
 		if(futureEvents.remove(savedEvent))
-			logger.info("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
-		else
-			logger.severe("Event "+savedEvent.getClass1().getName()+" was not removed for channel: "+savedEvent.getChannelId());
+			logger.fine("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
 	}
 	
 	/**
