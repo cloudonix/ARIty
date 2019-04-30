@@ -409,8 +409,8 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleChannelStateChanged(ChannelStateChange channelState, SavedEvent<ChannelStateChange> se) {
-		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
-			onRinging();
+//		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
+//			onRinging();
 	}
 
 	/**
