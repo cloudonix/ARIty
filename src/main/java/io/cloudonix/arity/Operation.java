@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,9 +76,7 @@ public abstract class Operation {
 
 			@Override
 			public void onFailure(RestException e) {
-				Exception wrap = new Exception("ARI operation failed: " + e.getMessage(), e);
-				wrap.setStackTrace(caller);
-				cf.completeExceptionally(wrap);
+				cf.completeExceptionally(rewrapError("ARI operation failed: " + e, caller, e));
 			}
 		};
 
@@ -102,6 +101,12 @@ public abstract class Operation {
 		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(1).collect(Collectors.toList())
 				.toArray(new StackTraceElement[] {});
 	}
+	
+	public static CompletionException rewrapError(String message, StackTraceElement[] originalStack, Throwable cause) {
+		CompletionException wrap = new CompletionException(message, cause);
+		wrap.setStackTrace(originalStack);
+		return wrap;
+	}
 
 	/**
 	 * retry to execute ARI operation few times
@@ -116,6 +121,7 @@ public abstract class Operation {
 	}
 	
 	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op, int triesLeft) {
+		StackTraceElement[] caller = getCallingStack();
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t)) 
 				return Futures.completedFuture(v);
@@ -124,7 +130,8 @@ public abstract class Operation {
 			return Futures.delay(RETRY_TIME).apply(null)
 					.thenCompose(v1->retryOperation(op, triesLeft - 1));
 		})
-		.thenCompose(x -> x);
+		.thenCompose(x -> x)
+		.exceptionally(t -> { throw rewrapError("Unrecoverable ARI operation error: " + t, caller, t); });
 	}
 	
 	protected ActionChannels channels() {
