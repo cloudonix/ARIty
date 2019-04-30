@@ -4,14 +4,19 @@ variables:
 cache:
   paths:
     - .m2/
-  # keep cache across branch
-  key: "$CI_BUILD_REF_NAME"
   
 stages: 
+  - setup
   - package 
   - deploy
   - s3
-  
+
+offline-deps:
+  stage: setup
+  image: maven:3-jdk-9
+  script:
+    - '[ "$(($RANDOM%10))" == 0 ] && mvn -B -U dependency:go-offline || mvn -B dependency:go-offline'
+
 package: 
   stage: package
   script:

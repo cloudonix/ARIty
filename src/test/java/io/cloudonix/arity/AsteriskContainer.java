@@ -1,12 +1,7 @@
 package io.cloudonix.arity;
 
-import java.util.function.Consumer;
-
-import org.junit.runner.Description;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.InternetProtocol;
@@ -22,20 +17,11 @@ class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		this.addFileSystemBind("src/test/resources/logger.conf", "/etc/asterisk/logger.conf", BindMode.READ_ONLY);
 		this.addExposedPorts(8088);
 		this.withCreateContainerCmdModifier(c-> c.withExposedPorts(new ExposedPort(5060, InternetProtocol.UDP)));
-		
-	}
-	
-	
-	
-	@Override
-	protected void starting(Description description) {
-		super.starting(description);
 		this.followOutput(output->{
 			logger().info(output.getUtf8String());
 		});
 	}
-
-
+	
 	public String getAriURL () {
 		return "http://"+ this.getContainerIpAddress()+ ":" + this.getMappedPort(8088);
 	}
