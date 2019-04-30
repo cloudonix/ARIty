@@ -187,6 +187,24 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
+	 * Connect the outbound channel to a dial plan context without a local channel.
+	 * 
+	 * Dial plan values (context, extension and priority) can be set to null (or 0) for starting the
+	 * local channel in the default context and the null extension (which is only going to match catch alls).
+	 * 
+	 * @param context Context to run the local channel in
+	 * @param extension Extension to dial in the dial plan context
+	 * @param priority Priority to start in the context, set to 0 if you're not sure
+	 * @return itself for fluent calls
+	 */
+	public Dial withDialPlan(String context, String extension, long priority) {
+		this.context = context;
+		this.extension = extension;
+		this.priority = priority;
+		return this;
+	}
+
+	/**
 	 * The method dials to a number (end point)
 	 * 
 	 * @return A promise to return this instance when the dial operation completes
