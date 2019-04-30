@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
@@ -122,8 +121,8 @@ public class Dial extends CancelableOperations {
 	 *            the number we are calling to (the end point)
 	 * @return
 	 */
-	public Dial(ARIty arity, ARI ari, String callerId, String destination) {
-		this(arity, ari, callerId, destination, new HashMap<String, String>(), -1);
+	public Dial(ARIty arity, String callerId, String destination) {
+		this(arity, callerId, destination, new HashMap<String, String>(), -1);
 	}
 
 	/**
@@ -142,7 +141,7 @@ public class Dial extends CancelableOperations {
 	 * @param timeout
 	 *            the time we wait until for the callee to answer
 	 */
-	public Dial(ARIty arity, ARI ari, String callerId, String destination, Map<String, String> headers, int timeout) {
+	public Dial(ARIty arity, String callerId, String destination, Map<String, String> headers, int timeout) {
 		super(null, arity);
 		this.endPoint = destination;
 		this.headers = headers;
