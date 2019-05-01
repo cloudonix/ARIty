@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
@@ -63,15 +62,6 @@ public abstract class CallController {
 	
 	private void initLogger() {
 		logger = Logger.getLogger(getClass().getName() + ":" + callState.getChannelId());
-	}
-	
-	/**
-	 * get the ari from the call
-	 * 
-	 * @return
-	 */
-	public ARI getAri() {
-		return callState.getAri();
 	}
 
 	/**
@@ -636,6 +626,6 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Redirect redirect(String channelId, String endpoint) {
-		return new Redirect(channelId, this.getARIty(),this.getAri(), endpoint);
+		return new Redirect(channelId, this.getARIty(), endpoint);
 	}
 }
