@@ -51,7 +51,7 @@ public class CallMonitor {
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.channelId = callChannelId;
 		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
-		arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleStateChange);
+		channelStateChangedSE = arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleStateChange);
 	}
 	
 	private List<Runnable> getListeners(States state) {
@@ -75,7 +75,6 @@ public class CallMonitor {
 	private void handleStateChange(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
 		States stat = States.find(state.getChannel().getState());
 		wasAnswered |= stat == States.Up;
-		
 	}
 
 	/**
