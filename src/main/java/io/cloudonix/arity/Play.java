@@ -91,7 +91,7 @@ public class Play extends CancelableOperations {
 							"Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 
 					// wait for PlaybackFinished event
-					getArity().addFutureEvent(PlaybackFinished.class, getChannelId(), (playb, se) -> {
+					getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (playb, se) -> {
 						if (!(playb.getPlayback().getId().equals(playbackId)))
 							return;
 						logger.info("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);

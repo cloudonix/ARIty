@@ -106,7 +106,7 @@ public class Record extends CancelableOperations {
 						};
 						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
-						getArity().addFutureEvent(RecordingFinished.class, getChannelId(), (record, se) -> {
+						getArity().addEventHandler(RecordingFinished.class, getChannelId(), (record, se) -> {
 							if (!Objects.equals(record.getRecording().getName(), name))
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();
@@ -122,7 +122,7 @@ public class Record extends CancelableOperations {
 						});
 
 						// Recognise if Talking was detected during the recording
-						getArity().addFutureOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
+						getArity().listenForOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
 							if (Objects.equals(talkStarted.getChannel().getId(), getChannelId())) {
 								logger.info("Recognised tallking in the channel");
 								wasTalkingDetect = true;
@@ -130,7 +130,7 @@ public class Record extends CancelableOperations {
 						});
 
 						// stop the recording by pressing the terminating key
-						getArity().addFutureEvent(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
+						getArity().addEventHandler(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
 							if (dtmf.getDigit().equals(terminateOnKey)) {
 								logger.info("Terminating key was pressed, stop recording");
 								isTermKeyWasPressed = true;

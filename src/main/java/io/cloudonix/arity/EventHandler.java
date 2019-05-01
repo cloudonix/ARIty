@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.function.BiConsumer;
+import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Message;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Consumer;
@@ -12,11 +13,12 @@ import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Cons
  * @author naamag
  *
  */
-public class SavedEvent<T extends Message> implements Consumer<T> {
-	private BiConsumer<T, SavedEvent<T>> handler;
+public class EventHandler<T extends Message> implements Consumer<T> {
+	private BiConsumer<T, EventHandler<T>> handler;
 	private String channelId;
 	private Class<T> class1;
 	private ARIty arity;
+	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 
 	/**
 	 * Constructor
@@ -24,7 +26,7 @@ public class SavedEvent<T extends Message> implements Consumer<T> {
 	 * @param channelId   id of the channel the event is registered for
 	 * @param futureEvent function to execute when the event arrives
 	 */
-	public SavedEvent(String channelId, BiConsumer<T, SavedEvent<T>> futureEvent, Class<T> class1, ARIty arity) {
+	public EventHandler(String channelId, BiConsumer<T, EventHandler<T>> futureEvent, Class<T> class1, ARIty arity) {
 		this.channelId = channelId;
 		this.handler = futureEvent;
 		this.class1 = class1;
@@ -44,13 +46,15 @@ public class SavedEvent<T extends Message> implements Consumer<T> {
 	 * unregister from listening to this saved event
 	 */
 	public void unregister() {
-		arity.removeFutureEvent(this);
+		arity.removeEventHandler(this);
 	}
 
 	@Override
 	public void accept(Message m) {
-		if (class1.isInstance(m))
-			handler.accept(class1.cast(m), this);
+		if (!class1.isInstance(m))
+			return;
+		logger.finest("Triggering " + this);
+		handler.accept(class1.cast(m), this);
 	}
 
 	public Class<T> getClass1() {
