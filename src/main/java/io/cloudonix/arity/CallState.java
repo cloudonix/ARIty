@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import ch.loway.oss.ari4java.ARI;
@@ -69,6 +70,8 @@ public class CallState {
 	 * @param dataContent Data to store
 	 */
 	public void put(String dataName, Object dataContent) {
+		if (Objects.isNull(dataContent))
+			return; // we aren't allowed to put null values in concurrenthashmap.
 		metaData.put(dataName, dataContent);
 	}
 
