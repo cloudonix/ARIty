@@ -4,22 +4,20 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.ARI;
 import io.cloudonix.arity.errors.RedirectException;
 import io.cloudonix.lib.Futures;
 
 /**
- * class that executes channel 'redirect' operation
+ * Channel redirection operation
  * 
  * @author naamag
- *
  */
 public class Redirect extends Operation {
 
 	private String endpoint;
 	private final static Logger logger = Logger.getLogger(Redirect.class.getName());
 
-	public Redirect(String channelId, ARIty arity, ARI ari,String endpoint) {
+	public Redirect(String channelId, ARIty arity, String endpoint) {
 		super(channelId, arity);
 		this.endpoint = endpoint;
 	}
