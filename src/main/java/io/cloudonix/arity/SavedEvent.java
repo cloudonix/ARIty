@@ -56,4 +56,9 @@ public class SavedEvent<T extends Message> implements Consumer<T> {
 	public Class<T> getClass1() {
 		return class1;
 	}
+	
+	@Override
+	public String toString() {
+		return "Event handler:" + class1.getSimpleName() + ":" + handler.getClass();
+	}
 }
