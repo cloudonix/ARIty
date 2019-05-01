@@ -412,7 +412,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeFutureEvent(SavedEvent<T>savedEvent) {
 		if(futureEvents.remove(savedEvent))
-			logger.fine("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
+			logger.finest("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
 	}
 	
 	/**
