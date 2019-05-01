@@ -44,7 +44,7 @@ import io.cloudonix.arity.errors.ErrorStream;
  */
 public class ARIty implements AriCallback<Message> {
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	private Queue<SavedEvent<?>> futureEvents = new ConcurrentLinkedQueue<SavedEvent<?>>();
+	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<EventHandler<?>>();
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
@@ -217,22 +217,17 @@ public class ARIty implements AriCallback<Message> {
 			executor.submit(() -> handleStasisStart(event));
 			return;
 		}
-		executor.submit(() -> handleOtherEvents(event));
-	}
-
-	private void handleOtherEvents(Message event) {
+		
 		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
 			return;
 
 		logger.fine("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
-		// look for a future event in the event list
-		Iterator<SavedEvent<?>> itr = futureEvents.iterator();
+		Iterator<EventHandler<?>> itr = eventHandlers.iterator();
 		while (itr.hasNext()) {
-			SavedEvent<?> currEntry = itr.next();
+			EventHandler<?> currEntry = itr.next();
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
-			logger.finest("Found handler " + currEntry);
 			currEntry.accept(event);
 		}
 	}
@@ -311,30 +306,30 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method handles adding a future event from a specific class with the
-	 * channel id to the future event list
+	 * Register an event handler for a specific message on a specific channel
 	 * 
-	 * @param class1    class of the finished event (example: PlaybackFinished)
-	 * @param channelId id of the channel we want to follow it's future event/s
-	 * @param eventHandler      handler to call when the event arrives
+	 * @param type          type of message to listen to (example: PlaybackFinished)
+	 * @param channelId     id of the channel to listen on
+	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> SavedEvent<T> addFutureEvent(Class<T> class1, String channelId, BiConsumer<T,SavedEvent<T>> eventHandler) {
-		logger.fine("Registering for " + class1 + " events on channel " + channelId);
-		SavedEvent<T> se = new SavedEvent<T>(channelId, eventHandler, class1,this);
-		futureEvents.add(se);
+	protected <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
+		logger.fine("Registering for " + type + " events on channel " + channelId);
+		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
+		eventHandlers.add(se);
 		return se;
 	}
 
 	/**
-	 * The method handles adding a one time future event from a specific class with
-	 * the channel id to the future event list
+	 * Register a one-off event handler for a specific message on a specific channel.
 	 * 
-	 * @param class1    class of the finished event (example: PlaybackFinished)
-	 * @param channelId id of the channel we want to follow it's future event/s
-	 * @param eventHandler      handler to call when the event arrives
+	 * After the event is triggered once, the event handler is automatically unregistererd.
+	 * 
+	 * @param type          type of message to listen to (example: PlaybackFinished)
+	 * @param channelId     id of the channel to listen on
+	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> void addFutureOneTimeEvent(Class<T> class1, String channelId, Consumer<T> eventHandler) {
-		addFutureEvent(class1, channelId, (t,se) -> {
+	protected <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
+		addEventHandler(type, channelId, (t,se) -> {
 			se.unregister();
 			eventHandler.accept(t);
 		});
@@ -406,13 +401,13 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * remove saved event when no need to listen to it anymore
+	 * remove event handler when no need to listen to it anymore
 	 * 
-	 * @param savedEvent the saved event to be removed
+	 * @param handler the event handler to be removed
 	 */
-	public <T extends Message> void removeFutureEvent(SavedEvent<T>savedEvent) {
-		if(futureEvents.remove(savedEvent))
-			logger.finest("Event "+savedEvent.getClass1().getName()+" was removed for channel: "+savedEvent.getChannelId());
+	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
+		if(eventHandlers.remove(handler))
+			logger.finest("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
 	
 	/**

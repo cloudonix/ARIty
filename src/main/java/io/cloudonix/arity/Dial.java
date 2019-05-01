@@ -66,7 +66,7 @@ public class Dial extends CancelableOperations {
 	private int headerCounter = 0;
 	private long callEndTime;
 	private transient boolean ringing = false;
-	private SavedEvent<ChannelStateChange> channelStateChangedSe;
+	private EventHandler<ChannelStateChange> channelStateChangedSe;
 	private Channel channel;
 	// for local channels, which by default we don't do
 	private String otherChannelId = null;
@@ -213,10 +213,10 @@ public class Dial extends CancelableOperations {
 		logger.fine("Running Dial");
 		getArity().ignoreChannel(endPointChannelId);
 		if (Objects.nonNull(getChannelId()))
-			getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
-		getArity().addFutureOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
-		channelStateChangedSe = getArity().addFutureEvent(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChanged);
-		getArity().addFutureEvent(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
+			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
+		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
+		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChanged);
+		getArity().addEventHandler(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
 
 		return Operation.<Channel>retryOperation(
 				cf -> channels().originate(endPoint, extension, context, priority, null, getArity().getAppName(), "",
@@ -234,7 +234,7 @@ public class Dial extends CancelableOperations {
 	 * @param dial dial event
 	 * @return
 	 */
-	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, SavedEvent<ch.loway.oss.ari4java.generated.Dial>se) {
+	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.Dial>se) {
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			se.unregister();
@@ -447,7 +447,7 @@ public class Dial extends CancelableOperations {
 	 * @param channelState new state of the channel
 	 * @return
 	 */
-	private void handleChannelStateChanged(ChannelStateChange channelState, SavedEvent<ChannelStateChange> se) {
+	private void handleChannelStateChanged(ChannelStateChange channelState, EventHandler<ChannelStateChange> se) {
 //		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
 //			onRinging();
 	}

@@ -45,13 +45,13 @@ public class CallMonitor {
 	private String channelId;
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
-	private SavedEvent<ChannelStateChange>channelStateChangedSE;
+	private EventHandler<ChannelStateChange>stateChangeHandler;
 	private ConcurrentHashMap<States, List<Runnable>> stateListeners = new ConcurrentHashMap<>();
 
 	public CallMonitor(ARIty arity, String callChannelId) {
 		this.channelId = callChannelId;
-		arity.addFutureOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
-		channelStateChangedSE = arity.addFutureEvent(ChannelStateChange.class, channelId, this::handleStateChange);
+		stateChangeHandler = arity.addEventHandler(ChannelStateChange.class, channelId, this::handleStateChange);
+		arity.listenForOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
 	}
 	
 	private List<Runnable> getListeners(States state) {
@@ -65,14 +65,14 @@ public class CallMonitor {
 	private void handleHangupCaller(ChannelHangupRequest hangup) {
 		isActive = false;
 		getListeners(States.Hangup).forEach(Runnable::run);
-		channelStateChangedSE.unregister(); // need also to unregister from channel event
+		stateChangeHandler.unregister(); // need also to unregister from channel event
 	}
 
 	/**
 	 * Handle the state change event
 	 * @param state channel state change event
 	 */
-	private void handleStateChange(ChannelStateChange state, SavedEvent<ChannelStateChange>se) {
+	private void handleStateChange(ChannelStateChange state, EventHandler<ChannelStateChange>se) {
 		States stat = States.find(state.getChannel().getState());
 		wasAnswered |= stat == States.Up;
 	}

@@ -20,10 +20,10 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 
 /**
- * The class handles all bridge operations
+ * API for bridge operations
  * 
  * @author naamag
- *
+ * @author odeda
  */
 public class BridgeOperations {
 	private ARIty arity;
@@ -116,7 +116,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> addChannelToBridge(String channelId) {
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
-		arity.addFutureOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
+		arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
 		return Operation
 				.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
 	}
@@ -139,7 +139,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
-		arity.addFutureOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
+		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
 		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
 	}
 
@@ -167,7 +167,7 @@ public class BridgeOperations {
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 					logger.fine("playing: " + fileToPlay);
-					arity.addFutureEvent(PlaybackFinished.class, bridgeId, (pbf, se) -> {
+					arity.addEventHandler(PlaybackFinished.class, bridgeId, (pbf, se) -> {
 						if (!(pbf.getPlayback().getId().equals(playbackId)))
 							return;
 						logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
@@ -220,7 +220,7 @@ public class BridgeOperations {
 					public void onSuccess(LiveRecording result) {
 						logger.info("Strated Recording bridge with id: " + bridgeId + " and recording name is: "
 								+ recordingName);
-						arity.addFutureEvent(RecordingFinished.class, bridgeId, (record, se) -> {
+						arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
 							if (!Objects.equals(record.getRecording().getName(), recordingName))
 								return;
 							long recordingEndTime = Instant.now().getEpochSecond();

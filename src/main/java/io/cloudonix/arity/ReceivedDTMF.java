@@ -22,7 +22,7 @@ public class ReceivedDTMF {
 	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
 	private ARIty arity;
 	private String channelId;
-	private BiConsumer<ChannelDtmfReceived, SavedEvent<ChannelDtmfReceived>> runDtmfHandler = null;
+	private BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> runDtmfHandler = null;
 
 	/**
 	 * Constructor
@@ -55,7 +55,7 @@ public class ReceivedDTMF {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		arity.addFutureEvent(ChannelDtmfReceived.class, channelId, this::handleDTMF);
+		arity.addEventHandler(ChannelDtmfReceived.class, channelId, this::handleDTMF);
 		return compFuture;
 	}
 
@@ -65,7 +65,7 @@ public class ReceivedDTMF {
 	 * @param dtmf dtmf event
 	 * @param se the saved event handler for dtmf
 	 */
-	public void handleDTMF(ChannelDtmfReceived dtmf, SavedEvent<ChannelDtmfReceived>se) {
+	public void handleDTMF(ChannelDtmfReceived dtmf, EventHandler<ChannelDtmfReceived>se) {
 		if(Objects.nonNull(runDtmfHandler)) {
 			runDtmfHandler.accept(dtmf,se); // execute function from an app when receiving DTMF, need to unregister also when done
 			return;
@@ -116,7 +116,7 @@ public class ReceivedDTMF {
 	 * 
 	 * @param se saved event we want to unregister from it
 	 */
-	public void unregister(SavedEvent<ChannelDtmfReceived>se) {
+	public void unregister(EventHandler<ChannelDtmfReceived>se) {
 		se.unregister();
 		compFuture.complete(this);
 	}
@@ -126,7 +126,7 @@ public class ReceivedDTMF {
 	 * 
 	 * @param handler
 	 */
-	public void registerHandler(BiConsumer<ChannelDtmfReceived, SavedEvent<ChannelDtmfReceived>> handler) {
+	public void registerHandler(BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> handler) {
 		this.runDtmfHandler = handler;
 	}
 }

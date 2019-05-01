@@ -34,7 +34,7 @@ public class CallState {
 		this.channel = chan;
 		this.channelId = channel.getId();
 		this.channelTechnology = channel.getName().split("/")[0];
-		arity.addFutureEvent(ChannelVarset.class, channelId, (varset, se) -> {
+		arity.addEventHandler(ChannelVarset.class, channelId, (varset, se) -> {
 			variables.put(varset.getVariable(), varset.getValue());
 		});
 	}

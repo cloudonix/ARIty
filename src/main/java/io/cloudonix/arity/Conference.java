@@ -43,16 +43,16 @@ public class Conference {
 		this.callController = callController;
 		this.bridgeOperations = new BridgeOperations(arity);
 		callController.setTalkingInChannel("set", "1500,750");
-		arity.addFutureEvent(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
-		arity.addFutureEvent(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
+		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
+		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 		
 	}
 	
-	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, SavedEvent<ChannelTalkingStarted>se) {
+	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, EventHandler<ChannelTalkingStarted>se) {
 		this.talkingStatedHandler.run();
 	}
 	
-	public void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, SavedEvent<ChannelTalkingFinished>se) {
+	public void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, EventHandler<ChannelTalkingFinished>se) {
 		this.talkingFinishedEvent .run();
 	}
 	
@@ -100,7 +100,7 @@ public class Conference {
 					logger.fine("Channel was added to the bridge");
 					return beep ? playMedia("beep") : FutureHelper.completedSuccessfully(null);
 				}).thenCompose(beepRes -> {
-					arity.addFutureOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
+					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
 							this::channelLeftConference);
 					return mute ? callController.mute(callController.getChannelId(), "out").run()
 							: FutureHelper.completedSuccessfully(null);
