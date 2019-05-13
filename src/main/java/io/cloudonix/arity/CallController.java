@@ -12,6 +12,7 @@ import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.future.helper.FutureHelper;
+import io.cloudonix.lib.Futures;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -180,20 +181,8 @@ public abstract class CallController {
 	 * @param bridgeId id of conference bridge we want to get
 	 */
 	public CompletableFuture<Conference> getConference(String bridgeId) {
-		Conference conf = new Conference(this);
-		return conf.getBridge(bridgeId).thenApply(b->conf);
-	}
-	
-	/**
-	 * create a new conference with wanted bridge id
-	 * 
-	 * @param conferenceName name of the conference
-	 * @param bridgeId id to set to conference bridge
-	 * @return
-	 */
-	public CompletableFuture<Conference> createConference(String conferenceName, String bridgeId) {
-		Conference conf = new Conference(this);
-		return conf.createConferenceBridge(conferenceName, bridgeId).thenApply(b->conf);
+		Conference conf = new Conference(this, bridgeId);
+		return Futures.completedFuture(conf);
 	}
 	
 	/**

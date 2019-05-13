@@ -37,14 +37,30 @@ public class Conference {
 	private Runnable talkingStatedHandler = ()->{};
 	private Runnable talkingFinishedEvent = ()->{};
 
+	/**
+	 * Create a new conference bridge for this call controller
+	 * @param callController call controller to create the conference bridge for
+	 */
 	public Conference(CallController callController) {
+		this(callController, new Bridge(callController.getARIty()));
+	}
+	
+	/**
+	 * Create a conference bridge to wrap an existing bridge
+	 * @param callController call controller to create the conference bridge for
+	 * @param bridgeId existing bridge ID to use for the conference
+	 */
+	public Conference(CallController callController, String bridgeId) {
+		this(callController, new Bridge(callController.getARIty(), bridgeId));
+	}
+	
+	private Conference(CallController callController, Bridge bridge) {
 		this.arity = callController.getARIty();
 		this.callController = callController;
-		this.bridge = new Bridge(arity);
+		this.bridge = bridge;
 		callController.setTalkingInChannel("set", "1500,750");
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
-		
 	}
 	
 	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, EventHandler<ChannelTalkingStarted>se) {
@@ -145,7 +161,7 @@ public class Conference {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
 		annouceUser("left").thenAccept(pb -> {
-			bridge.getNumberOfChannelsInBridge().thenAccept(numberOfChannelsInConf -> {
+			bridge.getChannelCount().thenAccept(numberOfChannelsInConf -> {
 				if (numberOfChannelsInConf == 1) {
 					logger.info("Only one channel left in bridge, play music on hold");
 					bridge.startMusicOnHold(musicOnHoldClassName);
@@ -186,7 +202,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Integer> getCount() {
-		return bridge.getNumberOfChannelsInBridge();
+		return bridge.getChannelCount();
 	}
 
 	/**
@@ -195,7 +211,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<List<String>> getChannelsInConf() {
-		return bridge.getChannelsInBridge();
+		return bridge.getChannels();
 	}
 
 	/**
@@ -259,24 +275,7 @@ public class Conference {
 	 * @return true if there is a bridge, false otherwise
 	 */
 	public CompletableFuture<Boolean> isConfereBridgeExists() {
-		return bridge.isBridgeActive();
-	}
-
-	/**
-	 * create a bridge for the conference with a known id of bridge
-	 * 
-	 * @param conferenceName name of the conference
-	 * @param bridgeId id of we want to set to conference bridge
-	 * 
-	 * @return the conference bridge
-	 */
-	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName, String bridgeId) {
-		this.conferenceName = conferenceName;
-		bridge.setBridgeId(bridgeId);
-		return bridge.create(conferenceName).thenApply(bridgeRes -> {
-			logger.info("Created a conference bridge");
-			return bridgeRes;
-		});
+		return bridge.isActive();
 	}
 
 	/**
@@ -304,14 +303,6 @@ public class Conference {
 		return bridge.removeChannel(channelId);
 	}
 
-	public CompletableFuture<Bridge> getBridge(String bridgeId) {
-		bridge.setBridgeId(bridgeId);
-		return bridge.reload().thenApply(b -> {
-			this.conferenceName = b.getName();
-			return b;
-		});
-	}
-	
 	/**
 	 * get conference name
 	 * 
