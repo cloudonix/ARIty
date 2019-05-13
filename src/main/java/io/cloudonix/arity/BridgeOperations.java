@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Bridge;
@@ -18,6 +19,7 @@ import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 
 /**
  * API for bridge operations
@@ -92,7 +94,8 @@ public class BridgeOperations {
 	public CompletableFuture<Bridge> createBridge(String bridgeName) {
 		logger.info("Creating bridge with name: " + bridgeName + ", with id: " + bridgeId + " , and bridge type: "
 				+ bridgeType);
-		return Operation.retryOperation(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb));
+		return Operation.<Bridge>retryOperation(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -105,7 +108,7 @@ public class BridgeOperations {
 		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().destroy(bridgeId, cb)).thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
-		});
+		}).handle(this::mapExceptions);
 	}
 
 	/**
@@ -118,7 +121,8 @@ public class BridgeOperations {
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
 		return Operation
-				.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb));
+				.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -140,7 +144,8 @@ public class BridgeOperations {
 	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb));
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -176,7 +181,8 @@ public class BridgeOperations {
 					});
 					logger.fine("Future event of playbackFinished was added");
 					return future;
-				});
+				})
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -191,7 +197,8 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
 		logger.fine("Try playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, cb));
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -201,7 +208,8 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 		logger.fine("Try to stop playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().stopMoh(bridgeId, cb));
+		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().stopMoh(bridgeId, cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -252,7 +260,8 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Bridge> getBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.retryOperation(cb -> arity.getAri().bridges().get(bridgeId, cb));
+		return Operation.<Bridge>retryOperation(cb -> arity.getAri().bridges().get(bridgeId, cb))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -430,5 +439,14 @@ public class BridgeOperations {
 
 	public void setHandlerChannelEnteredBridge(Runnable handlerChannelEnteredBridge) {
 		this.handlerChannelEnteredBridge = handlerChannelEnteredBridge;
+	}
+	
+	private <T> T mapExceptions(T val, Throwable error) {
+		if (Objects.isNull(error))
+			return val;
+		switch (error.getMessage()) {
+		case "Bridge not found": throw new BridgeNotFoundException(error);
+		}
+		throw new CompletionException(error);
 	}
 }
