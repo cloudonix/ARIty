@@ -518,6 +518,6 @@ public class Dial extends CancelableOperations {
 		switch (error.getMessage()) {
 		case "Channel not found": throw new ChannelNotFoundException(error);
 		}
-		throw new CompletionException(error);
+		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
 	}
 }

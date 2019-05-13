@@ -3,14 +3,13 @@ package io.cloudonix.arity;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.Bridge;
+import ch.loway.oss.ari4java.generated.ActionBridges;
 import ch.loway.oss.ari4java.generated.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.LiveRecording;
@@ -28,61 +27,28 @@ import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
  * @author naamag
  * @author odeda
  */
-public class BridgeOperations {
+public class Bridge {
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
-	private String recordFormat = "ulaw";
-	private int maxDurationSeconds;
-	private int maxSilenceSeconds;
-	private String ifExists;
-	private boolean beep;
-	private String terminateOn;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
 	private Runnable handlerChannelLeftBridge = () -> {
 	};
 	private Runnable handlerChannelEnteredBridge = () -> {
 	};
+	private ActionBridges api;
+	private String name;
 
 	/**
 	 * Constructor
 	 * 
 	 * @param arity instance of ARIty
 	 */
-	public BridgeOperations(ARIty arity) {
-		this(arity, "", 0, 0, "overwrite", false, "#");
-	}
-
-	/**
-	 * Constructor with more options
-	 * 
-	 * @param arity              instance of ARIty
-	 * @param recordFormat       Format to encode audio in (to use the default
-	 *                           'ulaw', use "")
-	 * @param maxDurationSeconds Maximum duration of the recording, in seconds. 0
-	 *                           for no limit
-	 * @param maxSilenceSeconds  Maximum duration of silence, in seconds. 0 for no
-	 *                           limit
-	 * @param ifExists           Action to take if a recording with the same name
-	 *                           already exists. Allowed values: fail, overwrite,
-	 *                           append
-	 * @param beep               true if need to play beep when recording begins,
-	 *                           false otherwise
-	 * @param terminateOn        DTMF input to terminate recording. Allowed values:
-	 *                           none, any, *, #
-	 */
-	public BridgeOperations(ARIty arity, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds,
-			String ifExists, boolean beep, String terminateOn) {
+	public Bridge(ARIty arity) {
 		this.arity = arity;
-		if (!Objects.equals(recordFormat, "") && Objects.nonNull(recordFormat))
-			this.recordFormat = recordFormat;
-		this.maxDurationSeconds = maxDurationSeconds;
-		this.maxSilenceSeconds = maxSilenceSeconds;
-		this.ifExists = ifExists;
-		this.beep = beep;
-		this.terminateOn = terminateOn;
 		this.bridgeId = UUID.randomUUID().toString();
+		this.api = arity.getAri().bridges();
 	}
 
 	/**
@@ -92,10 +58,14 @@ public class BridgeOperations {
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Bridge> createBridge(String bridgeName) {
+	public CompletableFuture<Bridge> create(String bridgeName) {
 		logger.info("Creating bridge with name: " + bridgeName + ", with id: " + bridgeId + " , and bridge type: "
 				+ bridgeType);
-		return Operation.<Bridge>retryOperation(cb -> arity.getAri().bridges().create(bridgeType, bridgeId, bridgeName, cb))
+		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retryOperation(cb -> api.create(bridgeType, bridgeId, bridgeName, cb))
+				.thenApply(b -> {
+					this.name = b.getName();
+					return this;
+				})
 				.handle(this::mapExceptions);
 	}
 
@@ -104,9 +74,9 @@ public class BridgeOperations {
 	 * 
 	 * @return
 	 */
-	public CompletableFuture<Void> destroyBridge() {
+	public CompletableFuture<Void> destroy() {
 		logger.info("Destoying bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().destroy(bridgeId, cb)).thenAccept(v -> {
+		return Operation.<Void>retryOperation(cb -> api.destroy(bridgeId, cb)).thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 		}).handle(this::mapExceptions);
@@ -118,11 +88,11 @@ public class BridgeOperations {
 	 * @param channelId id of the channel to add the bridge
 	 * @return
 	 */
-	public CompletableFuture<Void> addChannelToBridge(String channelId) {
+	public CompletableFuture<Void> addChannel(String channelId) {
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
 		return Operation
-				.<Void>retryOperation(cb -> arity.getAri().bridges().addChannel(bridgeId, channelId, "member", cb))
+				.<Void>retryOperation(cb -> api.addChannel(bridgeId, channelId, "member", cb))
 				.handle(this::mapExceptions);
 	}
 
@@ -142,10 +112,10 @@ public class BridgeOperations {
 	 * @param channelId id of the channel to remove from the bridge
 	 * @return
 	 */
-	public CompletableFuture<Void> removeChannelFromBridge(String channelId) {
+	public CompletableFuture<Void> removeChannel(String channelId) {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().removeChannel(bridgeId, channelId, cb))
+		return Operation.<Void>retryOperation(cb -> api.removeChannel(bridgeId, channelId, cb))
 				.handle(this::mapExceptions);
 	}
 
@@ -165,11 +135,11 @@ public class BridgeOperations {
 	 * @param fileToPlay name of the file to be played
 	 * @return
 	 */
-	public CompletableFuture<Playback> playMediaToBridge(String fileToPlay) {
+	public CompletableFuture<Playback> playMedia(String fileToPlay) {
 		logger.info("Play media to bridge with id: " + bridgeId + ", and media is: " + fileToPlay);
 		String playbackId = UUID.randomUUID().toString();
 		return Operation.<Playback>retryOperation(
-				cb -> arity.getAri().bridges().play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
+				cb -> api.play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 					logger.fine("playing: " + fileToPlay);
@@ -198,7 +168,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
 		logger.fine("Try playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().startMoh(bridgeId, musicOnHoldClass, cb))
+		return Operation.<Void>retryOperation(cb -> api.startMoh(bridgeId, musicOnHoldClass, cb))
 				.handle(this::mapExceptions);
 	}
 
@@ -209,7 +179,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 		logger.fine("Try to stop playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> arity.getAri().bridges().stopMoh(bridgeId, cb))
+		return Operation.<Void>retryOperation(cb -> api.stopMoh(bridgeId, cb))
 				.handle(this::mapExceptions);
 	}
 
@@ -219,11 +189,29 @@ public class BridgeOperations {
 	 * @param recordingName name of the recording
 	 * @return
 	 */
-	public CompletableFuture<LiveRecording> recordBridge(String recordingName) {
+	public CompletableFuture<LiveRecording> record(String recordingName) {
+		return record(recordingName, "overwrite", false, "#", null, 0, 0);
+	}
+	
+	/**
+	 * record the mixed audio from all channels participating in this bridge.
+	 * 
+	 * @param recordingName name of the recording
+	 * @param ifExists how to handle an existing recording with the same name. Possible values are:
+	 *    "fail", "overwrite", "append"
+	 * @param beep Whether to play a beep sound when the recording starts
+	 * @param terminateOn DTMF signal to terminate recording on
+	 * @param recordFormat Format for the recording. Set to null to use the default "ulaw"
+	 * @param maxDurationSeconds Maximum length of the recording, in seconds. set to 0 for unlimited.
+	 * @param maxSilenceSeconds Maximum seconds of silence for the recording to stop. set to 0 for none.
+	 * @return
+	 */
+	public CompletableFuture<LiveRecording> record(String recordingName, String ifExists, boolean beep, String terminateOn, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds) {
+		recordFormat = Objects.isNull(recordFormat) ? "ulaw" : recordFormat;
 		logger.info("Record bridge with id: " + bridgeId + ", and recording name is: " + recordingName);
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
 		Instant recordingStartTime = Instant.now();
-		arity.getAri().bridges().record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
+		api.record(bridgeId, recordingName, recordFormat, maxDurationSeconds, maxSilenceSeconds,
 				ifExists, beep, terminateOn, new AriCallback<LiveRecording>() {
 					@Override
 					public void onSuccess(LiveRecording result) {
@@ -254,15 +242,18 @@ public class BridgeOperations {
 		return future;
 	}
 
-	/**
-	 * get bridge if exists
-	 * 
-	 * @return
-	 */
-	public CompletableFuture<Bridge> getBridge() {
+	private CompletableFuture<ch.loway.oss.ari4java.generated.Bridge> readBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.<Bridge>retryOperation(cb -> arity.getAri().bridges().get(bridgeId, cb))
+		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retryOperation(cb -> api.get(bridgeId, cb))
 				.handle(this::mapExceptions);
+	}
+	
+	public CompletableFuture<Bridge> reload() {
+		return readBridge().thenApply(b ->{
+			name = b.getName();
+			bridgeType = b.getBridge_type();
+			return this;
+		});
 	}
 
 	/**
@@ -303,32 +294,13 @@ public class BridgeOperations {
 	}
 
 	/**
-	 * get a specified recording's data
-	 * 
-	 * @param recordingName name of the recording we are looking for
-	 * @return
-	 */
-	public RecordingData getRecording(String recordingName) {
-		for (Entry<String, RecordingData> currRecording : recordings.entrySet()) {
-			if (Objects.equals(recordingName, currRecording.getKey()))
-				return currRecording.getValue();
-		}
-		logger.info("No recording with name: " + recordingName);
-		return null;
-	}
-
-	public void setBeep(boolean beep) {
-		this.beep = beep;
-	}
-
-	/**
 	 * get list of channels that are connected to the bridge
 	 * 
 	 * @return
 	 */
 	public CompletableFuture<List<String>> getChannelsInBridge() {
 		logger.info("Getting all ids of active channels in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridge -> {
+		return readBridge().thenApply(bridge -> {
 			if (Objects.isNull(bridge)) {
 				logger.warning("Bridge is null");
 				return null;
@@ -345,6 +317,14 @@ public class BridgeOperations {
 	public String getBridgeType() {
 		return bridgeType;
 	}
+	
+	/**
+	 * Return the bridge name
+	 * @return the bridge name if the bridge was ever created, <tt>null</tt> otherwise
+	 */
+	public String getName() {
+		return name;
+	}
 
 	/**
 	 * set the value of bridge. allowed values: mixing, dtmf_events, proxy_media,
@@ -353,7 +333,7 @@ public class BridgeOperations {
 	 * @param bridgeType
 	 * @return the update object
 	 */
-	public BridgeOperations setBridgeType(String bridgeType) {
+	public Bridge setBridgeType(String bridgeType) {
 		logger.info("Setting type of bridge with id: " + bridgeId + " to type:" + bridgeType);
 		if (!Objects.equals(bridgeType, "mixing") && !Objects.equals(bridgeType, "dtmf_events")
 				&& !Objects.equals(bridgeType, "proxy_media") && !Objects.equals(bridgeType, "holding")) {
@@ -371,7 +351,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
 		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels()).thenApply(channels -> {
+		return readBridge().thenApply(bridgeRes -> bridgeRes.getChannels()).thenApply(channels -> {
 			int count = 0;
 			for (String channelId : channels) {
 				try {
@@ -392,7 +372,7 @@ public class BridgeOperations {
 	 */
 	public CompletableFuture<Integer> getNumberOfAllChannelsInBridge() {
 		logger.info("Getting number of all channel in bridge with id: " + bridgeId);
-		return getBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
+		return readBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
 	}
 
 	/**
@@ -401,29 +381,10 @@ public class BridgeOperations {
 	 * @return true if the bridge is active, false otherwise
 	 */
 	public CompletableFuture<Boolean> isBridgeActive() {
-		CompletableFuture<Boolean> isActive = new CompletableFuture<Boolean>();
-		arity.getAri().bridges().list(new AriCallback<List<Bridge>>() {
-			@Override
-			public void onSuccess(List<Bridge> result) {
-				logger.info("Searching for bridge with id: " + bridgeId + " ...");
-				for (Bridge bridge : result) {
-					if (Objects.equals(bridgeId, bridge.getId())) {
-						logger.info("Found an active bridge!");
-						isActive.complete(true);
-						return;
-					}
-				}
-				logger.info("No active bridge with id: " + bridgeId + " was found");
-				isActive.complete(false);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.severe("Failed finding active bridge with id: " + bridgeId);
-				isActive.complete(false);
-			}
-		});
-		return isActive;
+		return readBridge().thenApply(b -> {
+			this.name = b.getName();
+			return true;
+		}).exceptionally(t -> false);
 	}
 
 	public Runnable getHandlerChannelLeftBridge() {
@@ -449,6 +410,6 @@ public class BridgeOperations {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
 		case "Channel not found": throw new ChannelNotInBridgeException(error);
 		}
-		throw new CompletionException(error);
+		throw new CompletionException("Unexpected Bridge exception '" + error.getMessage() + "'", error);
 	}
 }
