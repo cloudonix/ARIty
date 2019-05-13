@@ -449,6 +449,6 @@ public class BridgeOperations {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
 		case "Channel not found": throw new ChannelNotInBridgeException(error);
 		}
-		throw new CompletionException(error);
+		throw new CompletionException("Unexpected Bridge exception '" + error.getMessage() + "'", error);
 	}
 }
