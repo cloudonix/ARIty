@@ -7,7 +7,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.Bridge;
 import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
 import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
@@ -29,7 +28,7 @@ public class Conference {
 	private Runnable handleChannelLeftConference = () -> {};
 	private String recordName = null;
 	private LiveRecording conferenceRecord;
-	private BridgeOperations bridgeOperations;
+	private Bridge bridge;
 	private String musicOnHoldClassName = "default";
 	private ARIty arity;
 	private String conferenceName;
@@ -41,7 +40,7 @@ public class Conference {
 	public Conference(CallController callController) {
 		this.arity = callController.getARIty();
 		this.callController = callController;
-		this.bridgeOperations = new BridgeOperations(arity);
+		this.bridge = new Bridge(arity);
 		callController.setTalkingInChannel("set", "1500,750");
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
@@ -73,7 +72,7 @@ public class Conference {
 	 */
 	public CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
-		return bridgeOperations.destroyBridge();
+		return bridge.destroy();
 	}
 
 	/**
@@ -95,7 +94,7 @@ public class Conference {
 			logger.fine("Need to answer the channel with id: " + callController.getChannelId());
 			answer = callController.answer().run();
 		}
-		return answer.thenCompose(answerRes -> bridgeOperations.addChannelToBridge(callController.getChannelId()))
+		return answer.thenCompose(answerRes -> bridge.addChannel(callController.getChannelId()))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
 					return beep ? playMedia("beep") : FutureHelper.completedSuccessfully(null);
@@ -119,7 +118,7 @@ public class Conference {
 		logger.info("Start recording conference " + conferenceName);
 		if (Objects.isNull(recordName))
 			recordName = UUID.randomUUID().toString();
-		return bridgeOperations.recordBridge(recordName).thenAccept(recored -> {
+		return bridge.record(recordName).thenAccept(recored -> {
 			conferenceRecord = recored;
 			logger.info("Done recording");
 		});
@@ -146,10 +145,10 @@ public class Conference {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
 		annouceUser("left").thenAccept(pb -> {
-			bridgeOperations.getNumberOfChannelsInBridge().thenAccept(numberOfChannelsInConf -> {
+			bridge.getNumberOfChannelsInBridge().thenAccept(numberOfChannelsInConf -> {
 				if (numberOfChannelsInConf == 1) {
 					logger.info("Only one channel left in bridge, play music on hold");
-					bridgeOperations.startMusicOnHold(musicOnHoldClassName);
+					bridge.startMusicOnHold(musicOnHoldClassName);
 				}
 				if (numberOfChannelsInConf == 0) {
 					closeConference().thenAccept(
@@ -187,7 +186,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Integer> getCount() {
-		return bridgeOperations.getNumberOfChannelsInBridge();
+		return bridge.getNumberOfChannelsInBridge();
 	}
 
 	/**
@@ -196,7 +195,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<List<String>> getChannelsInConf() {
-		return bridgeOperations.getChannelsInBridge();
+		return bridge.getChannelsInBridge();
 	}
 
 	/**
@@ -250,7 +249,7 @@ public class Conference {
 	 * @return recording start time
 	 */
 	public LocalDateTime getRecordingStartTime() {
-		RecordingData recordData = bridgeOperations.getRecodingByName(recordName);
+		RecordingData recordData = bridge.getRecodingByName(recordName);
 		return Objects.nonNull(recordData) ? recordData.getStartingTime() : null;
 	}
 
@@ -260,7 +259,7 @@ public class Conference {
 	 * @return true if there is a bridge, false otherwise
 	 */
 	public CompletableFuture<Boolean> isConfereBridgeExists() {
-		return bridgeOperations.getBridge().thenApply(bridgeRes -> true).exceptionally(t -> false);
+		return bridge.isBridgeActive();
 	}
 
 	/**
@@ -273,8 +272,8 @@ public class Conference {
 	 */
 	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName, String bridgeId) {
 		this.conferenceName = conferenceName;
-		bridgeOperations.setBridgeId(bridgeId);
-		return bridgeOperations.createBridge(conferenceName).thenApply(bridgeRes -> {
+		bridge.setBridgeId(bridgeId);
+		return bridge.create(conferenceName).thenApply(bridgeRes -> {
 			logger.info("Created a conference bridge");
 			return bridgeRes;
 		});
@@ -289,7 +288,7 @@ public class Conference {
 	 */
 	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName) {
 		this.conferenceName = conferenceName;
-		return bridgeOperations.createBridge(conferenceName).thenApply(bridgeRes -> {
+		return bridge.create(conferenceName).thenApply(bridgeRes -> {
 			logger.info("Created a conference bridge");
 			return bridgeRes;
 		});
@@ -302,14 +301,14 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> removeChannelFromConf(String channelId) {
-		return bridgeOperations.removeChannelFromBridge(channelId);
+		return bridge.removeChannel(channelId);
 	}
 
 	public CompletableFuture<Bridge> getBridge(String bridgeId) {
-		bridgeOperations.setBridgeId(bridgeId);
-		return bridgeOperations.getBridge().thenApply(bridgeRes -> {
-			this.conferenceName = bridgeRes.getName();
-			return bridgeRes;
+		bridge.setBridgeId(bridgeId);
+		return bridge.reload().thenApply(b -> {
+			this.conferenceName = b.getName();
+			return b;
 		});
 	}
 	
@@ -329,7 +328,7 @@ public class Conference {
 	 * @return promise to a Playback
 	 */
 	public CompletableFuture<Playback> playMedia(String mediaToPlay) {
-		return bridgeOperations.playMediaToBridge(mediaToPlay);
+		return bridge.playMedia(mediaToPlay);
 	}
 
 	/**
@@ -339,7 +338,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> removeChannel(String channelID) {
-		return bridgeOperations.removeChannelFromBridge(channelID);
+		return bridge.removeChannel(channelID);
 	}
 
 	/**
@@ -347,7 +346,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> startMusicOnHold() {
-		return bridgeOperations.startMusicOnHold(musicOnHoldClassName)
+		return bridge.startMusicOnHold(musicOnHoldClassName)
 				.thenApply(v->{
 					logger.fine("Started playing music on hold to conference bridge");
 					mohStarted = true;
@@ -366,7 +365,7 @@ public class Conference {
 	 * @return
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		return bridgeOperations.stopMusicOnHold()
+		return bridge.stopMusicOnHold()
 				.thenApply(v->{
 					logger.fine("Stoped playing music on hold to conference bridge");
 					mohStopped = true;
