@@ -41,13 +41,23 @@ public class Bridge {
 	private String name;
 
 	/**
-	 * Constructor
-	 * 
+	 * Create a new Bridge object with a unique ID
+	 * Use this constructor before creating a new bridge
 	 * @param arity instance of ARIty
 	 */
 	public Bridge(ARIty arity) {
+		this(arity, UUID.randomUUID().toString());
+	}
+	
+	/**
+	 * Create a new Bridge object to access a bridge with a known ID
+	 * You should probably call {@link #reload()} after creating the object
+	 * @param arity instance of ARIty
+	 * @param id ID of bridge to access
+	 */
+	public Bridge(ARIty arity, String id) {
 		this.arity = arity;
-		this.bridgeId = UUID.randomUUID().toString();
+		this.bridgeId = id;
 		this.api = arity.getAri().bridges();
 	}
 
@@ -261,17 +271,8 @@ public class Bridge {
 	 * 
 	 * @return
 	 */
-	public String getBridgeId() {
+	public String getId() {
 		return bridgeId;
-	}
-
-	/**
-	 * set the id of the bridge
-	 * 
-	 * @return
-	 */
-	public void setBridgeId(String bridgeId) {
-		this.bridgeId = bridgeId;
 	}
 
 	/**
@@ -294,27 +295,11 @@ public class Bridge {
 	}
 
 	/**
-	 * get list of channels that are connected to the bridge
-	 * 
-	 * @return
-	 */
-	public CompletableFuture<List<String>> getChannelsInBridge() {
-		logger.info("Getting all ids of active channels in bridge with id: " + bridgeId);
-		return readBridge().thenApply(bridge -> {
-			if (Objects.isNull(bridge)) {
-				logger.warning("Bridge is null");
-				return null;
-			}
-			return bridge.getChannels();
-		});
-	}
-
-	/**
 	 * get the type of the bridge
 	 * 
 	 * @return
 	 */
-	public String getBridgeType() {
+	public String getType() {
 		return bridgeType;
 	}
 	
@@ -331,7 +316,7 @@ public class Bridge {
 	 * holding (the default is 'mixing')
 	 * 
 	 * @param bridgeType
-	 * @return the update object
+	 * @return a reference to the Bridge object itself
 	 */
 	public Bridge setBridgeType(String bridgeType) {
 		logger.info("Setting type of bridge with id: " + bridgeId + " to type:" + bridgeType);
@@ -349,30 +334,16 @@ public class Bridge {
 	 * 
 	 * @return number of active channels in this bridge
 	 */
-	public CompletableFuture<Integer> getNumberOfChannelsInBridge() {
-		logger.info("Getting number of active channel in bridge with id: " + bridgeId);
-		return readBridge().thenApply(bridgeRes -> bridgeRes.getChannels()).thenApply(channels -> {
-			int count = 0;
-			for (String channelId : channels) {
-				try {
-					arity.getAri().channels().get(channelId);
-					count++;
-				} catch (RestException e) {
-					// channel was not found,ignore
-				}
-			}
-			return count;
-		});
+	public CompletableFuture<Integer> getChannelCount() {
+		return getChannels().thenApply(List::size);
 	}
 
 	/**
-	 * get how many channels are connected to this bridge
-	 * 
-	 * @return number of all channels in this bridge
+	 * Retrieve the channel IDs for all channels on the bridge
+	 * @return list of channel IDs
 	 */
-	public CompletableFuture<Integer> getNumberOfAllChannelsInBridge() {
-		logger.info("Getting number of all channel in bridge with id: " + bridgeId);
-		return readBridge().thenApply(bridgeRes -> bridgeRes.getChannels().size());
+	public CompletableFuture<List<String>> getChannels() {
+		return readBridge().thenApply(bridgeRes -> bridgeRes.getChannels());
 	}
 
 	/**
@@ -380,29 +351,13 @@ public class Bridge {
 	 * 
 	 * @return true if the bridge is active, false otherwise
 	 */
-	public CompletableFuture<Boolean> isBridgeActive() {
+	public CompletableFuture<Boolean> isActive() {
 		return readBridge().thenApply(b -> {
 			this.name = b.getName();
 			return true;
 		}).exceptionally(t -> false);
 	}
 
-	public Runnable getHandlerChannelLeftBridge() {
-		return handlerChannelLeftBridge;
-	}
-
-	public void setHandlerChannelLeftBridge(Runnable handlerChannelLeftBridge) {
-		this.handlerChannelLeftBridge = handlerChannelLeftBridge;
-	}
-
-	public Runnable getHandlerChannelEnteredBridge() {
-		return handlerChannelEnteredBridge;
-	}
-
-	public void setHandlerChannelEnteredBridge(Runnable handlerChannelEnteredBridge) {
-		this.handlerChannelEnteredBridge = handlerChannelEnteredBridge;
-	}
-	
 	private <T> T mapExceptions(T val, Throwable error) {
 		if (Objects.isNull(error))
 			return val;
