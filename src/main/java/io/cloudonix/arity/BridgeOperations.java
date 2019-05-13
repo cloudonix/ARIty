@@ -20,6 +20,7 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
+import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 
 /**
  * API for bridge operations
@@ -446,6 +447,7 @@ public class BridgeOperations {
 			return val;
 		switch (error.getMessage()) {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
+		case "Channel not found": throw new ChannelNotInBridgeException(error);
 		}
 		throw new CompletionException(error);
 	}
