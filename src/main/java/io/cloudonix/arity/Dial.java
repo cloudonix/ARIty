@@ -8,12 +8,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 
 /**
  * The class represents the Dial operation
@@ -346,7 +348,8 @@ public class Dial extends CancelableOperations {
 		dialStatus = Status.CANCEL;
 		compFuture.complete(this);
 		return Operation.<Void>retryOperation(cb -> channels().hangup(endPointChannelId, "normal", cb))
-				.thenAccept(v -> logger.info("Hang up the endpoint call"));
+				.thenAccept(v -> logger.info("Hang up the endpoint call"))
+				.handle(this::mapExceptions);
 	}
 
 	/**
@@ -509,7 +512,12 @@ public class Dial extends CancelableOperations {
 		return channel;
 	}
 
-	public void setChannel(Channel channel) {
-		this.channel = channel;
+	private <T> T mapExceptions(T val, Throwable error) {
+		if (Objects.isNull(error))
+			return val;
+		switch (error.getMessage()) {
+		case "Channel not found": throw new ChannelNotFoundException(error);
+		}
+		throw new CompletionException(error);
 	}
 }
