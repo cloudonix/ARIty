@@ -287,7 +287,6 @@ public class Dial extends CancelableOperations {
 	 */
 	private HashMap<String, String> addSipHeaders() {
 		HashMap<String, String> updateHeaders = new HashMap<>();
-		updateHeaders.put("CALLERID(all)", callerId);
 		if (headers.isEmpty())
 			return updateHeaders;
 
