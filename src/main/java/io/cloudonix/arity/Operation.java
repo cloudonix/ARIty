@@ -125,7 +125,7 @@ public abstract class Operation {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t)) 
 				return Futures.completedFuture(v);
-			if (triesLeft <= 0)
+			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
 				return Futures.<V>failedFuture(t);
 			return Futures.delay(RETRY_TIME).apply(null)
 					.thenCompose(v1->retryOperation(op, triesLeft - 1));
