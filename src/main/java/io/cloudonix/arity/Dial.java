@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -55,21 +56,27 @@ public class Dial extends CancelableOperations {
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();
 	private String endpoint;
 	private String endpointChannelId = UUID.randomUUID().toString();
-	private long callDuration = 0;
-	private long dialStart = 0;
-	private long mediaLength = 0;
-	private long answeredTime = 0;
+	private Instant dialStartTime;
+	private Instant answerTime;
+	private Instant ringingTime;
+	private Instant endTime;
+	private Duration callDuration, ringingDuration, mediaDuration;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient Status dialStatus = Status.UNKNOWN;
 	private Map<String, String> headers = new Hashtable<>();
 	private Map<String, String> variables = new Hashtable<>();
 	private String callerId;
 	private int timeout;
-	private List<Runnable> channelStateUp = new ArrayList<>();
-	private List<Runnable> channelStateRinging = new ArrayList<>();
-	private List<Runnable> channelStateFail = new ArrayList<>();
-	private long callEndTime;
-	private transient boolean ringing = false;
+	private List<Runnable> channelStateUp = new ArrayList<>(),
+			channelStateRinging = new ArrayList<>(),
+			channelStateFail = new ArrayList<>(),
+			channelStateCancelled = new ArrayList<>(),
+			channelStateDisconnected = new ArrayList<>();
+	private transient boolean wasRinging = false,
+			wasConnected = false,
+			wasCancelled = false,
+			wasDisconnected = false,
+			wasFailed = false;
 	private EventHandler<ChannelStateChange> channelStateChangedSe;
 	private Channel channel;
 	// for local channels, which by default we don't do
@@ -251,7 +258,7 @@ public class Dial extends CancelableOperations {
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
-					dialStart = Instant.now().toEpochMilli();
+					dialStartTime = Instant.now();
 				}).thenCompose(v -> compFuture);
 	}
 
@@ -262,11 +269,16 @@ public class Dial extends CancelableOperations {
 		}
 		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
 				null, getChannelId(), null, h))
+				.thenApply(ch -> channel = ch)
 				.thenCompose(ch -> earlyBridge.addChannel(ch.getId()))
 				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
+				.thenRun(() -> {
+					dialStartTime = Instant.now();
+					logger.info("Early bridged dial started");
+				})
 				.thenCompose(v -> compFuture);
 	}
 	
@@ -279,6 +291,7 @@ public class Dial extends CancelableOperations {
 	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.Dial>se) {
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
+			cancelled();
 			se.unregister();
 			return;
 		}
@@ -293,9 +306,8 @@ public class Dial extends CancelableOperations {
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + " is: " + dialStatus);
 		switch (dialStatus) {
 		case ANSWER:
-			answeredTime = Instant.now().toEpochMilli();
 			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
-			onConnect();
+			connected();
 			se.unregister();
 			return;
 		case BUSY:
@@ -308,13 +320,12 @@ public class Dial extends CancelableOperations {
 		case TORTURE:
 			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
 			Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb));
-			onFail();
-			compFuture.complete(this);
+			failed();
 			se.unregister();
 			return;
 		case PROGRESS:
 		case RINGING:
-			onRinging();
+			ringing();
 			return;
 		case UNKNOWN:
 		}
@@ -359,23 +370,8 @@ public class Dial extends CancelableOperations {
 	 */
 	private void handleHangupCallee(ChannelHangupRequest hangup) {
 		logger.info("The called endpoint hanged up the call");
-		claculateDurations();
-		compFuture.complete(this);
 		channelStateChangedSe.unregister();
-		logger.fine("future was completed for channel: " + hangup.getChannel().getId());
-	}
-
-	/**
-	 * calculate duration and media length of the call
-	 */
-	private void claculateDurations() {
-		callEndTime = Instant.now().toEpochMilli();
-		callDuration = Math.abs(callEndTime - dialStart);
-		logger.info("Duration of the call: " + callDuration + " ms");
-		if (Objects.nonNull(answeredTime)) {
-			mediaLength = Math.abs(callEndTime - answeredTime);
-			logger.info("Media lenght of the call: " + mediaLength + " ms");
-		}
+		disconnected();
 	}
 
 	/**
@@ -387,7 +383,7 @@ public class Dial extends CancelableOperations {
 	public CompletableFuture<Void> cancel() {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = Status.CANCEL;
-		compFuture.complete(this);
+		cancelled();
 		return Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"))
 				.handle(this::mapExceptions);
@@ -430,10 +426,11 @@ public class Dial extends CancelableOperations {
 		return this;
 	}
 	
-	private void onRinging() {
-		if(ringing)
+	private void ringing() {
+		if(wasRinging)
 			return;
-		ringing  = true;
+		ringingTime = Instant.now();
+		wasRinging = true;
 		try {
 			channelStateRinging.forEach(Runnable::run);
 		} catch (Throwable t) {
@@ -455,8 +452,12 @@ public class Dial extends CancelableOperations {
 	/**
 	 * handle when the call was answered
 	 */
-	private void onConnect() {
-		onRinging();
+	private void connected() {
+		if (wasConnected)
+			return;
+		ringing();
+		wasConnected = true;
+		answerTime = Instant.now();
 		try {
 			channelStateUp.forEach(Runnable::run);
 		} catch (Throwable t) {
@@ -477,12 +478,62 @@ public class Dial extends CancelableOperations {
 	/**
 	 * handle when fail to dial
 	 */
-	private void onFail() {
+	private void failed() {
+		if (wasFailed)
+			return;
+		wasFailed = true;
+		computeDurationsAtEndOfCall();
 		try {
 			channelStateFail.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenFailed callback: " +ErrorStream.fromThrowable(t));
 		} 
+		compFuture.complete(this);
+	}
+	
+	public Dial whenCancelled(Runnable func) {
+		channelStateCancelled.add(func);
+		return this;
+	}
+	
+	private void cancelled() {
+		if (wasCancelled)
+			return;
+		wasCancelled = true;
+		computeDurationsAtEndOfCall();
+		try {
+			channelStateCancelled.forEach(Runnable::run);
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenCancelled callback: " +ErrorStream.fromThrowable(t));
+		}
+		compFuture.complete(this);
+	}
+	
+	public Dial whenDisconnected(Runnable func) {
+		channelStateCancelled.add(func);
+		return this;
+	}
+	
+	private void disconnected() {
+		if (wasDisconnected)
+			return;
+		wasDisconnected = true;
+		computeDurationsAtEndOfCall();
+		try {
+			channelStateDisconnected.forEach(Runnable::run);
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenDisconnected callback: " +ErrorStream.fromThrowable(t));
+		} 
+		compFuture.complete(this);
+	}
+	
+	private void computeDurationsAtEndOfCall() {
+		endTime = Instant.now();
+		callDuration = Duration.between(dialStartTime, endTime);
+		ringingDuration = (Objects.isNull(ringingTime) || Objects.isNull(answerTime)) ? Duration.ZERO :
+			Duration.between(ringingTime, answerTime);
+		mediaDuration = Objects.isNull(answerTime) ? Duration.ZERO : Duration.between(answerTime, endTime);
+		logger.info("Call duration " + callDuration + " of which ringing " + ringingDuration + ", media " + mediaDuration);
 	}
 
 	/**
@@ -503,17 +554,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public long getCallDuration() {
-		return callDuration;
-	}
-
-	/**
-	 * get Dial CompletableFuture
-	 * 
-	 * @return
-	 */
-	public CompletableFuture<Dial> getFuture() {
-		logger.fine("endPoint channel id: " + endpointChannelId);
-		return compFuture;
+		return callDuration.toMillis();
 	}
 
 	/**
@@ -526,9 +567,13 @@ public class Dial extends CancelableOperations {
 	}
 
 	public long getCallEndTime() {
-		return callEndTime;
+		return endTime.toEpochMilli();
 	}
 
+	public long getAnsweredTime() {
+		return answerTime.toEpochMilli();
+	}
+	
 	/**
 	 * get media length of the call (the time passed from the moment the caller
 	 * answered to the hang up of the call)
@@ -536,13 +581,9 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public long getMediaLength() {
-		return mediaLength;
+		return mediaDuration.toMillis();
 	}
 
-	public long getAnsweredTime() {
-		return answeredTime;
-	}
-	
 	public String toString() {
 		return "[Dial " + callerId + "->" + endpoint + "|" + 
 				endpointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
