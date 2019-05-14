@@ -2,13 +2,14 @@ package io.cloudonix.arity;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -16,6 +17,7 @@ import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
+import io.cloudonix.lib.Futures;
 
 /**
  * The class represents the Dial operation
@@ -51,21 +53,21 @@ public class Dial extends CancelableOperations {
 	}
 
 	private CompletableFuture<Dial> compFuture = new CompletableFuture<>();
-	private String endPoint;
-	private String endPointChannelId = UUID.randomUUID().toString();
+	private String endpoint;
+	private String endpointChannelId = UUID.randomUUID().toString();
 	private long callDuration = 0;
 	private long dialStart = 0;
 	private long mediaLength = 0;
 	private long answeredTime = 0;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
 	private transient Status dialStatus = Status.UNKNOWN;
-	private Map<String, String> headers;
+	private Map<String, String> headers = new Hashtable<>();
+	private Map<String, String> variables = new Hashtable<>();
 	private String callerId;
 	private int timeout;
 	private List<Runnable> channelStateUp = new ArrayList<>();
 	private List<Runnable> channelStateRinging = new ArrayList<>();
 	private List<Runnable> channelStateFail = new ArrayList<>();
-	private int headerCounter = 0;
 	private long callEndTime;
 	private transient boolean ringing = false;
 	private EventHandler<ChannelStateChange> channelStateChangedSe;
@@ -75,84 +77,89 @@ public class Dial extends CancelableOperations {
 	private String extension = null;
 	private String context = null;
 	private Long priority = null;
+	private Bridge earlyBridge;
 
 	/**
-	 * Constructor
-	 * 
-	 * @param callController
-	 *            an instance that represents a call
-	 * @param callerId
-	 *            caller id
-	 * @param destination
-	 *            the number we are calling to (the endpoint)
-	 * @return
+	 * Dial from a call controller
+	 * @param callController controller of the handled incoming call that triggers the dial
+	 * @param callerId Caller ID to be published to the destination
+	 * @param destination Asterisk endpoint to be dialed to (including technology and URL)
 	 */
 	public Dial(CallController callController, String callerId, String destination) {
-		this(callController, callerId, destination, new HashMap<String, String>(), -1);
+		this(callController.getChannelId(), callController.getARIty(), callerId, destination);
+	}
+	
+	/**
+	 * Initiate an unsolicited dial
+	 * @param arity ARIty instance to run the operation against
+	 * @param callerId
+	 * @param destination
+	 */
+	Dial(ARIty arity, String callerId, String destination) {
+		this(null, arity, callerId, destination);
 	}
 
 	/**
-	 * Constructor
-	 * 
-	 * @param callController
-	 *            an instance that represents a call
-	 * @param callerId
-	 *            caller id
-	 * @param destination
-	 *            the number we are calling to (the endpoint)
-	 * @param headers
-	 *            headers that we want to add when dialing
-	 * @param timeout
-	 *            the time we wait until for the callee to answer
+	 * Internal constructor
 	 */
-	public Dial(CallController callController, String callerId, String destination, Map<String, String> headers,
-			int timeout) {
-		super(callController.getChannelId(), callController.getARIty());
-		this.endPoint = destination;
-		this.headers = headers;
+	private Dial(String originatingChannelId, ARIty arity, String callerId, String destination) {
+		super(originatingChannelId, arity);
+		this.endpoint = destination;
 		this.callerId = callerId;
-		this.timeout = timeout;
 	}
 
 	/**
-	 * Constructor
-	 * 
-	 * @param arity
-	 *            instance of ARIty
-	 * @param ari
-	 *            instance of ARI
-	 * @param callerId
-	 *            caller id
-	 * @param destination
-	 *            the number we are calling to (the end point)
-	 * @return
+	 * Add SIP headers to set on the outgoing SIP channel (only make sense if the destination endpoint
+	 * uses "SIP" technology).
+	 * @param headers list of SIP headers to set
+	 * @return itself for fluent calls
 	 */
-	public Dial(ARIty arity, String callerId, String destination) {
-		this(arity, callerId, destination, new HashMap<String, String>(), -1);
-	}
-
-	/**
-	 * Constructor
-	 * 
-	 * @param arity
-	 *            instance of ARIty
-	 * @param ari
-	 *            instance of ari
-	 * @param callerId
-	 *            caller id
-	 * @param destination
-	 *            the number we are calling to (the endpoint)
-	 * @param headers
-	 *            headers that we want to add when dialing
-	 * @param timeout
-	 *            the time we wait until for the callee to answer
-	 */
-	public Dial(ARIty arity, String callerId, String destination, Map<String, String> headers, int timeout) {
-		super(null, arity);
-		this.endPoint = destination;
+	public Dial withHeaders(Map<String, String> headers) {
 		this.headers = headers;
-		this.callerId = callerId;
+		return this;
+	}
+	
+	/**
+	 * Add a SIP header to set on the outgoing SIP channel (only makes sense if the destination endpoint
+	 * uses "SIP" technology) 
+	 * @param name header name
+	 * @param value header value
+	 * @return itself for fluent calls
+	 */
+	public Dial withHeader(String name, String value) {
+		this.headers.put(name, value);
+		return this;
+	}
+	
+	/**
+	 * Set Asterisk channel variables on the outgoing channel
+	 * @param variables list of variables to set
+	 * @return itself for fluent calls
+	 */
+	public Dial withVariables(Map<String, String> variables) {
+		this.variables = variables;
+		return this;
+	}
+	
+	/**
+	 * Add an Asterisk variable to set on the outgoing channel
+	 * @param name variable name
+	 * @param value variable value
+	 * @return itself for fluent calls
+	 */
+	public Dial withVariable(String name, String value) {
+		this.variables.put(name, value);
+		return this;
+	}
+		
+	/**
+	 * Set the dial timeout (how long before we give up on waiting for answer
+	 * @param timeout timeout in seconds
+	 * @return itself for fluent calls
+	 */
+	public Dial withTimeout(int timeout) {
 		this.timeout = timeout;
+		return this;
 	}
 	
 	/**
@@ -162,7 +169,7 @@ public class Dial extends CancelableOperations {
 	 * already set from the <tt>CallController</tt> channel ID, but this call may be used to unset it by
 	 * passing <tt>null</tt> as the value.
 	 * @param channelId Originator channel id
-	 * @return iself for fluent calls
+	 * @return itself for fluent calls
 	 */
 	public Dial withOriginator(String channelId) {
 		setChannelId(channelId);
@@ -205,7 +212,22 @@ public class Dial extends CancelableOperations {
 		this.priority = priority;
 		return this;
 	}
-
+	
+	/**
+	 * Have this dial implement "early bridging" dial workflow for Asterisk 14, as suggested in
+	 * https://blogs.asterisk.org/2016/08/24/asterisk-14-ari-create-bridge-dial/
+	 * When a <tt>Dial</tt> with "early bridging" is {@link #run()}, it assumes the bridge was already
+	 * created and the calling channel (if exists) has already been put into it. It will then create
+	 * the outgoing channel without dialing it, set up the variables and headers, then dial the outgoing
+	 * channel.
+	 * @param bridge already created bridge to connect the outgoing channel to
+	 * @return itself for fluent calls
+	 */
+	public Dial withBridge(Bridge bridge) {
+		this.earlyBridge = bridge;
+		return this;
+	}
+	
 	/**
 	 * The method dials to a number (end point)
 	 * 
@@ -213,16 +235,19 @@ public class Dial extends CancelableOperations {
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
-		getArity().ignoreChannel(endPointChannelId);
+		getArity().ignoreChannel(endpointChannelId);
 		if (Objects.nonNull(getChannelId()))
 			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
-		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endPointChannelId, this::handleHangupCallee);
-		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endPointChannelId, this::handleChannelStateChanged);
-		getArity().addEventHandler(ch.loway.oss.ari4java.generated.Dial.class, endPointChannelId, this::handleDialEvent);
+		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
+		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endpointChannelId, this::handleChannelStateChanged);
+		getArity().addEventHandler(ch.loway.oss.ari4java.generated.Dial.class, endpointChannelId, this::handleDialEvent);
 
+		if (Objects.nonNull(earlyBridge))
+			return runEarlyBridingWorkflow();
+		
 		return Operation.<Channel>retryOperation(
-				cf -> channels().originate(endPoint, extension, context, priority, null, getArity().getAppName(), "",
-						callerId, timeout, addSipHeaders(), endPointChannelId, otherChannelId, getChannelId(), null, cf))
+				cf -> channels().originate(endpoint, extension, context, priority, null, getArity().getAppName(), "",
+						callerId, timeout, formatSIPHeaders(), endpointChannelId, otherChannelId, getChannelId(), null, cf))
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
@@ -230,6 +255,21 @@ public class Dial extends CancelableOperations {
 				}).thenCompose(v -> compFuture);
 	}
 
+	private CompletableFuture<Dial> runEarlyBridingWorkflow() {
+		if (Objects.nonNull(callerId)) {
+			variables.putIfAbsent("CALLERID(num)", callerId);
+			variables.putIfAbsent("CALLERID(name)", callerId);
+		}
+		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
+				null, getChannelId(), null, h))
+				.thenCompose(ch -> earlyBridge.addChannel(ch.getId()))
+				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
+				.thenApply(v -> formatSIPHeaders())
+				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
+				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
+				.thenCompose(v -> compFuture);
+	}
+	
 	/**
 	 * handle Dial event
 	 * 
@@ -267,7 +307,7 @@ public class Dial extends CancelableOperations {
 		case INVALIDARGS:
 		case TORTURE:
 			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
-			Operation.<Void>retryOperation(cb -> channels().hangup(endPointChannelId, "normal", cb));
+			Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb));
 			onFail();
 			compFuture.complete(this);
 			se.unregister();
@@ -279,23 +319,23 @@ public class Dial extends CancelableOperations {
 		case UNKNOWN:
 		}
 	}
+	
+	private CompletableFuture<Void> setVariable(Map.Entry<String, String> var) {
+		return Operation.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey(), var.getValue(), h));
+	}
 
 	/**
-	 * set sip headers for originating new channel
-	 * 
-	 * @return
+	 * Convert headers to ADDSIPHEADER variables as per
+	 * http://www.xdev.net/2015/10/16/ari-originate-and-sip-headers/
+	 * @return list variables representing SIP headers
 	 */
-	private HashMap<String, String> addSipHeaders() {
-		HashMap<String, String> updateHeaders = new HashMap<>();
-		updateHeaders.put("CALLERID(all)", callerId);
-		if (headers.isEmpty())
-			return updateHeaders;
-
+	private Map<String, String> formatSIPHeaders() {
+		Hashtable<String, String> out = new Hashtable<>();
+		AtomicInteger i = new AtomicInteger(0);
 		for (Map.Entry<String, String> header : headers.entrySet()) {
-			updateHeaders.put("SIPADDHEADER" + headerCounter, header.getKey() + ":" + header.getValue());
-			headerCounter++;
+			out.put("SIPADDHEADER" + i.getAndIncrement(), header.getKey() + ":" + header.getValue());
 		}
-		return updateHeaders;
+		return out;
 	}
 
 	/**
@@ -345,10 +385,10 @@ public class Dial extends CancelableOperations {
 	 */
 	@Override
 	public CompletableFuture<Void> cancel() {
-		logger.info("Hang up channel with id: " + endPointChannelId);
+		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = Status.CANCEL;
 		compFuture.complete(this);
-		return Operation.<Void>retryOperation(cb -> channels().hangup(endPointChannelId, "normal", cb))
+		return Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"))
 				.handle(this::mapExceptions);
 	}
@@ -359,7 +399,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public String getEndPointNumber() {
-		return endPoint;
+		return endpoint;
 	}
 
 	/**
@@ -368,7 +408,7 @@ public class Dial extends CancelableOperations {
 	 * @param endPointNumber
 	 */
 	public void setEndPointNumber(String endPointNumber) {
-		this.endPoint = endPointNumber;
+		this.endpoint = endPointNumber;
 	}
 
 	/**
@@ -472,7 +512,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Dial> getFuture() {
-		logger.fine("endPoint channel id: " + endPointChannelId);
+		logger.fine("endPoint channel id: " + endpointChannelId);
 		return compFuture;
 	}
 
@@ -482,7 +522,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public String getEndPointChannelId() {
-		return endPointChannelId;
+		return endpointChannelId;
 	}
 
 	public long getCallEndTime() {
@@ -504,8 +544,8 @@ public class Dial extends CancelableOperations {
 	}
 	
 	public String toString() {
-		return "[Dial " + callerId + "->" + endPoint + "|" + 
-				endPointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
+		return "[Dial " + callerId + "->" + endpoint + "|" + 
+				endpointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
 				"|" + dialStatus.name + "]";
 	}
 
@@ -521,4 +561,5 @@ public class Dial extends CancelableOperations {
 		}
 		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
 	}
+
 }

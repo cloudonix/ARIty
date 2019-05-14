@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -153,26 +152,13 @@ public abstract class CallController {
 	}
 
 	/**
-	 * the method created new Dial operation
-	 *
-	 * @param number destination number
-	 * @return
+	 * Create a dial out operation 
+	 * @param callerId Caller ID to present to the destination
+	 * @param destination Asterisk endpoint address to dial (including technology and URL)
+	 * @return Dial operation to be configured further and run
 	 */
-	public Dial dial(String number, String callerId) {
-		return new Dial(this, callerId, number);
-	}
-
-	/**
-	 * the method created new Dial operation
-	 *
-	 * @param number   destination number
-	 * @param callerId id of the caller
-	 * @param headers  headers to add to the other channel we are dialing to
-	 * @param timeout  the time we wait until the callee to answer the call
-	 * @return
-	 */
-	public Dial dial(String number, String callerId, Map<String, String> headers, int timeout) {
-		return new Dial(this, callerId, number, headers, timeout);
+	public Dial dial(String callerId, String destination) {
+		return new Dial(this, callerId, destination);
 	}
 
 	/**
