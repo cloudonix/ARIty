@@ -262,11 +262,16 @@ public class Dial extends CancelableOperations {
 		}
 		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
 				null, getChannelId(), null, h))
+				.thenApply(ch -> channel = ch)
 				.thenCompose(ch -> earlyBridge.addChannel(ch.getId()))
 				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
+				.thenRun(() -> {
+					dialStart = Instant.now().toEpochMilli();
+					logger.info("Early bridged dial started");
+				})
 				.thenCompose(v -> compFuture);
 	}
 	
