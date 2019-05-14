@@ -137,7 +137,7 @@ public class Dial extends CancelableOperations {
 	 * @return itself for fluent calls
 	 */
 	public Dial withVariables(Map<String, String> variables) {
-		this.variables = variables;
+		this.variables.putAll(variables);
 		return this;
 	}
 	
