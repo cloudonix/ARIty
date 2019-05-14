@@ -363,6 +363,16 @@ public class ARIty implements AriCallback<Message> {
 			logger.warning("Failed disconeccting: " + e);
 		}
 	}
+	
+	/**
+	 * Initiate an unsolicited dial
+	 * @param callerId Caller ID to be published to the destination
+	 * @param destination Asterisk endpoint to be dialed to (including technology and URL)
+	 * @return a Dial operation to configure further and run
+	 */
+	public Dial dial(String callerId, String destination) {
+		return new Dial(this, callerId, destination);
+	}
 
 	/**
 	 * Get the url that we are connected to
