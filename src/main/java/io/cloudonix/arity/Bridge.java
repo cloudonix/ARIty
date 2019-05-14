@@ -361,6 +361,8 @@ public class Bridge {
 	private <T> T mapExceptions(T val, Throwable error) {
 		if (Objects.isNull(error))
 			return val;
+		while (error instanceof CompletionException)
+			error = error.getCause();
 		switch (error.getMessage()) {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
 		case "Channel not found": throw new ChannelNotInBridgeException(error);
