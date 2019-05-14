@@ -29,7 +29,7 @@ public class DialSample extends CallController {
 
 		// lambda case
 		arity.registerVoiceApp(call -> {
-			call.dial("SIP/123", "myCallerId").run()
+			call.dial("myCallerId", "SIP/123").run()
 			.handle(call::endCall)
 			.exceptionally(t -> {
 				logger.severe(t.toString());
