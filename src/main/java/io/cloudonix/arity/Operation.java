@@ -103,6 +103,8 @@ public abstract class Operation {
 	}
 	
 	public static CompletionException rewrapError(String message, StackTraceElement[] originalStack, Throwable cause) {
+		while (cause instanceof CompletionException)
+			cause = cause.getCause();
 		CompletionException wrap = new CompletionException(message, cause);
 		wrap.setStackTrace(originalStack);
 		return wrap;
