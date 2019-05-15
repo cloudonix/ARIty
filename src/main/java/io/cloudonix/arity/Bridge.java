@@ -19,6 +19,7 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
+import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 
 /**
@@ -366,6 +367,7 @@ public class Bridge {
 		switch (error.getMessage()) {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
 		case "Channel not found": throw new ChannelNotInBridgeException(error);
+		case "Channel not in Stasis application": throw new ChannelNotAllowedInBridge(error.getMessage());
 		}
 		throw new CompletionException("Unexpected Bridge exception '" + error.getMessage() + "'", error);
 	}
