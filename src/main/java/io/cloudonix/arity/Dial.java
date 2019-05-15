@@ -601,6 +601,8 @@ public class Dial extends CancelableOperations {
 	private <T> T mapExceptions(T val, Throwable error) {
 		if (Objects.isNull(error))
 			return val;
+		while (error instanceof CompletionException)
+			error = error.getCause();
 		switch (error.getMessage()) {
 		case "Channel not found": throw new ChannelNotFoundException(error);
 		}
