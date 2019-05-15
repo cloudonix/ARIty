@@ -267,17 +267,21 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(num)", callerId);
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
+		logger.fine("Starting early bridging dial " + callerId + " -> " + endpoint);
 		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
 				null, getChannelId(), null, h))
 				.thenApply(ch -> channel = ch)
+				.whenComplete((v,t) -> logger.fine("Early bridging created channel " + v.getId()))
 				.thenCompose(ch -> earlyBridge.addChannel(ch.getId()))
+				.whenComplete((v,t) -> logger.fine("Early bridging added channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
 				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
+				.whenComplete((v,t) -> logger.fine("Early bridging dialing out on " + endpointChannelId))
 				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
-					logger.info("Early bridged dial started");
+					logger.fine("Early bridged dial started");
 				})
 				.thenCompose(v -> compFuture);
 	}
