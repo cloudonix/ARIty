@@ -222,7 +222,7 @@ public class ARIty implements AriCallback<Message> {
 		if (Objects.isNull(channelId))
 			return;
 
-		logger.fine("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
+		logger.finest("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
 		Iterator<EventHandler<?>> itr = eventHandlers.iterator();
 		while (itr.hasNext()) {
 			EventHandler<?> currEntry = itr.next();
@@ -235,14 +235,16 @@ public class ARIty implements AriCallback<Message> {
 	private void handleStasisStart(Message event) {
 		StasisStart ss = (StasisStart) event;
 		if ("h".equals(ss.getChannel().getDialplan().getExten())) {
-			logger.fine("Ignore h");
+			logger.finer("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
 			return;
 		}
-		// if the list contains the stasis start event with this channel id, remove it
+		// if the list contains the Stasis start event with this channel id, remove it
 		// and continue
 		if (ignoredChannelIds.remove(ss.getChannel().getId())) {
+			logger.fine("Ignoring Stasis Start of blacklisted channel ID " + ss.getChannel().getId());
 			return;
 		}
+		
 		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
 		cc.init(ss, this);
@@ -294,7 +296,7 @@ public class ARIty implements AriCallback<Message> {
 				return ((Channel) chan).getId();
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.fine("Can not get channel id for event " + event + ": " + e);
+			logger.warning("Can not get channel id for event " + event + ": " + e);
 		}
 		return null;
 	}
@@ -313,7 +315,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	protected <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
-		logger.fine("Registering for " + type + " events on channel " + channelId);
+		logger.finer("Registering for " + type + " events on channel " + channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
 		eventHandlers.add(se);
 		return se;
@@ -417,7 +419,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
 		if(eventHandlers.remove(handler))
-			logger.finest("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
+			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
 	
 	/**
@@ -429,7 +431,7 @@ public class ARIty implements AriCallback<Message> {
 		try {
 			return ari.channels().list();
 		} catch (RestException e) {
-			logger.fine("Unable to get list of active channels");
+			logger.warning("Unable to get list of active channels: " + e);
 			return null;
 		}
 	}
