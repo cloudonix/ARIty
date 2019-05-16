@@ -293,6 +293,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.Dial>se) {
+		logger.finer("Dial event detected on channel " + getChannelId() + ": " + dial.getDialstring() + " " + dial.getDialstatus());
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			cancelled();
@@ -547,6 +548,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleChannelStateChanged(ChannelStateChange channelState, EventHandler<ChannelStateChange> se) {
+		logger.finer("State change detected on channel " + getChannelId() + ": " + channelState.getChannel().getState());
 //		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
 //			onRinging();
 	}
