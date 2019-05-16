@@ -558,7 +558,21 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	public long getCallDuration() {
+		if (Objects.isNull(callDuration))
+			computeDurationsAtEndOfCall();
 		return callDuration.toMillis();
+	}
+	
+	/**
+	 * get media length of the call (the time passed from the moment the caller
+	 * answered to the hang up of the call)
+	 * 
+	 * @return
+	 */
+	public long getMediaLength() {
+		if (Objects.isNull(callDuration))
+			computeDurationsAtEndOfCall();
+		return mediaDuration.toMillis();
 	}
 
 	/**
@@ -576,16 +590,6 @@ public class Dial extends CancelableOperations {
 
 	public long getAnsweredTime() {
 		return answerTime.toEpochMilli();
-	}
-	
-	/**
-	 * get media length of the call (the time passed from the moment the caller
-	 * answered to the hang up of the call)
-	 * 
-	 * @return
-	 */
-	public long getMediaLength() {
-		return mediaDuration.toMillis();
 	}
 
 	public String toString() {
