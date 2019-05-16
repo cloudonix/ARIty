@@ -29,17 +29,16 @@ public class Play extends CancelableOperations {
 	private final static Logger logger = Logger.getLogger(Play.class.getName());
 
 	/**
-	 * constructor
+	 * Play the specified content using the specified scheme (default "sound")
 	 * 
-	 * @param callController call main logic object
-	 * @param fileName       name of the file to be played
+	 * @param callController controller for the channel
+	 * @param filename       content to play
 	 */
-	public Play(CallController callController, String fileName) {
+	public Play(CallController callController, String filename) {
 		super(callController.getChannelId(), callController.getARIty());
-		this.playFileName = fileName;
+		this.playFileName = filename;
 		initLanguage(callController);
 	}
-
 
 	private void initLanguage(CallController callController) {
 		Channel chan = callController.getChannel();
