@@ -22,7 +22,7 @@ public class CallState {
 	private ARIty arity;
 	private Channel channel;
 	private String channelTechnology;
-	private Map<String, Object> metaData = new ConcurrentHashMap<>();
+	private Map<String, Object> metadata = new ConcurrentHashMap<>();
 	private Map<String, String> variables = new ConcurrentHashMap<>();
 
 	public CallState(StasisStart callStasisStart, ARIty arity) {
@@ -61,7 +61,7 @@ public class CallState {
 	}
 
 	public Map<String, Object> getMetaData() {
-		return metaData;
+		return metadata;
 	}
 
 	/**
@@ -70,9 +70,11 @@ public class CallState {
 	 * @param dataContent Data to store
 	 */
 	public void put(String dataName, Object dataContent) {
-		if (Objects.isNull(dataContent))
-			return; // we aren't allowed to put null values in concurrenthashmap.
-		metaData.put(dataName, dataContent);
+		if (Objects.isNull(dataContent)) {
+			metadata.remove(dataName); // we aren't allowed to put null values in concurrenthashmap.
+			return;
+		}
+		metadata.put(dataName, dataContent);
 	}
 
 	/**
@@ -86,7 +88,7 @@ public class CallState {
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> T get(String dataName) {
-		return (T) metaData.get(dataName);
+		return (T) metadata.get(dataName);
 	}
 	
 	/**
@@ -95,7 +97,7 @@ public class CallState {
 	 * @return Whether the field has been previously stored in the call state, even if its value was stored as <tt>null</tt>
 	 */
 	public boolean contains(String dataName) {
-		return metaData.containsKey(dataName);
+		return metadata.containsKey(dataName);
 	}
 	
 	/**
