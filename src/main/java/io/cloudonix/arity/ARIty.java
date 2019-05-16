@@ -55,9 +55,9 @@ public class ARIty implements AriCallback<Message> {
 	private Consumer<Exception> ce;
 
 	/**
-	 * Constructor
+	 * Create and connect ARIty to Asterisk
 	 * 
-	 * @param uri     URI
+	 * @param uri     Asterisk ARI URI
 	 * @param appName name of the stasis application
 	 * @param login   user name
 	 * @param pass    password
@@ -71,9 +71,9 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * Constructor
+	 * Create and connect ARIty to Asterisk
 	 * 
-	 * @param uri           URI
+	 * @param uri           Asterisk ARI 
 	 * @param appName       name of the stasis application
 	 * @param login         user name
 	 * @param pass          password
@@ -87,28 +87,49 @@ public class ARIty implements AriCallback<Message> {
 			throws ConnectionFailedException, URISyntaxException {
 		this(uri, appName, login, pass, openWebSocket, null);
 	}
-
+	
 	/**
-	 * Constructor
+	 * Create and connect ARIty to Asterisk
 	 * 
-	 * @param uri           URI
+	 * @param uri           Asterisk ARI 
 	 * @param appName       name of the stasis application
 	 * @param login         user name
 	 * @param pass          password
 	 * @param openWebSocket if need to open web socket in order to process events
 	 *                      true, false otherwise
-	 * @param ce            error handler
+	 * @param ce            Handler to report connection exceptions to (set to null to ignore)
+	 * 
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, Consumer<Exception> ce)
+			throws ConnectionFailedException, URISyntaxException {
+		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, null);
+	}
+
+	/**
+	 * Create and connect ARIty to Asterisk
+	 * 
+	 * @param uri           Asterisk ARI 
+	 * @param appName       name of the stasis application
+	 * @param login         user name
+	 * @param pass          password
+	 * @param openWebSocket if need to open web socket in order to process events
+	 *                      true, false otherwise
+	 * @param version       ARI version to enforce
+	 * @param ce            Handler to report connection exceptions to (set to null to ignore)
+	 * 
+	 * @throws ConnectionFailedException
+	 * @throws URISyntaxException
+	 */
+	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, AriVersion version, Consumer<Exception> ce)
 			throws ConnectionFailedException, URISyntaxException {
 		this.appName = appName;
 		this.ce = (Objects.isNull(ce)) ? e -> {
 		} : ce;
 
 		try {
-			ari = ARI.build(uri, appName, login, pass, AriVersion.ARI_2_0_0);
+			ari = ARI.build(uri, appName, login, pass, version);
 			logger.info("Ari created");
 			logger.info("Ari version: " + ari.getVersion());
 			if (openWebSocket) {
