@@ -18,7 +18,6 @@ import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
-import io.cloudonix.arity.errors.dial.FailedToAnswerChannel;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -273,11 +272,12 @@ public class Dial extends CancelableOperations {
 				null, getChannelId(), null, h))
 				.thenApply(ch -> channel = ch)
 				.whenComplete((v,t) -> logger.finer("Early bridging created channel " + v.getId() + " setting variables and headers"))
+				.thenCompose(Futures.delay(50))
+				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
+				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
 				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
-				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
-				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
 				.whenComplete((v,t) -> logger.finer("Early bridging dialing out on " + endpointChannelId))
 				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
 				.thenRun(() -> {
@@ -612,7 +612,6 @@ public class Dial extends CancelableOperations {
 			error = error.getCause();
 		switch (error.getMessage()) {
 		case "Channel not found": throw new ChannelNotFoundException(error);
-		case "Failed to answer channel": throw new FailedToAnswerChannel(error);
 		}
 		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
 	}

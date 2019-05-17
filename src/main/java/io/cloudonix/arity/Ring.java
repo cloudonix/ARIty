@@ -1,10 +1,8 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-
-import ch.loway.oss.ari4java.tools.AriCallback;
-import ch.loway.oss.ari4java.tools.RestException;
 
 /**
  * Class that execute channel ring operation
@@ -32,41 +30,20 @@ public class Ring extends CancelableOperations {
 	 */
 	@Override
 	public CompletableFuture<Ring> run() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		channels().ring(channelId, new AriCallback<Void>() {
-
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Ringing");
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Failed ringing");
-				future.completeExceptionally(e);
-			}
-		});
-		return future.thenApply(v -> this);
+		return Operation.<Void>retryOperation(h -> channels().ring(channelId, h))
+				.whenComplete((v,t) -> {
+					if (Objects.isNull(t)) logger.fine("Ringing");
+					else logger.warning("Failed ringing: " + t);
+				})
+				.thenApply(v -> this);
 	}
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		channels().ringStop(channelId, new AriCallback<Void>() {
-
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Stoped ringing to channel with id: " + channelId);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Failed to stop ringing to channel with id: " + channelId);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.<Void>retryOperation(h -> channels().ringStop(channelId, h))
+				.whenComplete((v,t) -> {
+					if (Objects.isNull(t)) logger.fine("Stoped ringing to channel with id: " + channelId);
+					else logger.warning("Failed to stop ringing to channel with id " + channelId + ": " + t);
+				});
 	}
 }
