@@ -37,7 +37,7 @@ public class Ring extends CancelableOperations {
 
 			@Override
 			public void onSuccess(Void result) {
-				logger.info("Ringing");
+				logger.fine("Ringing");
 				future.complete(result);
 			}
 
