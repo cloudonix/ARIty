@@ -271,10 +271,10 @@ public class Dial extends CancelableOperations {
 		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
 				null, getChannelId(), null, h))
 				.thenApply(ch -> channel = ch)
-				.whenComplete((v,t) -> logger.finer("Early bridging created channel " + v.getId() + " setting variables and headers"))
-				.thenCompose(Futures.delay(50))
+				.thenCompose(Futures.delay(50)) // TODO: replace with arity.waitForStasisStart(getChannelId())
 				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
+				.whenComplete((v,t) -> logger.finer("Early bridging created channel " + channel.getId() + " setting variables and headers"))
 				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
@@ -535,10 +535,12 @@ public class Dial extends CancelableOperations {
 	
 	private void computeDurationsAtEndOfCall() {
 		endTime = Instant.now();
-		callDuration = Duration.between(dialStartTime, endTime);
+		callDuration = Objects.isNull(dialStartTime) ? Duration.ZERO :
+			Duration.between(dialStartTime, endTime);
 		ringingDuration = (Objects.isNull(ringingTime) || Objects.isNull(answerTime)) ? Duration.ZERO :
 			Duration.between(ringingTime, answerTime);
-		mediaDuration = Objects.isNull(answerTime) ? Duration.ZERO : Duration.between(answerTime, endTime);
+		mediaDuration = Objects.isNull(answerTime) ? Duration.ZERO :
+			Duration.between(answerTime, endTime);
 		logger.info("Call duration " + callDuration + " of which ringing " + ringingDuration + ", media " + mediaDuration);
 	}
 
