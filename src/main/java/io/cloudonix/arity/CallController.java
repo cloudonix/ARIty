@@ -45,7 +45,7 @@ public abstract class CallController {
 	 */
 	void init(CallState callState) {
 		this.callState = callState;
-		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
+		callMonitor = new CallMonitor(callState.getArity(), callState.getChannel());
 		initLogger();
 		init();
 	}
@@ -110,6 +110,13 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Answer answer() {
+		if (getCallMonitor().wasAnswered())
+			return new Answer(this) {
+				@Override
+				public CompletableFuture<Answer> run() {
+					return CompletableFuture.completedFuture(this);
+				}
+			};
 		return new Answer(this);
 	}
 

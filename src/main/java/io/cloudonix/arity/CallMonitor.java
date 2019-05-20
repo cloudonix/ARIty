@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 
@@ -45,6 +46,7 @@ public class CallMonitor {
 	private String channelId;
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
+	private States lastState = States.Unknown;
 	private EventHandler<ChannelStateChange>stateChangeHandler;
 	private ConcurrentHashMap<States, List<Runnable>> stateListeners = new ConcurrentHashMap<>();
 
@@ -52,6 +54,12 @@ public class CallMonitor {
 		this.channelId = callChannelId;
 		stateChangeHandler = arity.addEventHandler(ChannelStateChange.class, channelId, this::handleStateChange);
 		arity.listenForOneTimeEvent(ChannelHangupRequest.class, channelId, this::handleHangupCaller);
+	}
+	
+	public CallMonitor(ARIty arity, Channel channel) {
+		this(arity, channel.getId());
+		lastState = States.find(channel.getState());
+		wasAnswered = lastState == States.Up;
 	}
 	
 	private List<Runnable> getListeners(States state) {
@@ -73,8 +81,8 @@ public class CallMonitor {
 	 * @param state channel state change event
 	 */
 	private void handleStateChange(ChannelStateChange state, EventHandler<ChannelStateChange>se) {
-		States stat = States.find(state.getChannel().getState());
-		wasAnswered |= stat == States.Up;
+		lastState = States.find(state.getChannel().getState());
+		wasAnswered |= lastState == States.Up;
 	}
 
 	/**
