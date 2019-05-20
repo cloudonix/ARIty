@@ -381,14 +381,12 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * the method cancels dialing operation
-	 * 
 	 * @return
 	 */
 	@Override
 	public CompletableFuture<Void> cancel() {
 		logger.info("Hang up channel with id: " + endpointChannelId);
-		dialStatus = Status.CANCEL;
+		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
 		return Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"))
