@@ -12,7 +12,7 @@ public class PlaybackException extends Exception {
 	
 	public PlaybackException (String playback, Throwable t) {
 		
-		super("playback: "+ playback+ "failed", t);
+		super("playback: "+ playback+ " failed", t);
 		playbackFile = playback;
 	}
 	

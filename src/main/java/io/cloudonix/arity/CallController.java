@@ -45,7 +45,7 @@ public abstract class CallController {
 	 */
 	void init(CallState callState) {
 		this.callState = callState;
-		callMonitor = new CallMonitor(callState.getArity(), callState.getChannelId());
+		callMonitor = new CallMonitor(callState.getArity(), callState.getChannel());
 		initLogger();
 		init();
 	}
@@ -105,11 +105,22 @@ public abstract class CallController {
 	}
 
 	/**
-	 * the method creates a new Answer operation to answer the call
+	 * Create an answer operation for the current call, if it was not already answered.
 	 * 
+	 * If the call was already answered when calling this method, it will generate an "no-op"
+	 * answer operation that just immediately complete. Please note that if you call this method
+	 * before the channel has been answered, then it was ansered in another way, then you run the
+	 * created <tt>Answer</tt> operation, the additional answer will block until the call disconnects
 	 * @return
 	 */
 	public Answer answer() {
+		if (getCallMonitor().wasAnswered())
+			return new Answer(this) {
+				@Override
+				public CompletableFuture<Answer> run() {
+					return CompletableFuture.completedFuture(this);
+				}
+			};
 		return new Answer(this);
 	}
 
