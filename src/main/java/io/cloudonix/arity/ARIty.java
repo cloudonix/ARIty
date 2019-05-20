@@ -264,6 +264,7 @@ public class ARIty implements AriCallback<Message> {
 		Consumer<CallState> channelHandler = stasisStartListeners.remove(ss.getChannel().getId());
 		if (Objects.nonNull(channelHandler)) {
 			logger.fine("Sending stasis start for " + ss.getChannel().getId() + " to event handler " + channelHandler);
+			channelHandler.accept(callState);
 			return;
 		}
 		
