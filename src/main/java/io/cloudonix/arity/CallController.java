@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -24,18 +23,6 @@ public abstract class CallController {
 	private CallState callState;
 	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
-
-	/**
-	 * Initialize the call Controller.
-	 * 
-	 * This method is called by ARIty when starting to handle a Stasis call, and should not be called otherwise
-	 * 
-	 * @param stasisStartEvent StasisStart Stasis Start event that executes the call controller 
-	 * @param arity            ARIty instance that executed the call controller
-	 */
-	void init(StasisStart stasisStartEvent, ARIty arity) {
-		init(new CallState(stasisStartEvent, arity));
-	}
 	
 	/**
 	 * Initialize the call controller with an existing transferable call state.

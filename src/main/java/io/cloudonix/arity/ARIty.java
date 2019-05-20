@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
@@ -48,9 +48,7 @@ public class ARIty implements AriCallback<Message> {
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
-	// save the channel id of new calls (for ignoring another stasis start event, if
-	// needed)
-	private ConcurrentSkipListSet<String> ignoredChannelIds = new ConcurrentSkipListSet<>();
+	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
 	private ExecutorService executor = ForkJoinPool.commonPool();
 	private Consumer<Exception> ce;
 
@@ -259,16 +257,19 @@ public class ARIty implements AriCallback<Message> {
 			logger.finer("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
 			return;
 		}
-		// if the list contains the Stasis start event with this channel id, remove it
-		// and continue
-		if (ignoredChannelIds.remove(ss.getChannel().getId())) {
-			logger.fine("Ignoring Stasis Start of blacklisted channel ID " + ss.getChannel().getId());
+		
+		CallState callState = new CallState(ss, this);
+		
+		// see if an application waits for this channel
+		Consumer<CallState> channelHandler = stasisStartListeners.remove(ss.getChannel().getId());
+		if (Objects.nonNull(channelHandler)) {
+			logger.fine("Sending stasis start for " + ss.getChannel().getId() + " to event handler " + channelHandler);
 			return;
 		}
 		
 		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
-		cc.init(ss, this);
+		cc.init(callState);
 		try {
 			cc.run().exceptionally(t -> {
 				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
@@ -366,14 +367,26 @@ public class ARIty implements AriCallback<Message> {
 	public String getAppName() {
 		return appName;
 	}
+	
+	/**
+	 * Allow an ARIty application to take control of a known channel, before it enters ARI.
+	 * 
+	 * This is useful with the ARIty application creates managed channels by itself
+	 * @param id Known channel ID to wait for
+	 * @param eventHandler handle that will receive the {@link CallState} object for the channel
+	 * when it enters ARI 
+	 */
+	public void registerApplicationStartHandler(String id, Consumer<CallState> eventHandler) {
+		stasisStartListeners.put(id, eventHandler);
+	}
 
 	/**
-	 * ignore Stasis start from this channel (package private method)
-	 * 
+	 * Internal API to blacklist certain channels from starting a call controller.
+	 * This is useful when creating new channels that are immediately managed by the ARIty application
 	 * @param id channel id to ignore
 	 */
 	void ignoreChannel(String id) {
-		ignoredChannelIds.add(id);
+		registerApplicationStartHandler(id, cs -> {});
 	}
 
 	/**
