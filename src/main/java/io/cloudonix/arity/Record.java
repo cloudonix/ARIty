@@ -18,7 +18,6 @@ import ch.loway.oss.ari4java.generated.RecordingFinished;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
-import io.cloudonix.future.helper.FutureHelper;
 
 /**
  * Class for recording a channel operation
@@ -216,7 +215,7 @@ public class Record extends CancelableOperations {
 	public CompletableFuture<Void> cancel() {
 		if (Objects.nonNull(recording)) {
 			logger.fine("Recording has already stoped");
-			return FutureHelper.completedFuture();
+			return CompletableFuture.completedFuture(null);
 		}
 		CompletableFuture<Void> recordFuture = new CompletableFuture<Void>();
 		recordings().stop(name, new AriCallback<Void>() {
