@@ -13,7 +13,6 @@ import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.LiveRecording;
 import ch.loway.oss.ari4java.generated.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
-import io.cloudonix.future.helper.FutureHelper;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -113,12 +112,12 @@ public class Conference {
 		return answer.thenCompose(answerRes -> bridge.addChannel(callController.getChannelId()))
 				.thenCompose(v -> {
 					logger.fine("Channel was added to the bridge");
-					return beep ? playMedia("beep") : FutureHelper.completedSuccessfully(null);
+					return beep ? playMedia("beep") : CompletableFuture.completedFuture(null);
 				}).thenCompose(beepRes -> {
 					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
 							this::channelLeftConference);
 					return mute ? callController.mute(callController.getChannelId(), "out").run()
-							: FutureHelper.completedSuccessfully(null);
+							: CompletableFuture.completedFuture(null);
 				}).thenCompose(muteRes -> annouceUser("joined")).exceptionally(Futures.on(Exception.class, t -> {
 					logger.info("Unable to add channel to conference: " + t);
 					throw new ConferenceException(t);

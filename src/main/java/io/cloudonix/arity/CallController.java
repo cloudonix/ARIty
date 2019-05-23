@@ -9,8 +9,6 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Variable;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.future.helper.FutureHelper;
-import io.cloudonix.lib.Futures;
 
 /**
  * The class represents a call controller, including all the call operation and
@@ -166,7 +164,7 @@ public abstract class CallController {
 	 */
 	public CompletableFuture<Conference> getConference(String bridgeId) {
 		Conference conf = new Conference(this, bridgeId);
-		return Futures.completedFuture(conf);
+		return CompletableFuture.completedFuture(conf);
 	}
 	
 	/**
@@ -190,26 +188,29 @@ public abstract class CallController {
 	 */
 	public <V> CompletableFuture<V> endCall(V value, Throwable th) {
 		return hangup().run().handle((hangup, th2) -> null)
-				.thenCompose(v -> Objects.nonNull(th) ? FutureHelper.completedExceptionally(th)
+				.thenCompose(v -> Objects.nonNull(th) ? CompletableFuture.failedFuture(th)
 						: CompletableFuture.completedFuture(value));
 	}
 
 	/**
-	 * set channel variable
-	 * 
+	 * Set a channel variable on the current channel
+	 * @param varName   name of the variable
+	 * @param varValue  value of the variable
+	 * @return
+	 */
+	public CompletableFuture<Void> setChannelVariable(String varName, String varValue) {
+		return Operation.retryOperation(h -> getCallState().getAri().channels().setChannelVar(getChannelId(), varName, varValue, h));
+	}
+
+	/**
+	 * Set a channel variable
 	 * @param channelId id of the channel we want to set the variable to
 	 * @param varName   name of the variable
 	 * @param varValue  value of the variable
 	 * @return
 	 */
 	public CompletableFuture<Void> setChannelVariable(String channelId, String varName, String varValue) {
-		return this
-				.<Void>futureFromAriCallBack(
-						cb -> callState.getAri().channels().setChannelVar(channelId, varName, varValue, cb))
-				.exceptionally(t -> {
-					logger.fine("Unable to set variable: " + varName);
-					return null;
-				});
+		return Operation.retryOperation(h -> getCallState().getAri().channels().setChannelVar(channelId, varName, varValue, h));
 	}
 
 	/**
