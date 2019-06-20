@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.ActionBridges;
@@ -34,12 +35,10 @@ public class Bridge {
 	private String bridgeId;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
-	private Runnable handlerChannelLeftBridge = () -> {
-	};
-	private Runnable handlerChannelEnteredBridge = () -> {
-	};
 	private ActionBridges api;
 	private String name;
+	private ConcurrentHashMap<String, CompletableFuture<Void>> enteredEventListeners = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<String, CompletableFuture<Void>> leftEventListeners = new ConcurrentHashMap<>();
 
 	/**
 	 * Create a new Bridge object with a unique ID
@@ -92,52 +91,107 @@ public class Bridge {
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 		}).handle(this::mapExceptions);
 	}
-
+	
 	/**
-	 * add new channel to this bridge
+	 * Add a channel to this bridge
 	 * 
 	 * @param channelId id of the channel to add the bridge
-	 * @return
+	 * @return A promise for when ARI confirms the channel was added
 	 */
 	public CompletableFuture<Void> addChannel(String channelId) {
+		return addChannel(channelId, false);
+	}
+
+	/**
+	 * Add a channel to this bridge, optionally waiting for the ChannelEnteredBridge event
+	 * to confirm channel was added.
+	 * 
+	 * @param channelId id of the channel to add the bridge
+	 * @param confirmWasAdded should we wait for the ChannelEnteredBride event
+	 * @return A promise for when ARI confirms the channel was added or that it entererd the
+	 *   bridge, as per <code>confirmWasAdded</code>
+	 */
+	public CompletableFuture<Void> addChannel(String channelId, boolean confirmWasAdded) {
+		CompletableFuture<Void> waitForAdded = confirmWasAdded ? 
+				waitForChannelEntered(channelId) : CompletableFuture.completedFuture(null);
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
 		return Operation
 				.<Void>retryOperation(cb -> api.addChannel(bridgeId, channelId, "member", cb))
-				.handle(this::mapExceptions);
+				.handle(this::mapExceptions)
+				.thenCompose(v -> waitForAdded);
+	}
+	
+	/**
+	 * Get a {@link CompletableFuture} that will complete when the specified channel has
+	 * entered the bridge.
+	 *  
+	 * @param channelId ID of the channel to wait for to enter the bridge
+	 * @return The promise that will be fulfilled when the channel enters the bridge
+	 */
+	private CompletableFuture<Void> waitForChannelEntered(String channelId) {
+		return enteredEventListeners.computeIfAbsent(channelId, i -> new CompletableFuture<>());
 	}
 
 	/**
-	 * handle when a channel entered the bridge
-	 * 
-	 * @param channelEnteredtBridge
+	 * Get a {@link CompletableFuture} that will complete when the specified channel has
+	 * left the bridge.
+	 *  
+	 * @param channelId ID of the channel to wait for to enter the bridge
+	 * @return The promise that will be fulfilled when the channel leaves the bridge
+	 */
+	public CompletableFuture<Void> waitForChannelLeft(String channelId) {
+		return leftEventListeners.computeIfAbsent(channelId, i -> new CompletableFuture<>());
+	}
+
+	/**
+	 * Trigger "channel entered bridge" event listeners
+	 * @param channelEnteredtBridge event for the channel
 	 */
 	private void handleChannelEnteredBridge(ChannelEnteredBridge channelEnteredtBridge) {
-		logger.fine("Channel with id: "+channelEnteredtBridge.getChannel().getId()+" entered the bridge");
-		handlerChannelEnteredBridge.run();
+		String chanId = channelEnteredtBridge.getChannel().getId();
+		logger.fine("Channel with id: "+chanId+" entered the bridge");
+		CompletableFuture<Void> event = enteredEventListeners.remove(chanId);
+		if (Objects.nonNull(event))
+			event.complete(null);
 	}
 
 	/**
-	 * remove channel from the bridge
-	 * 
+	 * Removes a channel that is in the bridge
 	 * @param channelId id of the channel to remove from the bridge
-	 * @return
+	 * @return A promise for when ARI confirms the channel was added
 	 */
 	public CompletableFuture<Void> removeChannel(String channelId) {
+		return removeChannel(channelId, false);
+	}
+	
+	/**
+	 * Removes a channel that is in the bridge
+	 * @param channelId id of the channel to remove from the bridge
+	 * @param confirmWasRemoved should we wait for the ChannelLeftBridge event
+	 * @return A promise for when ARI confirms the channel was added or that it entererd the
+	 *   bridge, as per <code>confirmWasRemoved</code>
+	 */
+	public CompletableFuture<Void> removeChannel(String channelId, boolean confirmWasRemoved) {
+		CompletableFuture<Void> waitForRemoved = confirmWasRemoved ? 
+				waitForChannelLeft(channelId) : CompletableFuture.completedFuture(null);
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
 		return Operation.<Void>retryOperation(cb -> api.removeChannel(bridgeId, channelId, cb))
-				.handle(this::mapExceptions);
+				.handle(this::mapExceptions)
+				.thenCompose(v -> waitForRemoved);
 	}
 
 	/**
-	 * handle when a channel left the bridge
-	 * 
-	 * @param channelLeftBridge
+	 * Trigger "channel left bridge" event listeners
+	 * @param channelLeftBridge event for the channel
 	 */
 	private void handleChannelLeftBridge(ChannelLeftBridge channelLeftBridge) {
-		logger.fine("Channel with id: "+channelLeftBridge.getChannel().getId()+" left the bridge");
-		handlerChannelLeftBridge.run();
+		String chanId = channelLeftBridge.getChannel().getId();
+		logger.fine("Channel with id: "+chanId+" left the bridge");
+		CompletableFuture<Void> event = enteredEventListeners.remove(chanId);
+		if (Objects.nonNull(event))
+			event.complete(null);
 	}
 
 	/**
