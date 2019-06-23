@@ -402,15 +402,6 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * Internal API to blacklist certain channels from starting a call controller.
-	 * This is useful when creating new channels that are immediately managed by the ARIty application
-	 * @param id channel id to ignore
-	 */
-	void ignoreChannel(String id) {
-		registerApplicationStartHandler(id, cs -> {});
-	}
-
-	/**
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */
 	public void disconnect() {
