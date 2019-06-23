@@ -588,6 +588,15 @@ public class Dial extends CancelableOperations {
 		return dialledCallState.get();
 	}
 	
+	/**
+	 * Retrieve the expeted channel ID for the dialed channel.
+	 * This value is set here, before creating the channel, so it can never be <code>null</code> 
+	 * @return the channel ID of the dialed endpoint
+	 */
+	public String getEndPointChannelId() {
+		return endpointChannelId;
+	}
+	
 	public long getCallEndTime() {
 		return endTime.toEpochMilli();
 	}
