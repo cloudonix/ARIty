@@ -92,21 +92,12 @@ public class CallState {
 		registerEventHandler(ChannelStateChange.class, stateChange -> {
 			lastState = States.find(stateChange.getChannel().getState());
 			wasAnswered |= lastState == States.Up;
-			getStateListeners(lastState).forEach(run -> {
-				try {
-					run.run();
-				} catch (Throwable t) {
-					StringWriter stackTrace = new StringWriter(); 
-					t.printStackTrace(new PrintWriter(stackTrace));
-					log.warning("Error encountered running " + lastState + " listener " + run + ": " + t + "\n" + 
-							stackTrace);
-				}
-			});
+			fireStateChangeListeners();
 		});
 		registerEventHandler(ChannelHangupRequest.class, hangup -> {
 			isActive = false;
 			lastState = States.Hangup;
-			getStateListeners(States.Hangup).forEach(Runnable::run);
+			fireStateChangeListeners();
 			// need also to unregister from channel events
 			eventListeners.forEach(EventHandler::unregister);
 		});
@@ -229,10 +220,8 @@ public class CallState {
 			try {
 				eventHandler.accept(ev);
 			} catch (Throwable t) {
-				StringWriter stackTrace = new StringWriter(); 
-				t.printStackTrace(new PrintWriter(stackTrace));
 				log.warning("Error encountered running " + type + " listener " + eventHandler + ": " + t + "\n" + 
-						stackTrace);
+						getStackTraceReport(t));
 			}
 		}));
 	}
@@ -245,6 +234,26 @@ public class CallState {
 	 */
 	private Queue<Runnable> getStateListeners(States state) {
 		return stateListeners.computeIfAbsent(state, s -> new ConcurrentLinkedQueue<>());
+	}
+
+	/**
+	 * Execute state change listeners, with logging of failures
+	 */
+	private void fireStateChangeListeners() {
+		getStateListeners(lastState).forEach(run -> {
+			try {
+				run.run();
+			} catch (Throwable t) {
+				log.warning("Error encountered running " + lastState + " listener " + run + ": " + t + "\n" + 
+						getStackTraceReport(t));
+			}
+		});
+	}
+	
+	private String getStackTraceReport(Throwable t) {
+		StringWriter stackTrace = new StringWriter(); 
+		t.printStackTrace(new PrintWriter(stackTrace));
+		return stackTrace.toString();
 	}
 
 }
