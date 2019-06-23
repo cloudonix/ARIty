@@ -224,10 +224,23 @@ public class ARIty implements AriCallback<Message> {
 	 * @param channelId Asterisk channel ID to request from Asterisk
 	 */
 	public <T extends CallController> CompletableFuture<T> initFromChannel(T controller, String channelId) {
-		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
-				.thenApply(chan -> new CallState(chan, this))
+		return getCallState(channelId)
 				.thenAccept(controller::init)
 				.thenApply(v -> controller);
+	}
+	
+	/**
+	 * Generate a new call state for an existing channel.
+	 * 
+	 * Useful for applications that create new channels and want to monitor them. Please note that the retrieved
+	 * call state instance does not share any data with other {@link CallState} instances that monitor the same
+	 * channel.
+	 * @param channelId ID of channel to monitor
+	 * @return A promise for a new call state instance for that channel
+	 */
+	public CompletableFuture<CallState> getCallState(String channelId) {
+		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
+				.thenApply(chan -> new CallState(chan, this));
 	}
 
 	@Override
@@ -332,28 +345,35 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Register an event handler for a specific message on a specific channel
-	 * 
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
 	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
+	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
 		logger.finer("Registering for " + type + " events on channel " + channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
 		eventHandlers.add(se);
 		return se;
 	}
-
+	
+	/**
+	 * remove event handler when no need to listen to it anymore
+	 * @param handler the event handler to be removed
+	 */
+	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
+		if(eventHandlers.remove(handler))
+			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
+	}
+	
 	/**
 	 * Register a one-off event handler for a specific message on a specific channel.
 	 * 
 	 * After the event is triggered once, the event handler is automatically unregistererd.
-	 * 
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
 	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
+	public <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
 		addEventHandler(type, channelId, (t,se) -> {
 			se.unregister();
 			eventHandler.accept(t);
@@ -445,16 +465,6 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARI getAri() {
 		return ari;
-	}
-
-	/**
-	 * remove event handler when no need to listen to it anymore
-	 * 
-	 * @param handler the event handler to be removed
-	 */
-	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
-		if(eventHandlers.remove(handler))
-			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
 	
 	/**
