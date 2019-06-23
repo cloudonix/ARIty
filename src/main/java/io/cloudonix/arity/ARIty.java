@@ -224,10 +224,23 @@ public class ARIty implements AriCallback<Message> {
 	 * @param channelId Asterisk channel ID to request from Asterisk
 	 */
 	public <T extends CallController> CompletableFuture<T> initFromChannel(T controller, String channelId) {
-		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
-				.thenApply(chan -> new CallState(chan, this))
+		return getCallState(channelId)
 				.thenAccept(controller::init)
 				.thenApply(v -> controller);
+	}
+	
+	/**
+	 * Generate a new call state for an existing channel.
+	 * 
+	 * Useful for applications that create new channels and want to monitor them. Please note that the retrieved
+	 * call state instance does not share any data with other {@link CallState} instances that monitor the same
+	 * channel.
+	 * @param channelId ID of channel to monitor
+	 * @return A promise for a new call state instance for that channel
+	 */
+	public CompletableFuture<CallState> getCallState(String channelId) {
+		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
+				.thenApply(chan -> new CallState(chan, this));
 	}
 
 	@Override
