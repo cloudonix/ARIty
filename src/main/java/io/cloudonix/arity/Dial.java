@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.Channel;
@@ -85,6 +86,7 @@ public class Dial extends CancelableOperations {
 	private String context = null;
 	private Long priority = null;
 	private Bridge earlyBridge;
+	private AtomicReference<CallState> dialledCallState = new AtomicReference<>();
 
 	/**
 	 * Dial from a call controller
@@ -242,7 +244,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
-		getArity().ignoreChannel(endpointChannelId);
+		getArity().registerApplicationStartHandler(endpointChannelId, dialledCallState::set);
 		if (Objects.nonNull(getChannelId()))
 			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
@@ -579,14 +581,13 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * get the channel id of the dialled channel
-	 * 
-	 * @return
+	 * Retrieve the {@link CallState} of the dialed channel.
+	 * @return the call state instance for the dialed channel, after it entered ARI, otherwise <code>null</code>
 	 */
-	public String getEndPointChannelId() {
-		return endpointChannelId;
+	public CallState getEndPoint() {
+		return dialledCallState.get();
 	}
-
+	
 	public long getCallEndTime() {
 		return endTime.toEpochMilli();
 	}
