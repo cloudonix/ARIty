@@ -332,28 +332,35 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Register an event handler for a specific message on a specific channel
-	 * 
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
 	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
+	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
 		logger.finer("Registering for " + type + " events on channel " + channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
 		eventHandlers.add(se);
 		return se;
 	}
-
+	
+	/**
+	 * remove event handler when no need to listen to it anymore
+	 * @param handler the event handler to be removed
+	 */
+	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
+		if(eventHandlers.remove(handler))
+			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
+	}
+	
 	/**
 	 * Register a one-off event handler for a specific message on a specific channel.
 	 * 
 	 * After the event is triggered once, the event handler is automatically unregistererd.
-	 * 
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
 	 * @param eventHandler  handler to call when the event arrives
 	 */
-	protected <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
+	public <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
 		addEventHandler(type, channelId, (t,se) -> {
 			se.unregister();
 			eventHandler.accept(t);
@@ -445,16 +452,6 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARI getAri() {
 		return ari;
-	}
-
-	/**
-	 * remove event handler when no need to listen to it anymore
-	 * 
-	 * @param handler the event handler to be removed
-	 */
-	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
-		if(eventHandlers.remove(handler))
-			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
 	
 	/**
