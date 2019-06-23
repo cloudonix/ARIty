@@ -102,7 +102,7 @@ public class Conference {
 	 */
 	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean needToRecord) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
-		if (callController.getCallMonitor().wasAnswered()) {
+		if (callController.getCallState().wasAnswered()) {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
 			answer.complete(null);
 		} else {

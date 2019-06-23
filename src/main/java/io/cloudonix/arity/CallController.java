@@ -19,7 +19,6 @@ import ch.loway.oss.ari4java.tools.RestException;
  */
 public abstract class CallController {
 	private CallState callState;
-	private CallMonitor callMonitor;
 	private Logger logger = Logger.getLogger(getClass().getName());
 	
 	/**
@@ -30,7 +29,6 @@ public abstract class CallController {
 	 */
 	void init(CallState callState) {
 		this.callState = callState;
-		callMonitor = new CallMonitor(callState.getArity(), callState.getChannel());
 		initLogger();
 		init();
 	}
@@ -99,7 +97,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Answer answer() {
-		if (getCallMonitor().wasAnswered())
+		if (getCallState().wasAnswered())
 			return new Answer(this) {
 				@Override
 				public CompletableFuture<Answer> run() {
@@ -559,15 +557,6 @@ public abstract class CallController {
 
 	public abstract CompletableFuture<Void> run();
 
-	/**
-	 * get monitor of the call
-	 * 
-	 * @return
-	 */
-	public CallMonitor getCallMonitor() {
-		return callMonitor;
-	}
-	
 	/**
 	 * create a new channel redirect operation
 	 * 
