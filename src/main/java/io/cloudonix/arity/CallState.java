@@ -105,6 +105,7 @@ public class CallState {
 		});
 		registerEventHandler(ChannelHangupRequest.class, hangup -> {
 			isActive = false;
+			lastState = States.Hangup;
 			getStateListeners(States.Hangup).forEach(Runnable::run);
 			// need also to unregister from channel events
 			eventListeners.forEach(EventHandler::unregister);
@@ -127,10 +128,10 @@ public class CallState {
 		return channel;
 	}
 	
-	public void setChannel(Channel channel) {
-		this.channel = channel;
+	public States getStatus() {
+		return lastState;
 	}
-
+	
 	public Map<String, Object> getMetaData() {
 		return metadata;
 	}
