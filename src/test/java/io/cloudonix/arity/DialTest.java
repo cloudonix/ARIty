@@ -2,7 +2,6 @@ package io.cloudonix.arity;
 
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -27,8 +26,6 @@ class DialTest {
 	}
 
 	static AsteriskContainer asterisk = new AsteriskContainer();
-
-	private final static Logger logger = Logger.getLogger(DialTest.class.getName());
 
 	@BeforeClass
 	static void beforeTesting() {

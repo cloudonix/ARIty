@@ -35,9 +35,9 @@ public abstract class CallController {
 	
 	/**
 	 * Called just before the call controller is {@link #run()}.
-	 * Implementations may wish to override this method to have their own initialization logic.
-	 * When this method is called, the {@link #callMonitor} and {@link #callState} have already been
-	 * initialized. By default this message does nothing, so there's no need for implementations to call
+	 * Implementations may wish to override this method to run their own initialization logic.
+	 * When this method is called, the {@link #callState} has already been initialized.
+	 * By default this method does nothing, so there's no need for implementations to call
 	 * <tt>super</tt>.
 	 */
 	protected void init() {
@@ -191,24 +191,23 @@ public abstract class CallController {
 	}
 
 	/**
-	 * Set a channel variable on the current channel
-	 * @param varName   name of the variable
-	 * @param varValue  value of the variable
+	 * Update a channel variable on the call state.
+	 * @param name name of the variable to update
+	 * @param value value of the variable to update
 	 * @return
 	 */
-	public CompletableFuture<Void> setChannelVariable(String varName, String varValue) {
-		return Operation.retryOperation(h -> getCallState().getAri().channels().setChannelVar(getChannelId(), varName, varValue, h));
+	public CompletableFuture<Void> setVariable(String name, String value) {
+		return callState.setVariable(name, value);
 	}
 
 	/**
-	 * Set a channel variable
-	 * @param channelId id of the channel we want to set the variable to
-	 * @param varName   name of the variable
-	 * @param varValue  value of the variable
-	 * @return
+	 * Read a channel variable from the call state, possibly loading it from ARI
+	 * @param name Variable to retrieve
+	 * @return A promise for a variable value. The promise may resolve to <code>null</code> if the variable
+	 *   is not set.
 	 */
-	public CompletableFuture<Void> setChannelVariable(String channelId, String varName, String varValue) {
-		return Operation.retryOperation(h -> getCallState().getAri().channels().setChannelVar(channelId, varName, varValue, h));
+	public CompletableFuture<String> getVariable(String name) {
+		return callState.readVariable(name);
 	}
 
 	/**
@@ -275,24 +274,6 @@ public abstract class CallController {
 				.setChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
-					return null;
-				});
-	}
-
-	/**
-	 * get the value of a channel variable
-	 * 
-	 * @param varName name of the channel variable we are asking for
-	 * @return
-	 */
-	public CompletableFuture<String> getVariable(String varName) {
-		return this
-				.<Variable>futureFromAriCallBack(
-						cb -> callState.getAri().channels().getChannelVar(callState.getChannelId(), varName, cb))
-				.thenApply(v -> {
-					return v.getValue();
-				}).exceptionally(t -> {
-					logger.fine("Unable to find variable: " + varName);
 					return null;
 				});
 	}

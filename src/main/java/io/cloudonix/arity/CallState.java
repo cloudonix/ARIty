@@ -19,6 +19,7 @@ import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.ChannelVarset;
 import ch.loway.oss.ari4java.generated.Message;
 import ch.loway.oss.ari4java.generated.StasisStart;
+import ch.loway.oss.ari4java.generated.Variable;
 
 /**
  * View of the current call state.
@@ -164,14 +165,49 @@ public class CallState {
 	}
 	
 	/**
-	 * Retrieve an asterisk variable that was set on the current channel
+	 * Retrieve an Asterisk channel variable that was set on the current channel
 	 * @param name variable name to read
 	 * @return variable value
 	 */
-	public String getVar(String name) {
+	public String getVariable(String name) {
 		return variables.get(name);
 	}
 
+	/**
+	 * Retrieve an Asterisk channel variable that was set on the current channel, using
+	 * the local variable cache, or trying to retrieve it from ARI if the value is not cached.
+	 * @param name variable name to read
+	 * @return a promise for a variable value. The promise may resolve to <code>null</code> if the variable
+	 * is not set.
+	 */
+	public CompletableFuture<String> readVariable(String name) {
+		if (variables.containsKey(name))
+			return CompletableFuture.completedFuture(variables.get(name));
+		return Operation.<Variable>retryOperation(cb -> ari.channels().getChannelVar(channelId, name, cb))
+			.thenApply(Variable::getValue)
+			.exceptionally(t -> {
+				log.info("Error reading variable " + name + ": " + t + ", possibly unset?");
+				return null;
+			})
+			.thenApply(val -> { // cache the variable value locally for next time
+				if (Objects.nonNull(val))
+					variables.put(name, val); // the map can't store nulls
+				return val;
+			});
+	}
+	
+	/**
+	 * Update an Asterisk channel variable.
+	 * @param name variable name to set
+	 * @param value variable value to set
+	 * @return a promise that will resolve with the variable was set
+	 */
+	public CompletableFuture<Void> setVariable(String name, String value) {
+		if (Objects.nonNull(value)) // the map can't store nulls
+			variables.put(name, value);
+		return Operation.<Void>retryOperation(cb -> ari.channels().setChannelVar(channelId, name, value, cb));
+	}
+	
 	/**
 	 * The Asterisk channel technology for the current channel. ex: SIP, PJSIP
 	 * @return
