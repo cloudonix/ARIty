@@ -35,9 +35,9 @@ public abstract class CallController {
 	
 	/**
 	 * Called just before the call controller is {@link #run()}.
-	 * Implementations may wish to override this method to have their own initialization logic.
-	 * When this method is called, the {@link #callMonitor} and {@link #callState} have already been
-	 * initialized. By default this message does nothing, so there's no need for implementations to call
+	 * Implementations may wish to override this method to run their own initialization logic.
+	 * When this method is called, the {@link #callState} has already been initialized.
+	 * By default this method does nothing, so there's no need for implementations to call
 	 * <tt>super</tt>.
 	 */
 	protected void init() {
