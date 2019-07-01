@@ -72,12 +72,14 @@ public class Dial extends CancelableOperations {
 			channelStateRinging = new ArrayList<>(),
 			channelStateFail = new ArrayList<>(),
 			channelStateCancelled = new ArrayList<>(),
-			channelStateDisconnected = new ArrayList<>();
+			channelStateDisconnected = new ArrayList<>(),
+			channelStateActive = new ArrayList<>();
 	private transient boolean wasRinging = false,
 			wasConnected = false,
 			wasCancelled = false,
 			wasDisconnected = false,
-			wasFailed = false;
+			wasFailed = false,
+			wasActive = false;
 	private EventHandler<ChannelStateChange> channelStateChangedSe;
 	private Channel channel;
 	// for local channels, which by default we don't do
@@ -244,7 +246,10 @@ public class Dial extends CancelableOperations {
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.fine("Running Dial");
-		getArity().registerApplicationStartHandler(endpointChannelId, dialledCallState::set);
+		getArity().registerApplicationStartHandler(endpointChannelId, cs -> {
+			dialledCallState.set(cs);
+			active();
+		});
 		if (Objects.nonNull(getChannelId()))
 			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
@@ -420,6 +425,21 @@ public class Dial extends CancelableOperations {
 	 */
 	public Status getDialStatus() {
 		return dialStatus;
+	}
+	
+	public Dial whenActive(Runnable func) {
+		channelStateActive.add(func);
+		return this;
+	}
+	
+	private void active() {
+		if (wasActive)
+			return;
+		try {
+			channelStateActive.forEach(Runnable::run);
+		} catch (Throwable t) {
+			logger.severe("Fatal error running whenActive callback: " +ErrorStream.fromThrowable(t));
+		}
 	}
 
 	/**
