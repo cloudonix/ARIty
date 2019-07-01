@@ -292,4 +292,8 @@ public class CallState {
 		return stackTrace.toString();
 	}
 
+	@Override
+	public String toString() {
+		return channelId + "[" + lastState + "]" + variables + "," + metadata;
+	}
 }
