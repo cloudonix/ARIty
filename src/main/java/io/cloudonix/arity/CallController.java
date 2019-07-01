@@ -344,8 +344,8 @@ public abstract class CallController {
 	 * @return
 	 */
 	public String getExtension() {
-		return Objects.nonNull(getChannel()) && Objects.nonNull(callState.getChannel().getDialplan())
-				? String.valueOf(callState.getChannel().getDialplan().getExten())
+		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
+				? String.valueOf(getChannel().getDialplan().getExten())
 				: null;
 	}
 
