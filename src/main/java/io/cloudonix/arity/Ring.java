@@ -49,7 +49,7 @@ public class Ring extends CancelableOperations {
 		return Operation.<Void>retryOperation(h -> channels().ring(channelId, h))
 				.handle((v,t) -> {
 					if (Objects.isNull(t)) logger.fine("Ringing");
-					else throw new CompletionException(t);
+					else if (throwError) throw new CompletionException(t);
 					return this;
 				});
 	}
