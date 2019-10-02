@@ -12,8 +12,7 @@ import java.util.logging.Logger;
  * status, such as "already ringing", and for most applications it is enough - so the default {@link #run()} hides
  * any errors during ARI operations.
  * 
- * If you are interested in handling errors thrown during the ARI ring operation, use the alternative {@link #run(boolean)}
- * method and pass <code>true</code> as the argument.
+ * If you are interested in handling errors thrown during the ARI ring operation, use the alternative {@link #run(boolean)
  * 
  * @author naamag
  * @author odeda
@@ -50,6 +49,7 @@ public class Ring extends CancelableOperations {
 				.handle((v,t) -> {
 					if (Objects.isNull(t)) logger.fine("Ringing");
 					else if (throwError) throw new CompletionException(t);
+					else logger.warning("Failed ringing: " + t);
 					return this;
 				});
 	}
