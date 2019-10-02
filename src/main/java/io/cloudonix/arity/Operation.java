@@ -128,12 +128,11 @@ public abstract class Operation {
 			if (Objects.isNull(t)) 
 				return Futures.completedFuture(v);
 			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
-				throw new CompletionException(t);
+				throw rewrapError("Unrecoverable ARI operation error: " + t, caller, t);
 			return Futures.delay(RETRY_TIME).apply(null)
 					.thenCompose(v1->retryOperation(op, triesLeft - 1));
 		})
-		.thenCompose(x -> x)
-		.exceptionally(t -> { throw rewrapError("Unrecoverable ARI operation error: " + t, caller, t); });
+		.thenCompose(x -> x);
 	}
 	
 	protected ActionChannels channels() {
