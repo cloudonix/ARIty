@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 
 /**
  * The class represents a Play operation (plays a playback and cancels the
@@ -81,7 +82,8 @@ public class Play extends CancelableOperations {
 				.orElseGet(() -> (() -> CompletableFuture.<Void>completedFuture(null)))
 				.get()
 				.thenRun(() -> playback.setRelease(null))
-				.thenApply(v -> this);
+				.thenApply(v -> this)
+				.handle(this::mapExceptions);
 	}
 	
 	private Supplier<CompletableFuture<Void>> playOnce(String path) {
@@ -189,6 +191,17 @@ public class Play extends CancelableOperations {
 	public Play setLanguage(String channelLanguage) {
 		this.language = channelLanguage;
 		return this;
+	}
+
+	private <T> T mapExceptions(T val, Throwable error) {
+		if (Objects.isNull(error))
+			return val;
+		while (error instanceof CompletionException)
+			error = error.getCause();
+		switch (error.getMessage()) {
+		case "Channel not found": throw new ChannelNotFoundException(error);
+		}
+		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
 	}
 
 }
