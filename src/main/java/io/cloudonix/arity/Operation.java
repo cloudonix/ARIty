@@ -12,6 +12,7 @@ import ch.loway.oss.ari4java.generated.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -22,7 +23,7 @@ import io.cloudonix.lib.Futures;
  */
 public abstract class Operation {
 	private static final long RETRY_TIME = 1000;
-	private static final int RETRIES = 5;
+	private static final int RETRIES = 3;
 	private String channelId;
 	private ARIty arity;
 
@@ -117,7 +118,6 @@ public abstract class Operation {
 	 * 
 	 * @return
 	 */
-	
 	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op) {
 		return retryOperation(op, RETRIES);
 	}
@@ -146,4 +146,16 @@ public abstract class Operation {
 	protected ActionRecordings recordings() {
 		return arity.getAri().recordings();
 	}
+	
+	protected <T> T mapExceptions(T val, Throwable error) {
+		if (Objects.isNull(error))
+			return val;
+		while (error instanceof CompletionException)
+			error = error.getCause();
+		switch (error.getMessage()) {
+		case "Channel not found": throw new ChannelNotFoundException(error);
+		}
+		throw new CompletionException("Unrecoverable ARI operation error: " + error, error);
+	}
+
 }
