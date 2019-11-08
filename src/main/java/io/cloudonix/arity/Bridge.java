@@ -422,6 +422,7 @@ public class Bridge {
 		case "Bridge not found": throw new BridgeNotFoundException(error);
 		case "Channel not found": throw new ChannelNotInBridgeException(error);
 		case "Channel not in Stasis application": throw new ChannelNotAllowedInBridge(error.getMessage());
+		case "Channel not in this bridge": throw new ChannelNotInBridgeException(error);
 		}
 		throw new CompletionException("Unexpected Bridge exception '" + error.getMessage() + "'", error);
 	}
