@@ -6,7 +6,7 @@ package io.cloudonix.arity.errors;
  * @author naamag
  *
  */
-public class RedirectException extends Exception {
+public class RedirectException extends ARItyException {
 	private static final long serialVersionUID = 1L;
 
 	public RedirectException(String message) {

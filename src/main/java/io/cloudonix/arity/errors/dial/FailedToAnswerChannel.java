@@ -1,9 +1,9 @@
 package io.cloudonix.arity.errors.dial;
 
-import java.util.concurrent.CompletionException;
+import io.cloudonix.arity.errors.ARItyException;
 
 @SuppressWarnings("serial")
-public class FailedToAnswerChannel extends CompletionException {
+public class FailedToAnswerChannel extends ARItyException {
 
 	public FailedToAnswerChannel(Throwable cause) {
 		super(cause);

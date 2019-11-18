@@ -239,7 +239,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @return A promise for a new call state instance for that channel
 	 */
 	public CompletableFuture<CallState> getCallState(String channelId) {
-		return Operation.<Channel>retryOperation(h -> ari.channels().get(channelId, h))
+		return Operation.<Channel>retry(h -> ari.channels().get(channelId, h))
 				.thenApply(chan -> new CallState(chan, this));
 	}
 

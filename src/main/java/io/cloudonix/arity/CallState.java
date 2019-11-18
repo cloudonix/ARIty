@@ -172,6 +172,37 @@ public class CallState {
 	public String getVariable(String name) {
 		return variables.get(name);
 	}
+	
+	class GetChannelVar extends Operation {
+		private String name;
+		private String value;
+
+		public GetChannelVar(String channelId, ARIty arity, String varName) {
+			super(channelId, arity);
+			name = varName;
+		}
+
+		@Override
+		public CompletableFuture<GetChannelVar> run() {
+			return this.<Variable>retryOperation(cb -> channels().getChannelVar(getChannelId(), name, cb))
+					.handle((var,e) -> {
+						if (Objects.nonNull(e))
+							log.info("getVar: " + e);
+						else
+							value = var.getValue();
+						return this;
+					});
+		}
+		
+		public String getValue() {
+			return value;
+		}
+		
+		@Override
+		protected Exception tryIdentifyError(Throwable ariError) {
+			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+		}
+	}
 
 	/**
 	 * Retrieve an Asterisk channel variable that was set on the current channel, using
@@ -183,17 +214,37 @@ public class CallState {
 	public CompletableFuture<String> readVariable(String name) {
 		if (variables.containsKey(name))
 			return CompletableFuture.completedFuture(variables.get(name));
-		return Operation.<Variable>retryOperation(cb -> ari.channels().getChannelVar(channelId, name, cb))
-			.thenApply(Variable::getValue)
-			.exceptionally(t -> {
-				log.info("Error reading variable " + name + ": " + t + ", possibly unset?");
-				return null;
-			})
+		return new GetChannelVar(channelId, arity, name).run()
+			.thenApply(GetChannelVar::getValue)
 			.thenApply(val -> { // cache the variable value locally for next time
 				if (Objects.nonNull(val))
 					variables.put(name, val); // the map can't store nulls
 				return val;
 			});
+	}
+	
+	class SetChannelVar extends Operation {
+
+		private String name;
+		private String value;
+
+		public SetChannelVar(String channelId, ARIty arity, String varName, String varValue) {
+			super(channelId, arity);
+			name = varName;
+			value = varValue;
+		}
+
+		@Override
+		public CompletableFuture<SetChannelVar> run() {
+			return this.<Void>retryOperation(cb -> channels().setChannelVar(getChannelId(), name, value, cb))
+					// don't care about errors here - we either managed to set it or the channel doesn't exist anymore
+					.handle((v,t) -> this);
+		}
+		
+		@Override
+		protected Exception tryIdentifyError(Throwable ariError) {
+			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+		}
 	}
 	
 	/**
@@ -205,7 +256,7 @@ public class CallState {
 	public CompletableFuture<Void> setVariable(String name, String value) {
 		if (Objects.nonNull(value)) // the map can't store nulls
 			variables.put(name, value);
-		return Operation.<Void>retryOperation(cb -> ari.channels().setChannelVar(channelId, name, value, cb));
+		return new SetChannelVar(channelId, arity, name, value).run().thenAccept(v -> {});
 	}
 	
 	/**

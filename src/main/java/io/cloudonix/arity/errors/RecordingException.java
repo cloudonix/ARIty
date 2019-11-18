@@ -7,12 +7,12 @@ import java.util.logging.Logger;
  * @author naamag
  *
  */
-public class RecordingException extends Exception {
+public class RecordingException extends ARItyException {
 
 	private static final long serialVersionUID = 1L;
 	private final static Logger logger = Logger.getLogger(RecordingException.class.getName());
 
-public RecordingException (String name, Throwable t) {
+	public RecordingException (String name, Throwable t) {
 		super(t);
 		logger.info("recording "+name+" failed: "+ ErrorStream.fromThrowable(t));
 	}

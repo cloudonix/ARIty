@@ -1,9 +1,9 @@
 package io.cloudonix.arity.errors.bridge;
 
-import java.util.concurrent.CompletionException;
+import io.cloudonix.arity.errors.ARItyException;
 
 @SuppressWarnings("serial")
-public class ChannelNotAllowedInBridge extends CompletionException {
+public class ChannelNotAllowedInBridge extends ARItyException {
 
 	public ChannelNotAllowedInBridge(String message) {
 		super(message);

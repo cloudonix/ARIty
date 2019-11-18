@@ -5,13 +5,9 @@ package io.cloudonix.arity.errors;
  * @author naamag
  *
  */
-public class DialException extends Exception {
+public class DialException extends ARItyException {
 	
-private static final long serialVersionUID = 1L;
-	
-	public DialException() {
-		super();
-	}
+	private static final long serialVersionUID = 1L;
 	
 	public DialException (Throwable t) {
 		super(t);
