@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,6 +13,7 @@ import ch.loway.oss.ari4java.generated.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -109,28 +111,70 @@ public abstract class Operation {
 		wrap.setStackTrace(originalStack);
 		return wrap;
 	}
-
+	
 	/**
-	 * retry to execute ARI operation few times
+	 * Retry to execute ARI operation few times
+	 * 
+	 * This method is for use by {@code Operation} implementations and will use the implementation's
+	 * {@link #tryIdentifyError(Throwable)} implementation as the failure handler. See the linked method's
+	 * docs for default implementation notes.
 	 * 
 	 * @param op the ARI operation to execute
-	 * 
-	 * @return
+	 * @return result of the operation, if successful, or a failure if the operation failed all retries, or the
+	 *   current operation implementation determined an error to be fatal without retrying.
 	 */
-	
-	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op) {
-		return retryOperation(op, RETRIES);
+	public <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op) {
+		return retryOperationImpl(op, RETRIES, this::tryIdentifyError);
+	}
+
+	/**
+	 * Retry to execute ARI operation few times
+	 * 
+	 * @param op the ARI operation to execute
+	 * @return result of the operation, if successful, or a failure if the operation failed all retries 
+	 */
+	public static <V> CompletableFuture<V> retry(Consumer<AriCallback<V>> op) {
+		return retryOperationImpl(op, RETRIES, v -> null);
 	}
 	
-	public static <V> CompletableFuture<V> retryOperation(Consumer<AriCallback<V>> op, int triesLeft) {
+	/**
+	 * Retry to execute ARI operation few times, failing without retries if the exception is determined fatal
+	 * by the provided exception mapper
+	 * 
+	 * @param op the ARI operation to execute
+	 * @param exceptionMapper user provided logic to determine if an error should be retried. If the provided
+	 *   function returns {@code null}, then the operation will be retried, otherwise the returned exception will
+	 *   be propagated as the failure.
+	 * @return result of the operation, if successful, or a failure if the operation failed all retries 
+	 */
+	public static <V> CompletableFuture<V> retry(Consumer<AriCallback<V>> op, Function<Throwable, Exception> exceptionMapper) {
+		return retryOperationImpl(op, RETRIES, exceptionMapper);
+	}
+	
+	/**
+	 * Retry to execute ARI operation few times - internal implementation
+	 * 
+	 * @param op the ARI operation to execute
+	 * @param triesLeft Number of tries left before determining the failure to be fatal
+	 * @param exceptionMapper user provided logic to determine if an error should be retried. If the provided
+	 *   function returns {@code null}, then the operation will be retried, otherwise the returned exception will
+	 *   be propagated as the failure.
+	 * @return result of the operation, if successful, or a failure if the operation failed all retries, or
+	 *   the provided exception mapper determined the exception to be fatal before retrying
+	 */
+	private static <V> CompletableFuture<V> retryOperationImpl(Consumer<AriCallback<V>> op, int triesLeft,
+			Function<Throwable, Exception> exceptionMapper) {
 		StackTraceElement[] caller = getCallingStack();
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t)) 
 				return Futures.completedFuture(v);
+			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
+			if (Objects.nonNull(recognizedFailure))
+				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
 				throw rewrapError("Unrecoverable ARI operation error: " + t, caller, t);
 			return Futures.delay(RETRY_TIME).apply(null)
-					.thenCompose(v1->retryOperation(op, triesLeft - 1));
+					.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper));
 		})
 		.thenCompose(x -> x);
 	}
@@ -145,5 +189,32 @@ public abstract class Operation {
 	
 	protected ActionRecordings recordings() {
 		return arity.getAri().recordings();
+	}
+
+	/**
+	 * Check whether an ARI operation exception, provided as the parameter to the method, should be considered
+	 * a terminal error that should not be retried.
+	 * 
+	 * this method is called on by {@link #retryOperation(Consumer)} to check if an ARI error received when trying
+	 * the operation is fatal in the context of the specific {@code Operation} implementation (i.e. - should not be
+	 * retried). If the method returns {@code null}, then the operation will be retried, otherwise the exception
+	 * returned by this method will be propagated to the caller of the operation.
+	 * 
+	 * Currently the following general errors are considered "fatal":
+	 *  - {@code "Channel not found"}
+	 * @param ariError error to check
+	 * @return an exception, if the operation should not be retried
+	 */
+	protected Exception tryIdentifyError(Throwable ariError) {
+		switch (ariError.getMessage()) {
+		case "Channel not found": return new ChannelNotFoundException(ariError);
+		}
+		return null;
+	}
+
+	protected static Throwable unwrapCompletionError(Throwable error) {
+		while (error instanceof CompletionException)
+			error = error.getCause();
+		return error;
 	}
 }

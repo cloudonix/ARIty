@@ -29,7 +29,7 @@ public class Redirect extends Operation {
 			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		logger.info("Now redirecting... channel id: "+getChannelId()+" , to: "+endpoint);
-		return Operation.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint,cb))
+		return this.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint,cb))
 				.thenApply(v->null);
 	}
 

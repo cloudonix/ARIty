@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -30,6 +29,7 @@ import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
  * @author odeda
  */
 public class Bridge {
+	
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
 	private String bridgeId;
@@ -71,12 +71,12 @@ public class Bridge {
 	public CompletableFuture<Bridge> create(String bridgeName) {
 		logger.info("Creating bridge with name: " + bridgeName + ", with id: " + bridgeId + " , and bridge type: "
 				+ bridgeType);
-		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retryOperation(cb -> api.create(bridgeType, bridgeId, bridgeName, cb))
+		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retry(cb -> api.create(bridgeType, bridgeId, bridgeName, cb),
+				this::mapExceptions)
 				.thenApply(b -> {
 					this.name = b.getName();
 					return this;
-				})
-				.handle(this::mapExceptions);
+				});
 	}
 
 	/**
@@ -86,10 +86,10 @@ public class Bridge {
 	 */
 	public CompletableFuture<Void> destroy() {
 		logger.info("Destoying bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> api.destroy(bridgeId, cb)).thenAccept(v -> {
+		return Operation.<Void>retry(cb -> api.destroy(bridgeId, cb), this::mapExceptions).thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
-		}).handle(this::mapExceptions);
+		});
 	}
 	
 	/**
@@ -116,9 +116,7 @@ public class Bridge {
 				waitForChannelEntered(channelId) : CompletableFuture.completedFuture(null);
 		logger.info("Adding channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, this::handleChannelEnteredBridge);
-		return Operation
-				.<Void>retryOperation(cb -> api.addChannel(bridgeId, channelId, "member", cb))
-				.handle(this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.addChannel(bridgeId, channelId, "member", cb), this::mapExceptions)
 				.thenCompose(v -> waitForAdded);
 	}
 	
@@ -177,8 +175,7 @@ public class Bridge {
 				waitForChannelLeft(channelId) : CompletableFuture.completedFuture(null);
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
-		return Operation.<Void>retryOperation(cb -> api.removeChannel(bridgeId, channelId, cb))
-				.handle(this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId, cb), this::mapExceptions)
 				.thenCompose(v -> waitForRemoved);
 	}
 
@@ -203,8 +200,8 @@ public class Bridge {
 	public CompletableFuture<Playback> playMedia(String fileToPlay) {
 		logger.info("Play media to bridge with id: " + bridgeId + ", and media is: " + fileToPlay);
 		String playbackId = UUID.randomUUID().toString();
-		return Operation.<Playback>retryOperation(
-				cb -> api.play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb))
+		return Operation.<Playback>retry(
+				cb -> api.play(bridgeId, "sound:" + fileToPlay, "en", 0, 0, playbackId, cb), this::mapExceptions)
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 					logger.fine("playing: " + fileToPlay);
@@ -217,8 +214,7 @@ public class Bridge {
 					});
 					logger.fine("Future event of playbackFinished was added");
 					return future;
-				})
-				.handle(this::mapExceptions);
+				});
 	}
 
 	/**
@@ -233,8 +229,7 @@ public class Bridge {
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
 		logger.fine("Try playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> api.startMoh(bridgeId, musicOnHoldClass, cb))
-				.handle(this::mapExceptions);
+		return Operation.<Void>retry(cb -> api.startMoh(bridgeId, musicOnHoldClass, cb), this::mapExceptions);
 	}
 
 	/**
@@ -244,8 +239,7 @@ public class Bridge {
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 		logger.fine("Try to stop playing music on hold to bridge with id: " + bridgeId);
-		return Operation.<Void>retryOperation(cb -> api.stopMoh(bridgeId, cb))
-				.handle(this::mapExceptions);
+		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId, cb), this::mapExceptions);
 	}
 
 	/**
@@ -309,8 +303,7 @@ public class Bridge {
 
 	private CompletableFuture<ch.loway.oss.ari4java.generated.Bridge> readBridge() {
 		logger.info("Trying to get bridge with id: " + bridgeId + "...");
-		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retryOperation(cb -> api.get(bridgeId, cb))
-				.handle(this::mapExceptions);
+		return Operation.<ch.loway.oss.ari4java.generated.Bridge>retry(cb -> api.get(bridgeId, cb), this::mapExceptions);
 	}
 	
 	public CompletableFuture<Bridge> reload() {
@@ -413,17 +406,13 @@ public class Bridge {
 		}).exceptionally(t -> false);
 	}
 
-	private <T> T mapExceptions(T val, Throwable error) {
-		if (Objects.isNull(error))
-			return val;
-		while (error instanceof CompletionException)
-			error = error.getCause();
-		switch (error.getMessage()) {
-		case "Bridge not found": throw new BridgeNotFoundException(error);
-		case "Channel not found": throw new ChannelNotInBridgeException(error);
-		case "Channel not in Stasis application": throw new ChannelNotAllowedInBridge(error.getMessage());
-		case "Channel not in this bridge": throw new ChannelNotInBridgeException(error);
+	private Exception mapExceptions(Throwable ariError) {
+		switch (ariError.getMessage()) {
+		case "Bridge not found": return new BridgeNotFoundException(ariError);
+		case "Channel not found": return new ChannelNotInBridgeException(ariError);
+		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
+		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
 		}
-		throw new CompletionException("Unexpected Bridge exception '" + error.getMessage() + "'", error);
+		return null;
 	}
 }

@@ -14,7 +14,6 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.Playback;
 import ch.loway.oss.ari4java.generated.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 
 /**
  * The class represents a Play operation (plays a playback and cancels the
@@ -82,8 +81,7 @@ public class Play extends CancelableOperations {
 				.orElseGet(() -> (() -> CompletableFuture.<Void>completedFuture(null)))
 				.get()
 				.thenRun(() -> playback.setRelease(null))
-				.thenApply(v -> this)
-				.handle(this::mapExceptions);
+				.thenApply(v -> this);
 	}
 	
 	private Supplier<CompletableFuture<Void>> playOnce(String path) {
@@ -91,7 +89,7 @@ public class Play extends CancelableOperations {
 			return () -> CompletableFuture.completedFuture(null);
 			
 		String playbackId = UUID.randomUUID().toString();
-		return () -> Operation.<Playback>retryOperation(h -> channels()
+		return () -> this.<Playback>retryOperation(h -> channels()
 				.play(getChannelId(), path, language, 0, 0, playbackId, h))
 		.thenCompose(playback -> {
 			this.playback.setRelease(playback); // store ongoing playback for cancelling
@@ -141,7 +139,7 @@ public class Play extends CancelableOperations {
 		if (Objects.isNull(current))
 			return CompletableFuture.completedFuture(null);
 		logger.info("Trying to cancel a playback. Playback id: " + current.getId());
-		return Operation.<Void>retryOperation(cb -> playbacks().stop(current.getId(), cb))
+		return this.<Void>retryOperation(cb -> playbacks().stop(current.getId(), cb))
 				.thenAccept(pb -> logger.info("Playback canceled " + current.getId()));
 	}
 
@@ -191,17 +189,6 @@ public class Play extends CancelableOperations {
 	public Play setLanguage(String channelLanguage) {
 		this.language = channelLanguage;
 		return this;
-	}
-
-	private <T> T mapExceptions(T val, Throwable error) {
-		if (Objects.isNull(error))
-			return val;
-		while (error instanceof CompletionException)
-			error = error.getCause();
-		switch (error.getMessage()) {
-		case "Channel not found": throw new ChannelNotFoundException(error);
-		}
-		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
 	}
 
 }

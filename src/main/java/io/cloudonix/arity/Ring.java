@@ -45,7 +45,7 @@ public class Ring extends CancelableOperations {
 	 * @return a promise for completing the ring operation - could be rejected if <code>throwError</code> is <code>true</code>
 	 */
 	public CompletableFuture<Ring> run(boolean throwError) {
-		return Operation.<Void>retryOperation(h -> channels().ring(channelId, h))
+		return this.<Void>retryOperation(h -> channels().ring(channelId, h))
 				.handle((v,t) -> {
 					if (Objects.isNull(t)) logger.fine("Ringing");
 					else if (throwError) throw new CompletionException(t);
@@ -56,7 +56,7 @@ public class Ring extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		return Operation.<Void>retryOperation(h -> channels().ringStop(channelId, h))
+		return this.<Void>retryOperation(h -> channels().ringStop(channelId, h))
 				.whenComplete((v,t) -> {
 					if (Objects.isNull(t)) logger.fine("Stoped ringing to channel with id: " + channelId);
 					else logger.warning("Failed to stop ringing to channel with id " + channelId + ": " + t);

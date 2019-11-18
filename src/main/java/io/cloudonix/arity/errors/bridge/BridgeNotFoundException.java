@@ -1,9 +1,9 @@
 package io.cloudonix.arity.errors.bridge;
 
-import java.util.concurrent.CompletionException;
+import io.cloudonix.arity.errors.ARItyException;
 
 @SuppressWarnings("serial")
-public class BridgeNotFoundException extends CompletionException {
+public class BridgeNotFoundException extends ARItyException {
 
 	public BridgeNotFoundException(Throwable cause) {
 		super(cause);

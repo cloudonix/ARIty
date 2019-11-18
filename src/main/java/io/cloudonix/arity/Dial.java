@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -259,7 +258,7 @@ public class Dial extends CancelableOperations {
 		if (Objects.nonNull(earlyBridge))
 			return runEarlyBridingWorkflow();
 		
-		return Operation.<Channel>retryOperation(
+		return this.<Channel>retryOperation(
 				cf -> channels().originate(endpoint, extension, context, priority, null, getArity().getAppName(), "",
 						callerId, timeout, formatSIPHeaders(), endpointChannelId, otherChannelId, getChannelId(), null, cf))
 				.thenAccept(channel -> {
@@ -275,7 +274,7 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
 		logger.finer("Starting early bridging dial " + callerId + " -> " + endpoint);
-		return Operation.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
+		return this.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
 				null, getChannelId(), null, h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(Futures.delay(50)) // TODO: replace with arity.waitForStasisStart(getChannelId())
@@ -286,7 +285,7 @@ public class Dial extends CancelableOperations {
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.whenComplete((v,t) -> logger.finer("Early bridging dialing out on " + endpointChannelId))
-				.thenCompose(v -> Operation.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
+				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
 					logger.fine("Early bridged dial started " + callerId + " -> " + endpoint);
@@ -332,7 +331,7 @@ public class Dial extends CancelableOperations {
 		case INVALIDARGS:
 		case TORTURE:
 			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
-			Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb));
+			this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb));
 			failed();
 			se.unregister();
 			return;
@@ -345,7 +344,7 @@ public class Dial extends CancelableOperations {
 	}
 	
 	private CompletableFuture<Void> setVariable(Map.Entry<String, String> var) {
-		return Operation.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey(), var.getValue(), h));
+		return this.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey(), var.getValue(), h));
 	}
 
 	/**
@@ -395,9 +394,8 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
-		return Operation.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
-				.thenAccept(v -> logger.info("Hang up the endpoint call"))
-				.handle(this::mapExceptions);
+		return this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
+				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
 	/**
@@ -635,15 +633,12 @@ public class Dial extends CancelableOperations {
 		return channel;
 	}
 
-	private <T> T mapExceptions(T val, Throwable error) {
-		if (Objects.isNull(error))
-			return val;
-		while (error instanceof CompletionException)
-			error = error.getCause();
-		switch (error.getMessage()) {
-		case "Channel not found": throw new ChannelNotFoundException(error);
+	@Override
+	protected Exception tryIdentifyError(Throwable ariError) {
+		switch (ariError.getMessage()) {
+		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}
-		throw new CompletionException("Unexpected Dial exception '" + error.getMessage() + "'", error);
+		return super.tryIdentifyError(ariError);
 	}
 
 }
