@@ -287,15 +287,6 @@ public class ARIty implements AriCallback<Message> {
 		CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
 			if (Objects.nonNull(t))
 				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
-			ari.channels().continueInDialplan(callState.getChannelId(), null, null, null, null, new AriCallback<Void>() {
-				@Override
-				public void onSuccess(Void result) { }
-
-				@Override
-				public void onFailure(RestException e) {
-					logger.severe("Error trying continue in dial plan after call controller ended: " + e);
-				}
-			});
 		});
 	}
 
