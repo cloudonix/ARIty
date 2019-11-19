@@ -29,9 +29,10 @@ package:
 deploy:
   stage: deploy
   script: 
+    - ls -la target || true
     - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
     - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
-  artifacts: 
+  artifacts:
     paths:
       - target/staging
   image: maven:3-jdk-9
