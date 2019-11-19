@@ -284,16 +284,19 @@ public class ARIty implements AriCallback<Message> {
 		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
 		cc.init(callState);
-		try {
-			cc.run().exceptionally(t -> {
+		CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
+			if (Objects.nonNull(t))
 				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
-				cc.hangup().run();
-				return null;
+			ari.channels().continueInDialplan(callState.getChannelId(), null, null, null, null, new AriCallback<Void>() {
+				@Override
+				public void onSuccess(Void result) { }
+
+				@Override
+				public void onFailure(RestException e) {
+					logger.severe("Error trying continue in dial plan after call controller ended: " + e);
+				}
 			});
-		} catch (Throwable t) {
-			logger.severe("Error running the voice application: " + ErrorStream.fromThrowable(t));
-			cc.hangup().run();
-		}
+		});
 	}
 
 	/**
