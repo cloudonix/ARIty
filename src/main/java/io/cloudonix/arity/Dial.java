@@ -17,7 +17,6 @@ import ch.loway.oss.ari4java.generated.Channel;
 import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.ChannelStateChange;
 import io.cloudonix.arity.errors.ErrorStream;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -631,14 +630,6 @@ public class Dial extends CancelableOperations {
 
 	public Channel getChannel() {
 		return channel;
-	}
-
-	@Override
-	protected Exception tryIdentifyError(Throwable ariError) {
-		switch (ariError.getMessage()) {
-		case "Channel not found": return new ChannelNotFoundException(ariError);
-		}
-		return super.tryIdentifyError(ariError);
 	}
 
 }
