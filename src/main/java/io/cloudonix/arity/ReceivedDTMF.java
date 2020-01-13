@@ -5,11 +5,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
+import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
 
 /**
  * The class represents the Received DTMF events
- * 
+ *
  * @author naamag
  *
  */
@@ -26,7 +26,7 @@ public class ReceivedDTMF {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param callController call instance
 	 * @param termKey        define terminating key (otherwise '#' is the default)
 	 * @param length         length of the input we are expecting to get from the
@@ -37,12 +37,12 @@ public class ReceivedDTMF {
 		this.inputLength = length;
 		this.arity = callController.getARIty();
 		this.channelId = callController.getChannelId();
-		
+
 	}
 
 	/**
 	 * Constructor with default values
-	 * 
+	 *
 	 * @param callController
 	 */
 	public ReceivedDTMF(CallController callController) {
@@ -51,7 +51,7 @@ public class ReceivedDTMF {
 
 	/**
 	 * The method gathers input from the user
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
@@ -61,7 +61,7 @@ public class ReceivedDTMF {
 
 	/**
 	 * handle DTMF events
-	 * 
+	 *
 	 * @param dtmf dtmf event
 	 * @param se the saved event handler for dtmf
 	 */
@@ -85,7 +85,7 @@ public class ReceivedDTMF {
 
 	/**
 	 * set the terminating key
-	 * 
+	 *
 	 * @param termKey
 	 * @return
 	 */
@@ -96,7 +96,7 @@ public class ReceivedDTMF {
 
 	/**
 	 * return the entire input that was gathered
-	 * 
+	 *
 	 * @return
 	 */
 	public String getInput() {
@@ -110,20 +110,20 @@ public class ReceivedDTMF {
 	public void setTermKeyWasPressed(boolean termKeyWasPressed) {
 		this.termKeyWasPressed = termKeyWasPressed;
 	}
-	
+
 	/**
 	 * unregister from listening to DTMF events
-	 * 
+	 *
 	 * @param se saved event we want to unregister from it
 	 */
 	public void unregister(EventHandler<ChannelDtmfReceived>se) {
 		se.unregister();
 		compFuture.complete(this);
 	}
-	
+
 	/**
 	 * register an handler that will run when DTMF events arrives
-	 * 
+	 *
 	 * @param handler
 	 */
 	public void registerHandler(BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> handler) {

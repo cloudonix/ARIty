@@ -3,13 +3,13 @@ package io.cloudonix.arity;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.Message;
+import ch.loway.oss.ari4java.generated.models.Message;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Consumer;
 
 /**
  * The class represents saved events with function channel id, and if this
  * events occurs one or many times
- * 
+ *
  * @author naamag
  *
  */
@@ -22,7 +22,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param channelId   id of the channel the event is registered for
 	 * @param futureEvent function to execute when the event arrives
 	 */
@@ -35,7 +35,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 
 	/**
 	 * get the channel id that the event was saved for
-	 * 
+	 *
 	 * @return
 	 */
 	public String getChannelId() {
@@ -60,7 +60,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	public Class<T> getClass1() {
 		return class1;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "Event handler:" + class1.getSimpleName() + ":" + handler.getClass();

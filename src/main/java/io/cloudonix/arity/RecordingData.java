@@ -4,11 +4,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import ch.loway.oss.ari4java.generated.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.LiveRecording;
 
 /**
  * Class representing data about a recording
- * 
+ *
  * @author naamag
  *
  */

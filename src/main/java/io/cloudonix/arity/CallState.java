@@ -13,20 +13,20 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
-import ch.loway.oss.ari4java.generated.ChannelStateChange;
-import ch.loway.oss.ari4java.generated.ChannelVarset;
-import ch.loway.oss.ari4java.generated.Message;
-import ch.loway.oss.ari4java.generated.StasisStart;
-import ch.loway.oss.ari4java.generated.Variable;
+import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
+import ch.loway.oss.ari4java.generated.models.ChannelVarset;
+import ch.loway.oss.ari4java.generated.models.Message;
+import ch.loway.oss.ari4java.generated.models.StasisStart;
+import ch.loway.oss.ari4java.generated.models.Variable;
 
 /**
  * View of the current call state.
- * 
+ *
  * This class is responsible for receiving notifications from ARI regarding the state of the call
  * and invoking callback listeners for various state change and other events.
- * 
+ *
  * @author naamag
  * @author odeda
  */
@@ -45,18 +45,18 @@ public class CallState {
 		PreRing("Pre-ring"),
 		Hangup(""), // not on official state, just for ease of use
 		Unknown("Unknown");
-		
+
 		private String stateName;
 
 		States(String stateName) {
 			this.stateName = stateName;
 		}
-		
+
 		public static States find(String state) {
 			return Arrays.stream(values()).filter(s -> s.stateName.equalsIgnoreCase(state)).findFirst().orElse(Unknown);
 		}
 	}
-	
+
 	private Logger log;
 
 	private ARI ari;
@@ -67,7 +67,7 @@ public class CallState {
 	private States lastState = States.Unknown;
 	private boolean isActive = true;
 	private boolean wasAnswered = false;
-	
+
 	private Map<String, Object> metadata = new ConcurrentHashMap<>();
 	private Map<String, String> variables = new ConcurrentHashMap<>();
 	private ConcurrentHashMap<States, Queue<Runnable>> stateListeners = new ConcurrentHashMap<>();
@@ -119,11 +119,11 @@ public class CallState {
 	public Channel getChannel() {
 		return channel;
 	}
-	
+
 	public States getStatus() {
 		return lastState;
 	}
-	
+
 	public Map<String, Object> getMetaData() {
 		return metadata;
 	}
@@ -143,10 +143,10 @@ public class CallState {
 
 	/**
 	 * Load custom meta-data from the transferable call state
-	 * 
+	 *
 	 * The data will be cast to the expected data type, so make sure you always store and load the same type
 	 * for the same field name
-	 * 
+	 *
 	 * @param key name of the data field to load
 	 * @return the value stored, casted to the expected type
 	 */
@@ -154,7 +154,7 @@ public class CallState {
 	public <T> T get(String key) {
 		return (T) metadata.get(key);
 	}
-	
+
 	/**
 	 * Check if specific custom meta-data field was stored in the transferable call state
 	 * @param key name of the data field to check
@@ -163,7 +163,7 @@ public class CallState {
 	public boolean contains(String key) {
 		return metadata.containsKey(key);
 	}
-	
+
 	/**
 	 * Retrieve an Asterisk channel variable that was set on the current channel
 	 * @param name variable name to read
@@ -172,7 +172,7 @@ public class CallState {
 	public String getVariable(String name) {
 		return variables.get(name);
 	}
-	
+
 	class GetChannelVar extends Operation {
 		private String name;
 		private String value;
@@ -184,7 +184,7 @@ public class CallState {
 
 		@Override
 		public CompletableFuture<GetChannelVar> run() {
-			return this.<Variable>retryOperation(cb -> channels().getChannelVar(getChannelId(), name, cb))
+			return this.<Variable>retryOperation(cb -> channels().getChannelVar(getChannelId(), name).execute(cb))
 					.handle((var,e) -> {
 						if (Objects.nonNull(e))
 							log.info("getVar: " + e);
@@ -193,11 +193,11 @@ public class CallState {
 						return this;
 					});
 		}
-		
+
 		public String getValue() {
 			return value;
 		}
-		
+
 		@Override
 		protected Exception tryIdentifyError(Throwable ariError) {
 			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
@@ -222,7 +222,7 @@ public class CallState {
 				return val;
 			});
 	}
-	
+
 	class SetChannelVar extends Operation {
 
 		private String name;
@@ -236,17 +236,17 @@ public class CallState {
 
 		@Override
 		public CompletableFuture<SetChannelVar> run() {
-			return this.<Void>retryOperation(cb -> channels().setChannelVar(getChannelId(), name, value, cb))
+			return this.<Void>retryOperation(cb -> channels().setChannelVar(getChannelId(), name).setValue(value).execute(cb))
 					// don't care about errors here - we either managed to set it or the channel doesn't exist anymore
 					.handle((v,t) -> this);
 		}
-		
+
 		@Override
 		protected Exception tryIdentifyError(Throwable ariError) {
 			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
 		}
 	}
-	
+
 	/**
 	 * Update an Asterisk channel variable.
 	 * @param name variable name to set
@@ -258,7 +258,7 @@ public class CallState {
 			variables.put(name, value);
 		return new SetChannelVar(channelId, arity, name, value).run().thenAccept(v -> {});
 	}
-	
+
 	/**
 	 * The Asterisk channel technology for the current channel. ex: SIP, PJSIP
 	 * @return
@@ -274,7 +274,7 @@ public class CallState {
 	public boolean isActive() {
 		return isActive;
 	}
-	
+
 	/**
 	 * Check if the call has been answered already.
 	 * @return whether the call has been answered.
@@ -282,7 +282,7 @@ public class CallState {
 	public boolean wasAnswered() {
 		return wasAnswered;
 	}
-	
+
 	/**
 	 * Retrieve a promise that will be fulfilled when the call is disconnected
 	 * @return
@@ -292,7 +292,7 @@ public class CallState {
 		registerStateHandler(States.Hangup, ()->future.complete(null));
 		return future;
 	}
-	
+
 	/**
 	 * Register for getting a callback when the specified state had been reached
 	 * @param state The state to listen for
@@ -301,13 +301,13 @@ public class CallState {
 	public void registerStateHandler(States state, Runnable handler) {
 		getStateListeners(state).add(handler);
 	}
-	
+
 	public <T extends Message> void registerEventHandler(Class<T> type, Consumer<T> eventHandler) {
 		eventListeners.add(arity.addEventHandler(type, channelId, (ev, se) -> {
 			try {
 				eventHandler.accept(ev);
 			} catch (Throwable t) {
-				log.warning("Error encountered running " + type + " listener " + eventHandler + ": " + t + "\n" + 
+				log.warning("Error encountered running " + type + " listener " + eventHandler + ": " + t + "\n" +
 						getStackTraceReport(t));
 			}
 		}));
@@ -331,14 +331,14 @@ public class CallState {
 			try {
 				run.run();
 			} catch (Throwable t) {
-				log.warning("Error encountered running " + lastState + " listener " + run + ": " + t + "\n" + 
+				log.warning("Error encountered running " + lastState + " listener " + run + ": " + t + "\n" +
 						getStackTraceReport(t));
 			}
 		});
 	}
-	
+
 	private String getStackTraceReport(Throwable t) {
-		StringWriter stackTrace = new StringWriter(); 
+		StringWriter stackTrace = new StringWriter();
 		t.printStackTrace(new PrintWriter(stackTrace));
 		return stackTrace.toString();
 	}

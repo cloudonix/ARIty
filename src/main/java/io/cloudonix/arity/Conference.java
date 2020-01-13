@@ -7,17 +7,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.ChannelLeftBridge;
-import ch.loway.oss.ari4java.generated.ChannelTalkingFinished;
-import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
-import ch.loway.oss.ari4java.generated.LiveRecording;
-import ch.loway.oss.ari4java.generated.Playback;
+import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
+import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
+import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
+import ch.loway.oss.ari4java.generated.models.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
 import io.cloudonix.lib.Futures;
 
 /**
  * The class handles and saves all needed information for a conference call
- * 
+ *
  * @author naamag
  *
  */
@@ -43,7 +43,7 @@ public class Conference {
 	public Conference(CallController callController) {
 		this(callController, new Bridge(callController.getARIty()));
 	}
-	
+
 	/**
 	 * Create a conference bridge to wrap an existing bridge
 	 * @param callController call controller to create the conference bridge for
@@ -52,7 +52,7 @@ public class Conference {
 	public Conference(CallController callController, String bridgeId) {
 		this(callController, new Bridge(callController.getARIty(), bridgeId));
 	}
-	
+
 	private Conference(CallController callController, Bridge bridge) {
 		this.arity = callController.getARIty();
 		this.callController = callController;
@@ -61,20 +61,20 @@ public class Conference {
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 	}
-	
+
 	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, EventHandler<ChannelTalkingStarted>se) {
 		this.talkingStatedHandler.run();
 	}
-	
+
 	public void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, EventHandler<ChannelTalkingFinished>se) {
 		this.talkingFinishedEvent .run();
 	}
-	
+
 	public Conference registerMemberStartedTalkingHandler(Runnable talkingStartedH) {
 		this.talkingStatedHandler = talkingStartedH;
 		return this;
 	}
-	
+
 	public Conference registerMemberFinishedTalkingHandler(Runnable talkingFinishedH) {
 		this.talkingFinishedEvent = talkingFinishedH;
 		return this;
@@ -82,7 +82,7 @@ public class Conference {
 
 	/**
 	 * close conference
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Void> closeConference() {
@@ -92,7 +92,7 @@ public class Conference {
 
 	/**
 	 * add channel to the conference
-	 * 
+	 *
 	 * @param beep         true if need to play 'beep' sound when channel joins to
 	 *                     conference, false otherwise
 	 * @param mute         true if the channel should only listen to conference
@@ -126,7 +126,7 @@ public class Conference {
 
 	/**
 	 * record the conference
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Void> recordConference() {
@@ -141,7 +141,7 @@ public class Conference {
 
 	/**
 	 * register handler to execute when channel left conference
-	 * 
+	 *
 	 * @param handler runnable function that will be running when channel left
 	 *                bridge occurs
 	 * @return
@@ -153,7 +153,7 @@ public class Conference {
 
 	/**
 	 * handle when a channel left conference bridge
-	 * 
+	 *
 	 * @param channelLeftBridge channelLeftBridge event instance
 	 */
 	private void channelLeftConference(ChannelLeftBridge channelLeftBridge) {
@@ -179,7 +179,7 @@ public class Conference {
 
 	/**
 	 * Announce new channel joined/left a conference
-	 * 
+	 *
 	 * @param status 'joined' or 'left' conference
 	 */
 	public CompletableFuture<Playback> annouceUser(String status) {
@@ -188,7 +188,7 @@ public class Conference {
 
 	/**
 	 * get conference name
-	 * 
+	 *
 	 * @return
 	 */
 	public String getConfName() {
@@ -197,7 +197,7 @@ public class Conference {
 
 	/**
 	 * get number of channels in conference
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Integer> getCount() {
@@ -206,7 +206,7 @@ public class Conference {
 
 	/**
 	 * get list of channels connected to the conference bridge
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<List<String>> getChannelsInConf() {
@@ -215,7 +215,7 @@ public class Conference {
 
 	/**
 	 * get recording name of the conference
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRecordName() {
@@ -224,7 +224,7 @@ public class Conference {
 
 	/**
 	 * set recording name of the conference
-	 * 
+	 *
 	 * @return
 	 */
 	public void setRecordName(String recordName) {
@@ -233,7 +233,7 @@ public class Conference {
 
 	/**
 	 * get the recording of the conference
-	 * 
+	 *
 	 * @return
 	 */
 	public LiveRecording getConferenceRecord() {
@@ -242,7 +242,7 @@ public class Conference {
 
 	/**
 	 * get music on hold file name of the conference
-	 * 
+	 *
 	 * @return
 	 */
 	public String getMusicOnHoldFileName() {
@@ -252,7 +252,7 @@ public class Conference {
 	/**
 	 * set music on hold class for conference, defining the needed configuration for
 	 * playing music on hold
-	 * 
+	 *
 	 * @return
 	 */
 	public void setMusicOnHoldClassName(String musicOnHoldClassName) {
@@ -270,7 +270,7 @@ public class Conference {
 
 	/**
 	 * check if there is a bridge for the conference
-	 * 
+	 *
 	 * @return true if there is a bridge, false otherwise
 	 */
 	public CompletableFuture<Boolean> isConfereBridgeExists() {
@@ -279,9 +279,9 @@ public class Conference {
 
 	/**
 	 * create a bridge for the conference without selecting the bridge id
-	 * 
+	 *
 	 * @param conferenceName name of the conference
-	 * 
+	 *
 	 * @return the conference bridge
 	 */
 	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName) {
@@ -294,7 +294,7 @@ public class Conference {
 
 	/**
 	 * remove a channel from this conference
-	 * 
+	 *
 	 * @param channelId the id of the channel we want to remove
 	 * @return
 	 */
@@ -304,7 +304,7 @@ public class Conference {
 
 	/**
 	 * get conference name
-	 * 
+	 *
 	 * @return
 	 */
 	public String getConferenceName() {
@@ -313,7 +313,7 @@ public class Conference {
 
 	/**
 	 * play media to the bridge
-	 * 
+	 *
 	 * @param mediaToPlay name of the media to play
 	 * @return promise to a Playback
 	 */
@@ -323,7 +323,7 @@ public class Conference {
 
 	/**
 	 * remove channel from conference
-	 * 
+	 *
 	 * @param channelID id of the channel we want to remove
 	 * @return
 	 */

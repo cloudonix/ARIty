@@ -11,17 +11,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.ChannelDtmfReceived;
-import ch.loway.oss.ari4java.generated.ChannelTalkingStarted;
-import ch.loway.oss.ari4java.generated.LiveRecording;
-import ch.loway.oss.ari4java.generated.RecordingFinished;
-import ch.loway.oss.ari4java.tools.AriCallback;
+import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
+import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
+import ch.loway.oss.ari4java.generated.models.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
+import io.cloudonix.lib.Futures;
 
 /**
  * Class for recording a channel operation
- * 
+ *
  * @author naamag
  *
  */
@@ -43,7 +43,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param callController    instant representing the call
 	 * @param name              Recording's filename
 	 * @param fileFormat        Format to encode audio in (wav, gsm..)
@@ -83,73 +83,67 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * start recording
-	 * 
+	 *
 	 */
 	private CompletableFuture<LiveRecording> startRecording() {
-		CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
-		channels().record(getChannelId(), name, fileFormat, maxDuration, maxSilenceSeconds, ifExists, beep,
-				terminateOnKey, new AriCallback<LiveRecording>() {
+		return Operation.<LiveRecording>retry(cb -> channels().record(getChannelId(), name, fileFormat)
+				.setMaxDurationSeconds(maxDuration).setMaxSilenceSeconds(maxSilenceSeconds)
+				.setIfExists(ifExists).setBeep(beep).setTerminateOn(terminateOnKey).execute(cb))
+				.thenCompose(result -> {
+					logger.info("Recording started! recording name is: " + name);
+					recordingStartTime = Instant.now();
+					Timer timer = new Timer("Timer");
+					TimerTask task = new TimerTask() {
+						@Override
+						public void run() {
+							stopRecording();
+						}
+					};
+					timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
 
-					@Override
-					public void onSuccess(LiveRecording result) {
-						if (!(result instanceof LiveRecording))
+					CompletableFuture<LiveRecording> liveRecFuture = new CompletableFuture<LiveRecording>();
+					getArity().addEventHandler(RecordingFinished.class, getChannelId(), (record, se) -> {
+						if (!Objects.equals(record.getRecording().getName(), name))
 							return;
-						logger.info("Recording started! recording name is: " + name);
-						recordingStartTime = Instant.now();
-						Timer timer = new Timer("Timer");
-						TimerTask task = new TimerTask() {
-							@Override
-							public void run() {
-								stopRecording();
-							}
-						};
-						timer.schedule(task, TimeUnit.SECONDS.toMillis(Long.valueOf(Integer.toString(maxDuration))));
+						long recordingEndTime = Instant.now().getEpochSecond();
+						recording = record.getRecording();
+						recording.setDuration(Integer.valueOf(
+								String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+						logger.info("Finished recording! recording duration is: "
+								+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
+						if (wasTalkingDetect)
+							talkingDuration = recording.getTalking_duration();
+						liveRecFuture.complete(recording);
+						se.unregister();
+					});
 
-						getArity().addEventHandler(RecordingFinished.class, getChannelId(), (record, se) -> {
-							if (!Objects.equals(record.getRecording().getName(), name))
-								return;
-							long recordingEndTime = Instant.now().getEpochSecond();
-							recording = record.getRecording();
-							recording.setDuration(Integer.valueOf(
-									String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
-							logger.info("Finished recording! recording duration is: "
-									+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
-							if (wasTalkingDetect)
-								talkingDuration = recording.getTalking_duration();
-							liveRecFuture.complete(recording);
+					// Recognise if Talking was detected during the recording
+					getArity().listenForOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
+						if (Objects.equals(talkStarted.getChannel().getId(), getChannelId())) {
+							logger.info("Recognised tallking in the channel");
+							wasTalkingDetect = true;
+						}
+					});
+
+					// stop the recording by pressing the terminating key
+					getArity().addEventHandler(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
+						if (dtmf.getDigit().equals(terminateOnKey)) {
+							logger.info("Terminating key was pressed, stop recording");
+							isTermKeyWasPressed = true;
+							timer.cancel();
 							se.unregister();
-						});
-
-						// Recognise if Talking was detected during the recording
-						getArity().listenForOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
-							if (Objects.equals(talkStarted.getChannel().getId(), getChannelId())) {
-								logger.info("Recognised tallking in the channel");
-								wasTalkingDetect = true;
-							}
-						});
-
-						// stop the recording by pressing the terminating key
-						getArity().addEventHandler(ChannelDtmfReceived.class, getChannelId(), (dtmf, se) -> {
-							if (dtmf.getDigit().equals(terminateOnKey)) {
-								logger.info("Terminating key was pressed, stop recording");
-								isTermKeyWasPressed = true;
-								timer.cancel();
-								se.unregister();
-							}
-						});
-					}
-
-					@Override
-					public void onFailure(RestException e) {
-						liveRecFuture.completeExceptionally(new RecordingException(name, e));
-					}
-				});
-		return liveRecFuture;
+						}
+					});
+					return liveRecFuture;
+				})
+				.exceptionally(Futures.on(RestException.class, e -> {
+					throw new RecordingException(name, e);
+				}));
 	}
 
 	/**
 	 * get the recording
-	 * 
+	 *
 	 * @return
 	 */
 	public LiveRecording getRecording() {
@@ -158,7 +152,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * get the name of the recording
-	 * 
+	 *
 	 * @return
 	 */
 	public String getName() {
@@ -168,7 +162,7 @@ public class Record extends CancelableOperations {
 	/**
 	 * return true if terminating key was pressed to stop the recording, false
 	 * otherwise
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isTermKeyWasPressed() {
@@ -177,7 +171,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * return terminating key
-	 * 
+	 *
 	 * @return
 	 */
 	public String getTerminatingKey() {
@@ -186,7 +180,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * set the name of the recording
-	 * 
+	 *
 	 * @param name name of the recording
 	 */
 	public void setName(String name) {
@@ -195,7 +189,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * get the state of the recording
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRecordingState() {
@@ -204,7 +198,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * stop recording
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Void> stopRecording() {
@@ -217,27 +211,20 @@ public class Record extends CancelableOperations {
 			logger.fine("Recording has already stoped");
 			return CompletableFuture.completedFuture(null);
 		}
-		CompletableFuture<Void> recordFuture = new CompletableFuture<Void>();
-		recordings().stop(name, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Record " + name + " stoped");
-				recordFuture.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Can't stop recording " + name + ": " + e);
-				recordFuture.completeExceptionally(e);
-			}
-		});
-		return recordFuture;
+		return Operation.<Void>retry(cb -> recordings().stop(name).execute(cb))
+				.thenAccept(v -> {
+					logger.info("Record " + name + " stoped");
+				})
+				.exceptionally(Futures.on(RestException.class, e -> {
+					logger.warning("Can't stop recording " + name + ": " + e);
+					throw e;
+				}));
 	}
 
 	/**
 	 * true if talking in the channel was detected during the recording, false
 	 * otherwise
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isWasTalkingDetect() {
@@ -246,7 +233,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * if the caller talked during the recording, get the duration of the talking
-	 * 
+	 *
 	 * @return
 	 */
 	public int getTalkingDuration() {
@@ -256,7 +243,7 @@ public class Record extends CancelableOperations {
 	/**
 	 * before recording, set what to do if the recording is already exists. default
 	 * value is "overwrite"
-	 * 
+	 *
 	 * @param ifExist allowed values: fail, overwrite, append
 	 * @return
 	 */
@@ -267,7 +254,7 @@ public class Record extends CancelableOperations {
 
 	/**
 	 * get recording as a file from asterisk recording folder
-	 * 
+	 *
 	 * @return
 	 */
 	public File getRecordAsFile() {

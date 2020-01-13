@@ -3,12 +3,12 @@ package io.cloudonix.arity;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.lib.Futures;
 
 /**
  * Class that execute muting/unmuting a channel
- * 
+ *
  * @author naamag
  *
  */
@@ -26,42 +26,27 @@ public class Mute extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Mute> run() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		channels().mute(channelId, direction, new AriCallback<Void>() {
-
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Failed to unmute channel with id: " + channelId + " and audio direction: " + direction);
-				future.completeExceptionally(e);
-			}
-		});
-
-		return future.thenApply(v -> this);
+		return Operation.<Void>retry(cb -> channels().mute(channelId).setDirection(direction).execute(cb))
+				.thenAccept(v -> {
+					logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
+				})
+				.exceptionally(Futures.on(RestException.class,  e -> {
+					logger.warning("Failed to mute channel with id: " + channelId + " and direction: " + direction);
+					throw e;
+				}))
+				.thenApply(v -> this);
 	}
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		channels().unmute(channelId, direction, new AriCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				logger.info("Unmute channel " + channelId + " with audio direction " + direction);
-				future.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.warning("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
-				future.completeExceptionally(e);
-			}
-		});
-		return future;
+		return Operation.<Void>retry(cb -> channels().unmute(channelId).setDirection(direction).execute(cb))
+				.thenAccept(res -> {
+					logger.info("Unmute channel " + channelId + " with audio direction " + direction);
+				})
+				.exceptionally(Futures.on(RestException.class,  e -> {
+					logger.warning("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
+					throw e;
+				}));
 	}
 
 }
