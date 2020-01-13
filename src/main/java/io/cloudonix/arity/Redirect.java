@@ -9,7 +9,7 @@ import io.cloudonix.lib.Futures;
 
 /**
  * Channel redirection operation
- * 
+ *
  * @author naamag
  */
 public class Redirect extends Operation {
@@ -29,7 +29,7 @@ public class Redirect extends Operation {
 			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		logger.info("Now redirecting... channel id: "+getChannelId()+" , to: "+endpoint);
-		return this.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint,cb))
+		return this.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint).execute(cb))
 				.thenApply(v->null);
 	}
 

@@ -10,15 +10,15 @@ import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.Playback;
-import ch.loway.oss.ari4java.generated.PlaybackFinished;
+import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.Playback;
+import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
 
 /**
  * The class represents a Play operation (plays a playback and cancels the
  * playback if needed)
- * 
+ *
  * @author naamag
  *
  */
@@ -34,7 +34,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * Play the specified content using the specified scheme (default "sound")
-	 * 
+	 *
 	 * @param callController controller for the channel
 	 * @param filename       content to play
 	 */
@@ -55,10 +55,10 @@ public class Play extends CancelableOperations {
 		else
 			logger.fine("Using default language: "+language);
 	}
-	
+
 	/**
 	 * The method changes the uri scheme to recording and plays the stored recored
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Play> playRecording() {
@@ -68,13 +68,13 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * The method plays a playback of a specific ARI channel
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
 		// create a unique UUID for the playback
 		String fullPath = uriScheme +":"+ playFileName;
-		
+
 		return IntStream.range(0, timesToPlay)
 				.mapToObj(i -> playOnce(fullPath))
 				.reduce((a,b) -> (() -> a.get().thenCompose(v -> b.get())))
@@ -83,18 +83,18 @@ public class Play extends CancelableOperations {
 				.thenRun(() -> playback.setRelease(null))
 				.thenApply(v -> this);
 	}
-	
+
 	private Supplier<CompletableFuture<Void>> playOnce(String path) {
 		if (cancelled.getAcquire()) // if we're already cancelled, make any additional iteration a no-op
 			return () -> CompletableFuture.completedFuture(null);
-			
+
 		String playbackId = UUID.randomUUID().toString();
 		return () -> this.<Playback>retryOperation(h -> channels()
-				.play(getChannelId(), path, language, 0, 0, playbackId, h))
+				.play(getChannelId(), path).setLang(language).setOffsetms(0).setSkipms(0).setPlaybackId(playbackId).execute(h))
 		.thenCompose(playback -> {
 			this.playback.setRelease(playback); // store ongoing playback for cancelling
 			logger.info("Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
-			
+
 			// wait for PlaybackFinished event
 			CompletableFuture<Void> playbackFinished = new CompletableFuture<>();
 			getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (finished, se) -> {
@@ -114,7 +114,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * set how many times to play the play-back
-	 * 
+	 *
 	 * @param times
 	 * @return
 	 */
@@ -125,7 +125,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * Get the play-back
-	 * 
+	 *
 	 * @return
 	 */
 	public Playback getPlayback() {
@@ -139,13 +139,13 @@ public class Play extends CancelableOperations {
 		if (Objects.isNull(current))
 			return CompletableFuture.completedFuture(null);
 		logger.info("Trying to cancel a playback. Playback id: " + current.getId());
-		return this.<Void>retryOperation(cb -> playbacks().stop(current.getId(), cb))
+		return this.<Void>retryOperation(cb -> playbacks().stop(current.getId()).execute(cb))
 				.thenAccept(pb -> logger.info("Playback canceled " + current.getId()));
 	}
 
 	/**
 	 * get the name of the file to play
-	 * 
+	 *
 	 * @return
 	 */
 	public String getPlayFileName() {
@@ -154,7 +154,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * set the file to be played
-	 * 
+	 *
 	 * @param playFileName
 	 */
 	public void setPlayFileName(String playFileName) {
@@ -167,7 +167,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * set the uri scheme before playing and get the update Play operation
-	 * 
+	 *
 	 * @param uriScheme
 	 * @return
 	 */
@@ -182,7 +182,7 @@ public class Play extends CancelableOperations {
 
 	/**
 	 * set the playback language before playing
-	 * 
+	 *
 	 * @param channelLanguage language to set
 	 * @return
 	 */

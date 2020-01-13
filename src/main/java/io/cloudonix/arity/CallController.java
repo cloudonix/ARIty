@@ -2,28 +2,27 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.Variable;
-import ch.loway.oss.ari4java.tools.AriCallback;
+import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.Variable;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.lib.Futures;
 
 /**
  * The class represents a call controller, including all the call operation and
  * needed information for a call
- * 
+ *
  * @author naamag
  *
  */
 public abstract class CallController {
 	private CallState callState;
 	private Logger logger = Logger.getLogger(getClass().getName());
-	
+
 	/**
 	 * Initialize the call controller with an existing transferable call state.
-	 * 
+	 *
 	 * This method is only called internally.
 	 * @param callState call state of the call to be executed on
 	 */
@@ -32,7 +31,7 @@ public abstract class CallController {
 		initLogger();
 		init();
 	}
-	
+
 	/**
 	 * Called just before the call controller is {@link #run()}.
 	 * Implementations may wish to override this method to run their own initialization logic.
@@ -42,14 +41,14 @@ public abstract class CallController {
 	 */
 	protected void init() {
 	}
-	
+
 	private void initLogger() {
 		logger = Logger.getLogger(getClass().getName() + ":" + callState.getChannelId());
 	}
 
 	/**
 	 * get the service from the call
-	 * 
+	 *
 	 * @return
 	 */
 	public ARIty getARIty() {
@@ -58,7 +57,7 @@ public abstract class CallController {
 
 	/**
 	 * get the channel id of the call
-	 * 
+	 *
 	 * @return
 	 */
 	public String getChannelId() {
@@ -67,7 +66,7 @@ public abstract class CallController {
 
 	/**
 	 * play media to a channel
-	 * 
+	 *
 	 * @param file file to be played
 	 * @return
 	 */
@@ -77,7 +76,7 @@ public abstract class CallController {
 
 	/**
 	 * play stored recording to a channel
-	 * 
+	 *
 	 * @param recName recording name to play
 	 * @return
 	 */
@@ -89,7 +88,7 @@ public abstract class CallController {
 
 	/**
 	 * Create an answer operation for the current call, if it was not already answered.
-	 * 
+	 *
 	 * If the call was already answered when calling this method, it will generate an "no-op"
 	 * answer operation that just immediately complete. Please note that if you call this method
 	 * before the channel has been answered, then it was ansered in another way, then you run the
@@ -109,7 +108,7 @@ public abstract class CallController {
 
 	/**
 	 * the method creates a new HangUp operation to hang up the call
-	 * 
+	 *
 	 * @return
 	 */
 	public Hangup hangup() {
@@ -118,7 +117,7 @@ public abstract class CallController {
 
 	/**
 	 * the method creates a new Ring operation
-	 * 
+	 *
 	 */
 	public Ring ring() {
 		return new Ring(this);
@@ -126,7 +125,7 @@ public abstract class CallController {
 
 	/**
 	 * the method creates a new receivedDTMF object
-	 * 
+	 *
 	 * @param terminatingKey terminating key for stop receiving DTMF
 	 * @param inputLength    length of the input that we expect receiving from the
 	 *                       caller
@@ -138,7 +137,7 @@ public abstract class CallController {
 
 	/**
 	 * the method creates a new received DTMF operation with default values
-	 * 
+	 *
 	 * @return
 	 */
 	public ReceivedDTMF receivedDTMF() {
@@ -146,7 +145,7 @@ public abstract class CallController {
 	}
 
 	/**
-	 * Create a dial out operation 
+	 * Create a dial out operation
 	 * @param callerId Caller ID to present to the destination
 	 * @param destination Asterisk endpoint address to dial (including technology and URL)
 	 * @return Dial operation to be configured further and run
@@ -157,17 +156,17 @@ public abstract class CallController {
 
 	/**
 	 * get conference according to it's bridge id
-	 * 
+	 *
 	 * @param bridgeId id of conference bridge we want to get
 	 */
 	public CompletableFuture<Conference> getConference(String bridgeId) {
 		Conference conf = new Conference(this, bridgeId);
 		return CompletableFuture.completedFuture(conf);
 	}
-	
+
 	/**
-	 * create a new conference with 
-	 * 
+	 * create a new conference with
+	 *
 	 * @param conferenceName name of the conference
 	 * @return
 	 */
@@ -179,7 +178,7 @@ public abstract class CallController {
 	/**
 	 * the method verifies that the call is always hangs up, even if an error
 	 * occurred during any operation
-	 * 
+	 *
 	 * @param value if no error occurred
 	 * @param th    if an error occurred it will contain the error
 	 * @return
@@ -212,14 +211,14 @@ public abstract class CallController {
 
 	/**
 	 * get the value of a specific sip header
-	 * 
+	 *
 	 * @param headerName the name of the header, for example: To
 	 * @return
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
-		return this.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.getChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")", cb)).thenApply(v -> {
+		return Operation.<Variable>retry(cb -> callState.getAri().channels()
+				.getChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")").execute(cb)).thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
@@ -229,15 +228,14 @@ public abstract class CallController {
 
 	/**
 	 * get the value of a specific PJSIP header
-	 * 
+	 *
 	 * @param headerName the name of the header, for example: To
 	 * @return
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getPJSipHeader(String headerName) {
-		return this
-				.<Variable>futureFromAriCallBack(cb -> callState.getAri().channels()
-						.getChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")", cb))
+		return Operation.<Variable>retry(cb -> callState.getAri().channels()
+						.getChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")").execute(cb))
 				.thenApply(v -> {
 					return v.getValue();
 				}).exceptionally(t -> {
@@ -248,14 +246,14 @@ public abstract class CallController {
 
 	/**
 	 * add sip header to a channel
-	 * 
+	 *
 	 * @param headerName  name of the new header
 	 * @param headerValue value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
-		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")", headerValue, cb))
+		return Operation.<Void>retry(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")").setValue(headerValue).execute(cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
 					return null;
@@ -264,14 +262,14 @@ public abstract class CallController {
 
 	/**
 	 * add pjsip header to a channel
-	 * 
+	 *
 	 * @param headerName  name of the new header
 	 * @param headerValue value of the new header
 	 * @return
 	 */
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
-		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")", headerValue, cb))
+		return Operation.<Void>retry(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")").setValue(headerValue).execute(cb))
 				.exceptionally(t -> {
 					logger.fine("Unable to find header: " + headerName);
 					return null;
@@ -280,7 +278,7 @@ public abstract class CallController {
 
 	/**
 	 * change setting regarding to TALK_DETECT function
-	 * 
+	 *
 	 * @param action      'set' or 'remove'
 	 * @param actionValue if set action is used, action value will be in the form:
 	 *                    'threshold1,threshold2' such that threshold 1 is the time
@@ -291,8 +289,8 @@ public abstract class CallController {
 	 * @return
 	 */
 	public CompletableFuture<Void> setTalkingInChannel(String action, String actionValue) {
-		return this.<Void>futureFromAriCallBack(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "TALK_DETECT(" + action + ")", actionValue, cb))
+		return Operation.<Void>retry(cb -> callState.getAri().channels()
+				.setChannelVar(callState.getChannelId(), "TALK_DETECT(" + action + ")").setValue(actionValue).execute(cb))
 				.exceptionally(t -> {
 					logger.info("Unable to " + action + " with value " + actionValue + ": " + t);
 					return null;
@@ -301,37 +299,8 @@ public abstract class CallController {
 	}
 
 	/**
-	 * helper method for getSipHeader in order to have AriCallback
-	 * 
-	 * @param consumer
-	 * @return
-	 */
-	private <V> CompletableFuture<V> futureFromAriCallBack(Consumer<AriCallback<V>> consumer) {
-		Exception e = new Exception();
-		e.fillInStackTrace();
-		StackTraceElement[] st = e.getStackTrace();
-		CompletableFuture<V> compFuture = new CompletableFuture<V>();
-
-		consumer.accept(new AriCallback<V>() {
-
-			@Override
-			public void onSuccess(V result) {
-				compFuture.complete(result);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				Exception e1 = new Exception(e);
-				e1.setStackTrace(st);
-				compFuture.completeExceptionally(e1);
-			}
-		});
-		return compFuture;
-	}
-
-	/**
 	 * get the channel of the call
-	 * 
+	 *
 	 * @return
 	 */
 	public Channel getChannel() {
@@ -340,7 +309,7 @@ public abstract class CallController {
 
 	/**
 	 * the method return the extension from the dialplan
-	 * 
+	 *
 	 * @return
 	 */
 	public String getExtension() {
@@ -351,7 +320,7 @@ public abstract class CallController {
 
 	/**
 	 * return account code of the channel (information about the channel)
-	 * 
+	 *
 	 * @return
 	 */
 	public String getAccountCode() {
@@ -360,7 +329,7 @@ public abstract class CallController {
 
 	/**
 	 * get the caller (whom is calling)
-	 * 
+	 *
 	 * @return
 	 */
 	public String getCallerIdNumber() {
@@ -371,7 +340,7 @@ public abstract class CallController {
 
 	/**
 	 * get the name of the channel (for example: SIP/myapp-000001)
-	 * 
+	 *
 	 * @return
 	 */
 	public String getChannelName() {
@@ -380,7 +349,7 @@ public abstract class CallController {
 
 	/**
 	 * return channel state
-	 * 
+	 *
 	 * @return
 	 */
 	public String getChannelState() {
@@ -389,7 +358,7 @@ public abstract class CallController {
 
 	/**
 	 * get channel creation time
-	 * 
+	 *
 	 * @return
 	 */
 	public String getChannelCreationTime() {
@@ -399,7 +368,7 @@ public abstract class CallController {
 
 	/**
 	 * return dialplan context (for example: ari-context)
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDialplanContext() {
@@ -429,17 +398,17 @@ public abstract class CallController {
 
 	/**
 	 * Load custom data from the transferable call state
-	 * 
+	 *
 	 * The data will be cast to the expected data type, so make sure you always store and load the same type
 	 * for the same field name
-	 * 
+	 *
 	 * @param dataName name of the data field to load
 	 * @return the value stored, casted to the expected type
 	 */
 	public <T> T get(String dataName) {
 		return callState.get(dataName);
 	}
-	
+
 	/**
 	 * Check if specific custom data field was stored in the transferable call state
 	 * @param dataName name of the data field to check
@@ -459,7 +428,7 @@ public abstract class CallController {
 
 	/**
 	 * create record operation with more settings
-	 * 
+	 *
 	 * @param callController instant representing the call
 	 * @param name           Recording's filename
 	 * @param format         Format to encode audio in (wav, gsm..)
@@ -479,7 +448,7 @@ public abstract class CallController {
 
 	/**
 	 * Mute audio for channel
-	 * 
+	 *
 	 * @param channelId id of the channel we want to mute
 	 * @param direction audio direction of the mute. Allowed values: both, in, out
 	 * @return
@@ -490,7 +459,7 @@ public abstract class CallController {
 
 	/**
 	 * Create bridge instance to handle all bridge operations
-	 * 
+	 *
 	 * @param arity instance of ARIty
 	 * @return
 	 */
@@ -500,7 +469,7 @@ public abstract class CallController {
 
 	/**
 	 * transfer Call Controller to the next Call controller
-	 * 
+	 *
 	 * @param nextCallController Call Controller that we are getting the data from
 	 */
 	public CompletableFuture<Void> execute(CallController nextCallController) {
@@ -510,40 +479,32 @@ public abstract class CallController {
 
 	/**
 	 * if the channel is still active return true, false otherwise
-	 * 
+	 *
 	 * @param channelId channel id of the call to be checked
 	 * @return
 	 * @throws RestException
 	 */
 	public CompletableFuture<Boolean> isCallActive(String channelId) {
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
-
-		callState.getAri().channels().get(channelId, new AriCallback<Channel>() {
-
-			@Override
-			public void onSuccess(Channel result) {
-				logger.info("Call with id: " + result.getId() + " is still active");
-				future.complete(true);
-			}
-
-			@Override
-			public void onFailure(RestException e) {
-				logger.info("Call is not active ");
-				future.complete(false);
-			}
-		});
-		return future;
+		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(channelId).execute(cb))
+				.thenApply(result -> {
+					logger.info("Call with id: " + result.getId() + " is still active");
+					return true;
+				})
+				.exceptionally(Futures.on(RestException.class, e -> {
+					logger.info("Call is not active ");
+					return false;
+				}));
 	}
-	
+
 
 	public abstract CompletableFuture<Void> run();
 
 	/**
 	 * create a new channel redirect operation
-	 * 
+	 *
 	 * @param channelId the id of the channel we redirecting
 	 * @param endpoint the endpoint to redirect the channel to
-	 * 
+	 *
 	 * @return
 	 */
 	public Redirect redirect(String channelId, String endpoint) {

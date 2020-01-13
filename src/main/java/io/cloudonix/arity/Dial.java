@@ -13,40 +13,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.ChannelHangupRequest;
-import ch.loway.oss.ari4java.generated.ChannelStateChange;
+import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
+import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.lib.Futures;
 
 /**
  * The class represents the Dial operation
- * 
+ *
  * @author naamag
  *
  */
 public class Dial extends CancelableOperations {
-	
+
 	public enum Status {
-		UNKNOWN("UNKNOWN"), 
+		UNKNOWN("UNKNOWN"),
 		CHANUNAVAIL("CHANUNAVAIL"),
 		CONGESTION("CONGESTION"),
 		PROGRESS("PROGRESS"),
 		NOANSWER("NOANSWER"),
-		BUSY("BUSY"), 
+		BUSY("BUSY"),
 		RINGING("RINGING"),
-		ANSWER("ANSWER"), 
+		ANSWER("ANSWER"),
 		CANCEL("CANCEL"),
 		DONTCALL("DONTCALL"),
 		TORTURE("TORTURE"),
 		INVALIDARGS("INVALIDARGS");
-		
+
 		private String name;
 
 		private Status(String name) {
 			this.name = name;
 		}
-		
+
 		public String getName() {
 			return name;
 		}
@@ -97,7 +97,7 @@ public class Dial extends CancelableOperations {
 	public Dial(CallController callController, String callerId, String destination) {
 		this(callController.getChannelId(), callController.getARIty(), callerId, destination);
 	}
-	
+
 	/**
 	 * Initiate an unsolicited dial
 	 * @param arity ARIty instance to run the operation against
@@ -127,10 +127,10 @@ public class Dial extends CancelableOperations {
 		this.headers.putAll(headers);
 		return this;
 	}
-	
+
 	/**
 	 * Add a SIP header to set on the outgoing SIP channel (only makes sense if the destination endpoint
-	 * uses "SIP" technology) 
+	 * uses "SIP" technology)
 	 * @param name header name
 	 * @param value header value
 	 * @return itself for fluent calls
@@ -139,7 +139,7 @@ public class Dial extends CancelableOperations {
 		this.headers.put(name, value);
 		return this;
 	}
-	
+
 	/**
 	 * Set Asterisk channel variables on the outgoing channel
 	 * @param variables list of variables to set
@@ -149,7 +149,7 @@ public class Dial extends CancelableOperations {
 		this.variables.putAll(variables);
 		return this;
 	}
-	
+
 	/**
 	 * Add an Asterisk variable to set on the outgoing channel
 	 * @param name variable name
@@ -160,7 +160,7 @@ public class Dial extends CancelableOperations {
 		this.variables.put(name, value);
 		return this;
 	}
-		
+
 	/**
 	 * Set the dial timeout (how long before we give up on waiting for answer
 	 * @param timeout timeout in seconds
@@ -170,10 +170,10 @@ public class Dial extends CancelableOperations {
 		this.timeout = timeout;
 		return this;
 	}
-	
+
 	/**
 	 * Override the originator channel ID for the channel to be created by Dial.
-	 * 
+	 *
 	 * If this Dial was created with a {@link CallController}, then the originator channel ID is
 	 * already set from the <tt>CallController</tt> channel ID, but this call may be used to unset it by
 	 * passing <tt>null</tt> as the value.
@@ -187,10 +187,10 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * Connect the outbound channel to a local channel that will start in the specified dial plan.
-	 * 
+	 *
 	 * Dial plan values (context, extension and priority) can be set to null (or 0) for starting the
 	 * local channel in the default context and the null extension (which is only going to match catch alls).
-	 * 
+	 *
 	 * @param context Context to run the local channel in
 	 * @param extension Extension to dial in the dial plan context
 	 * @param priority Priority to start in the context, set to 0 if you're not sure
@@ -206,10 +206,10 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * Connect the outbound channel to a dial plan context without a local channel.
-	 * 
+	 *
 	 * Dial plan values (context, extension and priority) can be set to null (or 0) for starting the
 	 * local channel in the default context and the null extension (which is only going to match catch alls).
-	 * 
+	 *
 	 * @param context Context to run the local channel in
 	 * @param extension Extension to dial in the dial plan context
 	 * @param priority Priority to start in the context, set to 0 if you're not sure
@@ -221,7 +221,7 @@ public class Dial extends CancelableOperations {
 		this.priority = priority;
 		return this;
 	}
-	
+
 	/**
 	 * Have this dial implement "early bridging" dial workflow for Asterisk 14, as suggested in
 	 * https://blogs.asterisk.org/2016/08/24/asterisk-14-ari-create-bridge-dial/
@@ -236,10 +236,10 @@ public class Dial extends CancelableOperations {
 		this.earlyBridge = bridge;
 		return this;
 	}
-	
+
 	/**
 	 * The method dials to a number (end point)
-	 * 
+	 *
 	 * @return A promise to return this instance when the dial operation completes
 	 */
 	public CompletableFuture<Dial> run() {
@@ -252,14 +252,15 @@ public class Dial extends CancelableOperations {
 			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
 		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endpointChannelId, this::handleChannelStateChanged);
-		getArity().addEventHandler(ch.loway.oss.ari4java.generated.Dial.class, endpointChannelId, this::handleDialEvent);
+		getArity().addEventHandler(ch.loway.oss.ari4java.generated.models.Dial.class, endpointChannelId, this::handleDialEvent);
 
 		if (Objects.nonNull(earlyBridge))
 			return runEarlyBridingWorkflow();
-		
+
 		return this.<Channel>retryOperation(
-				cf -> channels().originate(endpoint, extension, context, priority, null, getArity().getAppName(), "",
-						callerId, timeout, formatSIPHeaders(), endpointChannelId, otherChannelId, getChannelId(), null, cf))
+				cb -> channels().originate(endpoint).setExtension(extension).setContext(context).setPriority(priority)
+				.setCallerId(callerId).setTimeout(timeout).setVariables(formatSIPHeaders())
+				.setChannelId(endpointChannelId).setOtherChannelId(otherChannelId).setOriginator(getChannelId()).execute(cb))
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
@@ -273,8 +274,8 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
 		logger.finer("Starting early bridging dial " + callerId + " -> " + endpoint);
-		return this.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName(), "", endpointChannelId, 
-				null, getChannelId(), null, h))
+		return this.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName())
+				.setAppArgs("").setChannelId(endpointChannelId).setOriginator(getChannelId()).execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(Futures.delay(50)) // TODO: replace with arity.waitForStasisStart(getChannelId())
 				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
@@ -284,21 +285,22 @@ public class Dial extends CancelableOperations {
 				.thenApply(v -> formatSIPHeaders())
 				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
 				.whenComplete((v,t) -> logger.finer("Early bridging dialing out on " + endpointChannelId))
-				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId, getChannelId(), timeout, h)))
+				.thenCompose(v -> this.<Void>retryOperation(h -> channels()
+						.dial(endpointChannelId).setCaller(getChannelId()).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
 					logger.fine("Early bridged dial started " + callerId + " -> " + endpoint);
 				})
 				.thenCompose(v -> compFuture);
 	}
-	
+
 	/**
 	 * handle Dial event
-	 * 
+	 *
 	 * @param dial dial event
 	 * @return
 	 */
-	private void handleDialEvent(ch.loway.oss.ari4java.generated.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.Dial>se) {
+	private void handleDialEvent(ch.loway.oss.ari4java.generated.models.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.models.Dial>se) {
 		logger.finer("Dial event detected on channel " + getChannelId() + ": " + dial.getDialstring() + " " + dial.getDialstatus());
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
@@ -330,7 +332,7 @@ public class Dial extends CancelableOperations {
 		case INVALIDARGS:
 		case TORTURE:
 			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
-			this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb));
+			this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb));
 			failed();
 			se.unregister();
 			return;
@@ -341,9 +343,9 @@ public class Dial extends CancelableOperations {
 		case UNKNOWN:
 		}
 	}
-	
+
 	private CompletableFuture<Void> setVariable(Map.Entry<String, String> var) {
-		return this.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey(), var.getValue(), h));
+		return this.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey()).setValue(var.getValue()).execute(h));
 	}
 
 	/**
@@ -362,7 +364,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * handle hang up event of the caller
-	 * 
+	 *
 	 * @param hangup
 	 *            ChannelHangupRequest event
 	 * @return
@@ -374,7 +376,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * handle hang up event of the callee
-	 * 
+	 *
 	 * @param hangup
 	 *            ChannelHangupRequest event
 	 * @return
@@ -393,13 +395,13 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
-		return this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId, "normal", cb))
+		return this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
 	/**
 	 * get the number we are calling to
-	 * 
+	 *
 	 * @return
 	 */
 	public String getEndPointNumber() {
@@ -408,7 +410,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * set the number we are calling to
-	 * 
+	 *
 	 * @param endPointNumber
 	 */
 	public void setEndPointNumber(String endPointNumber) {
@@ -417,18 +419,18 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * get dial status of the call
-	 * 
+	 *
 	 * @return
 	 */
 	public Status getDialStatus() {
 		return dialStatus;
 	}
-	
+
 	public Dial whenActive(Runnable func) {
 		channelStateActive.add(func);
 		return this;
 	}
-	
+
 	private void active() {
 		if (wasActive)
 			return;
@@ -448,7 +450,7 @@ public class Dial extends CancelableOperations {
 		channelStateRinging.add(func);
 		return this;
 	}
-	
+
 	private void ringing() {
 		if(wasRinging)
 			return;
@@ -458,12 +460,12 @@ public class Dial extends CancelableOperations {
 			channelStateRinging.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenRinging callback: " +ErrorStream.fromThrowable(t));
-		} 
+		}
 	}
 
 	/**
 	 * register handler for handling when channel state is Up
-	 * 
+	 *
 	 * @param func callback handler
 	 * @return itself for chaining
 	 */
@@ -471,7 +473,7 @@ public class Dial extends CancelableOperations {
 		channelStateUp.add(func);
 		return this;
 	}
-	
+
 	/**
 	 * handle when the call was answered
 	 */
@@ -485,7 +487,7 @@ public class Dial extends CancelableOperations {
 			channelStateUp.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenConnect callback: " +ErrorStream.fromThrowable(t));
-		} 
+		}
 	}
 
 	/**
@@ -497,7 +499,7 @@ public class Dial extends CancelableOperations {
 		channelStateFail.add(func);
 		return this;
 	}
-	
+
 	/**
 	 * handle when fail to dial
 	 */
@@ -510,15 +512,15 @@ public class Dial extends CancelableOperations {
 			channelStateFail.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenFailed callback: " +ErrorStream.fromThrowable(t));
-		} 
+		}
 		compFuture.complete(this);
 	}
-	
+
 	public Dial whenCancelled(Runnable func) {
 		channelStateCancelled.add(func);
 		return this;
 	}
-	
+
 	private void cancelled() {
 		if (wasCancelled)
 			return;
@@ -531,12 +533,12 @@ public class Dial extends CancelableOperations {
 		}
 		compFuture.complete(this);
 	}
-	
+
 	public Dial whenDisconnected(Runnable func) {
 		channelStateCancelled.add(func);
 		return this;
 	}
-	
+
 	private void disconnected() {
 		if (wasDisconnected)
 			return;
@@ -546,10 +548,10 @@ public class Dial extends CancelableOperations {
 			channelStateDisconnected.forEach(Runnable::run);
 		} catch (Throwable t) {
 			logger.severe("Fatal error running whenDisconnected callback: " +ErrorStream.fromThrowable(t));
-		} 
+		}
 		compFuture.complete(this);
 	}
-	
+
 	private void computeDurationsAtEndOfCall() {
 		endTime = Instant.now();
 		callDuration = Objects.isNull(dialStartTime) ? Duration.ZERO :
@@ -563,7 +565,7 @@ public class Dial extends CancelableOperations {
 
 	/**
 	 * handler for ChannelStateChange event
-	 * 
+	 *
 	 * @param channelState new state of the channel
 	 * @return
 	 */
@@ -576,7 +578,7 @@ public class Dial extends CancelableOperations {
 	/**
 	 * get the duration of the call (the time passed since started dialing until the
 	 * call was hanged up)
-	 * 
+	 *
 	 * @return
 	 */
 	public long getCallDuration() {
@@ -584,11 +586,11 @@ public class Dial extends CancelableOperations {
 			computeDurationsAtEndOfCall();
 		return callDuration.toMillis();
 	}
-	
+
 	/**
 	 * get media length of the call (the time passed from the moment the caller
 	 * answered to the hang up of the call)
-	 * 
+	 *
 	 * @return
 	 */
 	public long getMediaLength() {
@@ -604,16 +606,16 @@ public class Dial extends CancelableOperations {
 	public CallState getEndPoint() {
 		return dialledCallState.get();
 	}
-	
+
 	/**
 	 * Retrieve the expeted channel ID for the dialed channel.
-	 * This value is set here, before creating the channel, so it can never be <code>null</code> 
+	 * This value is set here, before creating the channel, so it can never be <code>null</code>
 	 * @return the channel ID of the dialed endpoint
 	 */
 	public String getEndPointChannelId() {
 		return endpointChannelId;
 	}
-	
+
 	public long getCallEndTime() {
 		return endTime.toEpochMilli();
 	}
@@ -623,8 +625,8 @@ public class Dial extends CancelableOperations {
 	}
 
 	public String toString() {
-		return "[Dial " + callerId + "->" + endpoint + "|" + 
-				endpointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") + 
+		return "[Dial " + callerId + "->" + endpoint + "|" +
+				endpointChannelId + (Objects.nonNull(otherChannelId) ? "(local)" : "") +
 				"|" + dialStatus.name + "]";
 	}
 

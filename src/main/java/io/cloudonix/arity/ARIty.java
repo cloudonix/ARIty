@@ -18,17 +18,17 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.BridgeCreated;
-import ch.loway.oss.ari4java.generated.BridgeDestroyed;
-import ch.loway.oss.ari4java.generated.Channel;
-import ch.loway.oss.ari4java.generated.DeviceStateChanged;
-import ch.loway.oss.ari4java.generated.Message;
-import ch.loway.oss.ari4java.generated.PlaybackFinished;
-import ch.loway.oss.ari4java.generated.PlaybackStarted;
-import ch.loway.oss.ari4java.generated.RecordingFinished;
-import ch.loway.oss.ari4java.generated.RecordingStarted;
-import ch.loway.oss.ari4java.generated.StasisStart;
 import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
+import ch.loway.oss.ari4java.generated.models.BridgeCreated;
+import ch.loway.oss.ari4java.generated.models.BridgeDestroyed;
+import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.DeviceStateChanged;
+import ch.loway.oss.ari4java.generated.models.Message;
+import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
+import ch.loway.oss.ari4java.generated.models.PlaybackStarted;
+import ch.loway.oss.ari4java.generated.models.RecordingFinished;
+import ch.loway.oss.ari4java.generated.models.RecordingStarted;
+import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -38,7 +38,7 @@ import io.cloudonix.arity.errors.ErrorStream;
 /**
  * The class represents the creation of ARI and websocket service that handles
  * the incoming events
- * 
+ *
  * @author naamag
  *
  */
@@ -54,12 +54,12 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Create and connect ARIty to Asterisk
-	 * 
+	 *
 	 * @param uri     Asterisk ARI URI
 	 * @param appName name of the stasis application
 	 * @param login   user name
 	 * @param pass    password
-	 * 
+	 *
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
@@ -70,14 +70,14 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Create and connect ARIty to Asterisk
-	 * 
-	 * @param uri           Asterisk ARI 
+	 *
+	 * @param uri           Asterisk ARI
 	 * @param appName       name of the stasis application
 	 * @param login         user name
 	 * @param pass          password
 	 * @param openWebSocket if need to open web socket in order to process events
 	 *                      true, false otherwise
-	 * 
+	 *
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
@@ -85,18 +85,18 @@ public class ARIty implements AriCallback<Message> {
 			throws ConnectionFailedException, URISyntaxException {
 		this(uri, appName, login, pass, openWebSocket, null);
 	}
-	
+
 	/**
 	 * Create and connect ARIty to Asterisk
-	 * 
-	 * @param uri           Asterisk ARI 
+	 *
+	 * @param uri           Asterisk ARI
 	 * @param appName       name of the stasis application
 	 * @param login         user name
 	 * @param pass          password
 	 * @param openWebSocket if need to open web socket in order to process events
 	 *                      true, false otherwise
 	 * @param ce            Handler to report connection exceptions to (set to null to ignore)
-	 * 
+	 *
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
@@ -107,8 +107,8 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Create and connect ARIty to Asterisk
-	 * 
-	 * @param uri           Asterisk ARI 
+	 *
+	 * @param uri           Asterisk ARI
 	 * @param appName       name of the stasis application
 	 * @param login         user name
 	 * @param pass          password
@@ -116,7 +116,7 @@ public class ARIty implements AriCallback<Message> {
 	 *                      true, false otherwise
 	 * @param version       ARI version to enforce
 	 * @param ce            Handler to report connection exceptions to (set to null to ignore)
-	 * 
+	 *
 	 * @throws ConnectionFailedException
 	 * @throws URISyntaxException
 	 */
@@ -131,7 +131,7 @@ public class ARIty implements AriCallback<Message> {
 			logger.info("Ari created");
 			logger.info("Ari version: " + ari.getVersion());
 			if (openWebSocket) {
-				ari.events().eventWebsocket(appName, true, this);
+				ari.events().eventWebsocket(appName).setSubscribeAll(true).execute(this);
 				logger.info("Websocket is open");
 			}
 		} catch (ARIException e) {
@@ -143,7 +143,7 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * The method register a new application to be executed according to the class
 	 * of the voice application
-	 * 
+	 *
 	 * @param class instance of the class that contains the voice application
 	 *        (extends from callController)
 	 */
@@ -166,7 +166,7 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * The method register the voice application (the supplier that has a
 	 * CallController, meaning the application)
-	 * 
+	 *
 	 * @param controllorSupplier the supplier that has the CallController (the voice
 	 *                           application)
 	 */
@@ -178,7 +178,7 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * The method register the voice application and execute it
-	 * 
+	 *
 	 * @param cc
 	 */
 	public void registerVoiceApp(Consumer<CallController> cc) {
@@ -198,7 +198,7 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * The method hangs up the call if we can't create an instance of the class that
 	 * contains the voice application
-	 * 
+	 *
 	 * @param e
 	 * @return
 	 */
@@ -211,15 +211,15 @@ public class ARIty implements AriCallback<Message> {
 			}
 		};
 	}
-	
+
 	/**
 	 * Initialize an existing call controller for an existing channel
-	 * 
+	 *
 	 * Use this to have ARIty set up the ARIty call state and call monitor for an existing channel. ARIty will retrieve the channel
 	 * from ARI and then initialize the provided Call Controller instance, eventually calling {@link CallController#init()}.
-	 * 
+	 *
 	 * It is highly recommended to use a new call controller instance with this method and not an instance that has already been run.
-	 * 
+	 *
 	 * @param controller Call controller to set up
 	 * @param channelId Asterisk channel ID to request from Asterisk
 	 */
@@ -228,10 +228,10 @@ public class ARIty implements AriCallback<Message> {
 				.thenAccept(controller::init)
 				.thenApply(v -> controller);
 	}
-	
+
 	/**
 	 * Generate a new call state for an existing channel.
-	 * 
+	 *
 	 * Useful for applications that create new channels and want to monitor them. Please note that the retrieved
 	 * call state instance does not share any data with other {@link CallState} instances that monitor the same
 	 * channel.
@@ -239,7 +239,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @return A promise for a new call state instance for that channel
 	 */
 	public CompletableFuture<CallState> getCallState(String channelId) {
-		return Operation.<Channel>retry(h -> ari.channels().get(channelId, h))
+		return Operation.<Channel>retry(h -> ari.channels().get(channelId).execute(h))
 				.thenApply(chan -> new CallState(chan, this));
 	}
 
@@ -249,7 +249,7 @@ public class ARIty implements AriCallback<Message> {
 			executor.submit(() -> handleStasisStart(event));
 			return;
 		}
-		
+
 		String channelId = getEventChannelId(event);
 		if (Objects.isNull(channelId))
 			return;
@@ -270,9 +270,9 @@ public class ARIty implements AriCallback<Message> {
 			logger.finer("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
 			return;
 		}
-		
+
 		CallState callState = new CallState(ss, this);
-		
+
 		// see if an application waits for this channel
 		Consumer<CallState> channelHandler = stasisStartListeners.remove(ss.getChannel().getId());
 		if (Objects.nonNull(channelHandler)) {
@@ -280,7 +280,7 @@ public class ARIty implements AriCallback<Message> {
 			channelHandler.accept(callState);
 			return;
 		}
-		
+
 		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		CallController cc = callSupplier.get();
 		cc.init(callState);
@@ -293,7 +293,7 @@ public class ARIty implements AriCallback<Message> {
 	/**
 	 * get the channel id of the current event. if no channel id to this event, null
 	 * is returned
-	 * 
+	 *
 	 * @param event event message that we are checking
 	 * @return
 	 */
@@ -349,7 +349,7 @@ public class ARIty implements AriCallback<Message> {
 		eventHandlers.add(se);
 		return se;
 	}
-	
+
 	/**
 	 * remove event handler when no need to listen to it anymore
 	 * @param handler the event handler to be removed
@@ -358,10 +358,10 @@ public class ARIty implements AriCallback<Message> {
 		if(eventHandlers.remove(handler))
 			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
-	
+
 	/**
 	 * Register a one-off event handler for a specific message on a specific channel.
-	 * 
+	 *
 	 * After the event is triggered once, the event handler is automatically unregistererd.
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
@@ -376,20 +376,20 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * get the name of the application
-	 * 
+	 *
 	 * @return
 	 */
 	public String getAppName() {
 		return appName;
 	}
-	
+
 	/**
 	 * Allow an ARIty application to take control of a known channel, before it enters ARI.
-	 * 
+	 *
 	 * This is useful with the ARIty application creates managed channels by itself
 	 * @param id Known channel ID to wait for
 	 * @param eventHandler handle that will receive the {@link CallState} object for the channel
-	 * when it enters ARI 
+	 * when it enters ARI
 	 */
 	public void registerApplicationStartHandler(String id, Consumer<CallState> eventHandler) {
 		stasisStartListeners.put(id, eventHandler);
@@ -399,13 +399,9 @@ public class ARIty implements AriCallback<Message> {
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */
 	public void disconnect() {
-		try {
-			ari.cleanup();
-		} catch (ARIException e) {
-			logger.warning("Failed disconeccting: " + e);
-		}
+		ari.cleanup();
 	}
-	
+
 	/**
 	 * Initiate an unsolicited dial
 	 * @param callerId Caller ID to be published to the destination
@@ -418,7 +414,7 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * Get the url that we are connected to
-	 * 
+	 *
 	 * @return
 	 */
 	public String getConnetion() {
@@ -427,7 +423,7 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * get call supplier
-	 * 
+	 *
 	 * @return
 	 */
 	public Supplier<CallController> getCallSupplier() {
@@ -436,7 +432,7 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * set call supplier
-	 * 
+	 *
 	 * @param callSupplier
 	 */
 	public void setCallSupplier(Supplier<CallController> callSupplier) {
@@ -445,24 +441,19 @@ public class ARIty implements AriCallback<Message> {
 
 	/**
 	 * get ARI instance
-	 * 
+	 *
 	 * @return
 	 */
 	public ARI getAri() {
 		return ari;
 	}
-	
+
 	/**
 	 * get all active channels
-	 * 
+	 *
 	 * @return
 	 */
-	public List<Channel> getActiveChannels(){
-		try {
-			return ari.channels().list();
-		} catch (RestException e) {
-			logger.warning("Unable to get list of active channels: " + e);
-			return null;
-		}
+	public CompletableFuture<List<Channel>> getActiveChannels(){
+		return Operation.retry(cb -> ari.channels().list().execute(cb));
 	}
 }

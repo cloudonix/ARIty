@@ -5,7 +5,7 @@ import java.util.logging.Logger;
 
 /**
  * The class represents the Hang up operation (hangs up a call)
- * 
+ *
  * @author naamag
  *
  */
@@ -17,7 +17,7 @@ public class Hangup extends Operation {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param callController instance that represents a call
 	 */
 	public Hangup(CallController callController) {
@@ -26,11 +26,11 @@ public class Hangup extends Operation {
 
 	/**
 	 * The method hangs up a channel
-	 * 
+	 *
 	 * @return
 	 */
 	public CompletableFuture<Hangup> run() {
-		return this.<Void>retryOperation(cb->channels().hangup(getChannelId(),reason,cb))
+		return this.<Void>retryOperation(cb->channels().hangup(getChannelId()).setReason(reason).execute(cb))
 				.thenApply(res->{
 					logger.info("Channel with id: "+getChannelId()+" was hanged up");
 					return this;
@@ -39,7 +39,7 @@ public class Hangup extends Operation {
 
 	/**
 	 * get the reason for hang up
-	 * 
+	 *
 	 * @return
 	 */
 	public String getReason() {
@@ -49,11 +49,11 @@ public class Hangup extends Operation {
 	/**
 	 * set the reason for why the call is hanged up. Allowed values: normal, busy,
 	 * congestion, no_answer
-	 * 
+	 *
 	 * @param reason
 	 */
 	public void setReason(String reason) {
 		this.reason = reason;
 	}
-	
+
 }
