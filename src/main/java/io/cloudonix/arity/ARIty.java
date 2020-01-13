@@ -104,7 +104,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, Consumer<Exception> ce)
 			throws ConnectionFailedException, URISyntaxException {
-		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, null);
+		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, ce);
 	}
 
 	/**
