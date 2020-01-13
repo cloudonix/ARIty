@@ -34,6 +34,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.arity.helpers.Lazy;
 
 /**
  * The class represents the creation of ARI and websocket service that handles
@@ -51,6 +52,7 @@ public class ARIty implements AriCallback<Message> {
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
 	private ExecutorService executor = ForkJoinPool.commonPool();
 	private Consumer<Exception> ce;
+	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
 
 	/**
 	 * Create and connect ARIty to Asterisk
@@ -455,5 +457,9 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public CompletableFuture<List<Channel>> getActiveChannels(){
 		return Operation.retry(cb -> ari.channels().list().execute(cb));
+	}
+
+	public Channels channels() {
+		return channels.get();
 	}
 }
