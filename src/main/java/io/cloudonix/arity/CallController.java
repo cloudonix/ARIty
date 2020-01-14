@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Variable;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -423,6 +424,8 @@ public abstract class CallController {
 	 * @return the current call state object
 	 */
 	public CallState getCallState() {
+		if (Objects.isNull(callState))
+			throw new InvalidCallStateException();
 		return callState;
 	}
 

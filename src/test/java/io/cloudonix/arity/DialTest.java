@@ -7,8 +7,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-class DialTest {
-	
+public class DialTest {
+
 	public class Application extends CallController {
 
 		@Override
@@ -28,18 +28,18 @@ class DialTest {
 	static AsteriskContainer asterisk = new AsteriskContainer();
 
 	@BeforeClass
-	static void beforeTesting() {
+	static public void beforeTesting() {
 		asterisk.start();
 	}
-	
+
 	@Test
-	void testRun() {
-		
+	public void testRun() {
+
 	}
-	
-	
+
+
 	@AfterClass
-	static void afterTesting() {
+	static public void afterTesting() {
 		asterisk.stop();
 	}
 

@@ -67,13 +67,14 @@ public class ARItySipLayer implements SipListener {
 		Properties properties = new Properties();
 		logger.info("Starting stack: SipInitiator_" + Instant.now());
 		properties.setProperty("javax.sip.STACK_NAME", "SipInitiator_" + Instant.now() + " with port: " + port);
+		properties.setProperty("javax.sip.IP_ADDRESS", ip);
 
 		sipStack = sipFactory.createSipStack(properties);
 		headerFactory = sipFactory.createHeaderFactory();
 		addressFactory = sipFactory.createAddressFactory();
 		messageFactory = sipFactory.createMessageFactory();
 
-		createRamdomPort();
+		createRandomPort();
 
 		logger.info("port is:" + port);
 		logger.info("ip is:" + ip);
@@ -82,13 +83,15 @@ public class ARItySipLayer implements SipListener {
 		sipProvider = sipStack.createSipProvider(listeningPoint);
 		sipProvider.addSipListener(this);
 		setProperties();
+	}
+
+	public void close() {
 
 	}
 
 	private void setProperties() throws FileNotFoundException {
-		
 		InputStream in = new FileInputStream(new File("src/test/java/io/cloudonix/properties.txt"));
-				
+
 		Properties p = new Properties(System.getProperties());
 		try {
 			p.load(in);
@@ -97,15 +100,12 @@ public class ARItySipLayer implements SipListener {
 		}
 		System.setProperties(p);
 		logger.info("Successfuly set properties");
-
 	}
 
 	public CompletableFuture<Void> sendInvite(String username, String address, String token)
 			throws ParseException, InvalidArgumentException, SipException, SdpException, MalformedURLException {
-		String host = new URL(address).getHost();
-		if(host.equals("localhost"))
-			host = "127.0.0.1";
-		createRamdomPort();
+		String host = address.replaceAll("localhost", "127.0.0.1");
+		createRandomPort();
 		SipURI requestURI = addressFactory.createSipURI(username, host);
 		requestURI.setTransportParam("udp");
 
@@ -139,13 +139,13 @@ public class ARItySipLayer implements SipListener {
 		request.setContent(session.toString().getBytes(), headerFactory.createContentTypeHeader("application", "sdp"));
 
 		inviteTid = sipProvider.getNewClientTransaction(request);
+		logger.info("Sending request: " + inviteTid.getRequest());
 		inviteTid.sendRequest();
 		dialog = inviteTid.getDialog();
 		return waitForBye;
-
 	}
 
-	private void createRamdomPort() {
+	private void createRandomPort() {
 		localRtpAudioPort = ThreadLocalRandom.current().nextInt(10000, 30001);
 		if ((localRtpAudioPort % 2) != 0)
 			localRtpAudioPort++;
@@ -316,7 +316,7 @@ public class ARItySipLayer implements SipListener {
 			processBye(request, serverTransactionId);
 			waitForBye.complete(null);
 		}
-	
+
 		else {
 			try {
 				serverTransactionId.sendResponse(messageFactory.createResponse(202, request));
