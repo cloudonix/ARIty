@@ -18,7 +18,6 @@ import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.ari_2_0_0.models.Dial_impl_ari_2_0_0;
 import ch.loway.oss.ari4java.generated.models.BridgeCreated;
 import ch.loway.oss.ari4java.generated.models.BridgeDestroyed;
 import ch.loway.oss.ari4java.generated.models.Channel;
@@ -104,7 +103,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, Consumer<Exception> ce)
 			throws ConnectionFailedException, URISyntaxException {
-		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, ce);
+		this(uri, appName, login, pass, openWebSocket, AriVersion.IM_FEELING_LUCKY, ce);
 	}
 
 	/**
@@ -303,8 +302,8 @@ public class ARIty implements AriCallback<Message> {
 		if (event instanceof DeviceStateChanged || event instanceof BridgeCreated || event instanceof BridgeDestroyed)
 			return null; // skip this, it never has a channel
 
-		if (event instanceof Dial_impl_ari_2_0_0)
-			return ((Dial_impl_ari_2_0_0) event).getPeer().getId();
+		if (event instanceof ch.loway.oss.ari4java.generated.models.Dial)
+			return ((ch.loway.oss.ari4java.generated.models.Dial) event).getPeer().getId();
 
 		if (event instanceof PlaybackStarted)
 			return ((PlaybackStarted) event).getPlayback().getTarget_uri()
