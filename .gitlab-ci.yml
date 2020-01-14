@@ -1,4 +1,9 @@
+services:
+  - docker:dind
+
 variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
   MAVEN_OPTS: "-Dmaven.repo.local=.m2"
 
 cache:
