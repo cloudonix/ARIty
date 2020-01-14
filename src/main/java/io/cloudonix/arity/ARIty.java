@@ -286,8 +286,10 @@ public class ARIty implements AriCallback<Message> {
 		CallController cc = callSupplier.get();
 		cc.init(callState);
 		CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
-			if (Objects.nonNull(t))
+			if (Objects.nonNull(t)) {
 				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
+				cc.hangup().run();
+			}
 		});
 	}
 
