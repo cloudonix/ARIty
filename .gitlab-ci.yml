@@ -13,7 +13,7 @@ stages:
 
 offline-deps:
   stage: setup
-  image: maven:3-jdk-9
+  image: maven:3-jdk-11
   script:
     - '[ "$(($RANDOM%10))" == 0 ] && mvn -B -U dependency:go-offline || mvn -B dependency:go-offline'
 
@@ -24,7 +24,7 @@ package:
   artifacts: 
     paths: 
       - target
-  image: maven:3-jdk-9
+  image: maven:3-jdk-11
   
 deploy:
   stage: deploy
@@ -35,7 +35,7 @@ deploy:
   artifacts:
     paths:
       - target/staging
-  image: maven:3-jdk-9
+  image: maven:3-jdk-11
   
 s3:
   stage: s3
