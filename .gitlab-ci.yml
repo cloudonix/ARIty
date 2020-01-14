@@ -20,7 +20,7 @@ offline-deps:
 package: 
   stage: package
   script:
-     - mvn -B package -DskipTests -U
+     - mvn -B package -U
   artifacts: 
     paths: 
       - target
