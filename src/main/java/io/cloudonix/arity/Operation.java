@@ -226,7 +226,7 @@ public abstract class Operation {
 			Throwable cause = error.getCause();
 			if (Objects.isNull(cause))
 				return error;
-			error = error.getCause();
+			error = cause;
 		}
 		return error;
 	}
