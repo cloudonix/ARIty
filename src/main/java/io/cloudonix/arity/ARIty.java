@@ -104,7 +104,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, Consumer<Exception> ce)
 			throws ConnectionFailedException, URISyntaxException {
-		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, null);
+		this(uri, appName, login, pass, openWebSocket, AriVersion.ARI_2_0_0, ce);
 	}
 
 	/**
@@ -253,10 +253,10 @@ public class ARIty implements AriCallback<Message> {
 		}
 
 		String channelId = getEventChannelId(event);
+		logger.finest("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
 		if (Objects.isNull(channelId))
 			return;
 
-		logger.finest("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
 		Iterator<EventHandler<?>> itr = eventHandlers.iterator();
 		while (itr.hasNext()) {
 			EventHandler<?> currEntry = itr.next();
