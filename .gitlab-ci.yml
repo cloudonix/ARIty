@@ -12,7 +12,7 @@ cache:
   
 stages: 
   - setup
-  - test
+##  - test
   - package 
   - deploy
   - s3
