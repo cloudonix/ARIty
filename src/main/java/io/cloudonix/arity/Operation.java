@@ -19,7 +19,7 @@ import io.cloudonix.lib.Futures;
  * A general class that represents an Asterisk operation
  *
  * @author naamag
- *
+ * @author odeda
  */
 public abstract class Operation {
 
@@ -222,8 +222,12 @@ public abstract class Operation {
 	}
 
 	protected static Throwable unwrapCompletionError(Throwable error) {
-		while (error instanceof CompletionException)
+		while (error instanceof CompletionException) {
+			Throwable cause = error.getCause();
+			if (Objects.isNull(cause))
+				return error;
 			error = error.getCause();
+		}
 		return error;
 	}
 }
