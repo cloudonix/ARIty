@@ -20,8 +20,8 @@ import io.cloudonix.arity.errors.InvalidCallStateException;
 
 public class ARItyTest {
 
-	public class Application extends CallController {
-		public boolean isSucceeded = false;
+	public static class Application extends CallController {
+		public static boolean isSucceeded = false;
 
 		@Override
 		public CompletableFuture<Void> run() {
@@ -46,9 +46,9 @@ public class ARItyTest {
 			logger.info("voice application started");
 			isSucceeded=false;
 			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
-				logger.info("finished playback! id: " + pb.getPlayback().getId());
+				logger.info("finished playback!");
 				return call.hangup().run();
-			}).handle(call::endCall)
+			}).handle(call::endCall).thenCompose(x->x)
 			.thenRun(() ->{
 				isSucceeded = true;
 			}).exceptionally(t -> {
@@ -95,18 +95,15 @@ public class ARItyTest {
 		arity.registerVoiceApp(call -> {
 			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run())
 			.thenAccept(pb -> {
-				logger.info("finished playback in lambda! id: " + pb.getPlayback().getId());
+				logger.info("finished playback in lambda!");
 				numCalled.addAndGet(1);
-				System.err.println("!!!!!After playback finished, I think I was called: " + numCalled.get());
-				logger.info("After playback finished, I think I was called: " + numCalled.get());
-			}).handle(call::endCall).exceptionally(t -> {
+			}).handle(call::endCall).thenCompose(x->x).exceptionally(t -> {
 				logger.severe("Error: " + t);
 				return null;
 			});
 		});
 		ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1", "1234").get();
 		arity.disconnect();
-		logger.info("Finished with call, I think I was called: " + numCalled.get());
 		assertEquals(1, numCalled.get());
 	}
 
@@ -114,7 +111,9 @@ public class ARItyTest {
 	public void testRegisterClass() throws Exception {
 		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		arity.registerVoiceApp(Application.class);
+		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
+		assertTrue(Application.isSucceeded);
 	}
 
 	@Test(timeout = 30000)
