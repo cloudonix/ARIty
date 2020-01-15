@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -40,6 +41,15 @@ public class ControllerRegistrationTest {
 	final static Logger logger = LoggerFactory.getLogger(ControllerRegistrationTest.class);
 
 	volatile static int runCount = 0;
+
+	@BeforeClass
+	public static void preloadImages() {
+		try {
+			ARItySipInitiator.call("test", "test", "test").get();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	@Test(timeout = 30000)
 	public void testRegisterClass() throws Exception {
