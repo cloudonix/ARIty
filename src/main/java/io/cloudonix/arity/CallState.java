@@ -104,6 +104,9 @@ public class CallState {
 		});
 	}
 
+	/* Useless c'tor, used just so we can fake call controllers not connected to actual ARI service, for testing other things */
+	CallState() {}
+
 	public ARI getAri() {
 		return ari;
 	}

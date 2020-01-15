@@ -18,7 +18,7 @@ import io.cloudonix.lib.Futures;
  *
  */
 public abstract class CallController {
-	private CallState callState;
+	private CallState callState = new CallState();
 	private Logger logger = Logger.getLogger(getClass().getName());
 
 	/**
