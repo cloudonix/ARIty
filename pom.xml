@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.8.15</version>
+	<version>0.8.16</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -54,7 +54,7 @@
 		<dependency>
 			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>CX-0.8.0.2</version>
+			<version>CX-0.8.0.3</version>
 		</dependency>
 
 		<dependency>
