@@ -177,7 +177,10 @@ public abstract class Operation {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t))
 				return Futures.completedFuture(v);
-			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
+			Throwable ex = unwrapCompletionError(t);
+			if (Objects.isNull(ex)) // this shouldn't happen, but apparently it happens all the time ?!?
+				ex = t;
+			Exception recognizedFailure = exceptionMapper.apply(ex);
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
