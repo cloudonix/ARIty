@@ -1,6 +1,8 @@
-package io.cloudonix.arity;
+package io.cloudonix.test.support;
 
+import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Objects;
 
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -10,7 +12,12 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.InternetProtocol;
 import com.github.dockerjava.api.model.Ports.Binding;
 
-class AsteriskContainer extends GenericContainer<AsteriskContainer> {
+import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.errors.ConnectionFailedException;
+
+public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
+
+	private ARIty arity;
 
 	public AsteriskContainer () {
 		super("andrius/asterisk:14.x");
@@ -44,11 +51,23 @@ class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		}
 	}
 
+	@Override
+	public void stop() {
+		if (Objects.nonNull(arity))
+			arity.disconnect();
+	}
+
 	public String getAriURL() {
 		return "http://"+ this.getContainerIpAddress()+ ":" + this.getMappedPort(8088) + "/";
 	}
 
 	public String getSipHostPort() {
+		return getContainerInfo().getNetworkSettings().getNetworks().entrySet()
+		.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
+		.findFirst().orElseThrow() + ":" + 5060;
+	}
+
+	public String getMappedSipHostPort() {
 		InspectContainerResponse containerInfo = getContainerInfo();
 		if (containerInfo == null)
 			throw new RuntimeException("No container info!");
@@ -64,4 +83,14 @@ class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		return this.getContainerIpAddress()+ ":" + mappedPort;
 	}
 
+	public ARIty getARIty() {
+		return arity = Objects.requireNonNullElseGet(arity, () -> {
+				try {
+					return new ARIty(getAriURL(), "stasisApp", "testuser", "123");
+				} catch (ConnectionFailedException | URISyntaxException e) {
+					logger().error("Failed to create ARIty", e);
+					return null;
+				}
+			});
+	}
 }

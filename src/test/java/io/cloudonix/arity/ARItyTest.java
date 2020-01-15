@@ -4,19 +4,20 @@ import static org.junit.Assert.*;
 
 import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
 import io.cloudonix.ARItySipInitiator;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
+import io.cloudonix.test.support.AsteriskContainer;
 
 public class ARItyTest {
 
@@ -73,8 +74,9 @@ public class ARItyTest {
 	}
 
 	@Test(timeout = 30000)
-	public void testARIty() throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
+	public void testConncetion() throws ConnectionFailedException, URISyntaxException, InterruptedException, ExecutionException {
+		ARIty arity = asterisk.getARIty();
+		arity.getActiveChannels().get();
 		arity.disconnect();
 	}
 
