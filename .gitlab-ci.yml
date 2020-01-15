@@ -26,8 +26,7 @@ offline-deps:
 test: 
   stage: test
   script:
-     - apt update && apt install -q -y xvfb 
-     - xvfb-run mvn -B test
+     - mvn -B test
   artifacts: 
     paths: 
       - target
