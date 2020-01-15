@@ -54,7 +54,7 @@
 		<dependency>
 			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
-			<version>CX-0.8.0.4-0-gae7fc27</version>
+			<version>ae7fc27</version>
 		</dependency>
 
 		<dependency>
