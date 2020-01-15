@@ -14,7 +14,6 @@ stages:
   - setup
   - test
   - package 
-  - deploy
   - s3
 
 offline-deps:
@@ -26,7 +25,7 @@ offline-deps:
 test: 
   stage: test
   script:
-     - mvn -B test
+    - mvn -B test
   artifacts: 
     paths: 
       - target
@@ -35,21 +34,12 @@ test:
 package: 
   stage: package
   script:
-     - mvn -B -DskipTests package -U
+    - mvn -B -DskipTests package
+    - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
+    - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
   artifacts: 
     paths: 
       - target
-  image: maven:3-jdk-11
-  
-deploy:
-  stage: deploy
-  script: 
-    - ls -la target || true
-    - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
-    - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
-  artifacts:
-    paths:
-      - target/staging
   image: maven:3-jdk-11
   
 s3:
