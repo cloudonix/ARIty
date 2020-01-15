@@ -1,6 +1,7 @@
 package io.cloudonix;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -9,16 +10,100 @@ import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import webphone.webphone;
 
 public class ARItySipInitiator {
 
-	public ARItySipInitiator() {
+	static Future<String> webphoneImage = new ImageFromDockerfile("webphone", false)
+			.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/1.0.0/jvoip-1.0.0.jar"))
+			.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
+					"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
+					"	username=usertest password=123 \\\n" +
+					"	autocall=true loglevel=5 register=0 hasgui=false logtocnosole=true \\\n" +
+					"	events=3 canlogtofile=false iscommandline=true")
+			.withDockerfileFromBuilder(b -> b.from("openjdk:11-jre")
+					.run("apt update && apt install -q -y x11-utils")
+					.add("jvoip.jar", "/app/jvoip.jar")
+					.add("jvoip.sh", "/app/jvoip.sh")
+					.run("chmod a+x /app/jvoip.sh"));
+
+	public static class XVFBContainer extends GenericContainer<XVFBContainer> {
+		XVFBContainer() {
+			super("misoca/xvfb");
+			withNetworkAliases("xvfb");
+		}
+	}
+
+	public static class WebphoneContainer extends GenericContainer<WebphoneContainer> {
+		private XVFBContainer xvfb;
+		boolean calldone = false, needreport = false;
+		int lastStatus;
+		Pattern statusCatcher = Pattern.compile("SIP/\\d\\.\\d (\\d+) \\w+");
+
+		@SuppressWarnings("resource")
+		WebphoneContainer(String address, String destination) {
+			super(webphoneImage);
+			xvfb = new XVFBContainer().withExposedPorts(6001);
+			xvfb.start();
+			logger().info("Started XVFB");
+			withEnv("DISPLAY", xvfb.getContainerInfo().getNetworkSettings().getNetworks().entrySet()
+					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
+					.findFirst().orElseThrow() + ":1");
+			withCommand("/app/jvoip.sh", address, destination);
+		}
+		@Override
+		public void start() {
+			super.start();
+			logger().info("Started JVoiP");
+			followOutput(output->{
+				String line = output.getUtf8String().replaceAll("\n$", "");
+				if (line.contains("] SEND,") || line.contains("] REC,"))
+					needreport = true;
+				else if (line.contains("[mt:"))
+					needreport = false;
+				if (needreport) {
+					logger().info(line);
+				} else {
+					logger().debug(line);
+				}
+				Matcher m = statusCatcher.matcher(line);
+				if (m.find())
+					lastStatus = Integer.valueOf(m.group(1));
+				synchronized (this) {
+					if (line.contains("call done") || line.contains("EVENT,STATUS,1,Finished,")) {
+						calldone = true;
+						notify();
+					}
+				}
+			});
+		}
+		public int getFinalStatus() {
+			synchronized (this) {
+				while (!calldone)
+					try {
+						wait();
+					} catch (InterruptedException e) {
+					}
+			}
+			return lastStatus;
+		}
+		@Override
+		public void stop() {
+			super.stop();
+			xvfb.stop();
+		}
 	}
 
 	private final static Logger logger = Logger.getLogger(ARItySipInitiator.class.getName());
@@ -67,32 +152,18 @@ public class ARItySipInitiator {
 		return ports;
 	}
 
-	public static CompletableFuture<Void> call(String address, String ipFrom, String dnid) throws Exception {
+	public static CompletableFuture<Integer> call(String address, String ipFrom, String dnid) throws Exception {
 		logger.setLevel(Level.FINER);
 		logger.info("Started SipInitiator");
 
-		webphone wobj = new webphone();
-		wobj.API_SetParameter("serveraddress", address);
-//		wobj.API_SetParameter("username", "usertest");
-//		wobj.API_SetParameter("password", "123");
-		wobj.API_SetParameter("register", "0");
-		wobj.API_SetParameter("hasgui", "false");
-		wobj.API_SetParameter("loglevel", "2");
-		wobj.API_SetParameter("logtoconsole", "true");
-		wobj.API_SetParameter("events", "3");
-		wobj.API_SetParameter("canlogtofile", "false");
-
-		wobj.API_Start();
-		logger.info("SIP stack started");
-
-		wobj.API_Call(-1, dnid);
-		logger.info("Sent INVITE");
-		return waitForCallEnd(wobj)
-				.thenAccept(v -> {
-					logger.info("Done with call");
-					wobj.API_Stop();
-					wobj.Terminate();
-				});
+		return CompletableFuture.supplyAsync(() -> {
+			try (WebphoneContainer webphone = new WebphoneContainer(address, dnid)) {
+				webphone.start();
+				return webphone.getFinalStatus();
+			} finally {
+				logger.info("Done with call!");
+			}
+		});
 
 //		ARItySipLayer newSipLayer = new ARItySipLayer("cloudonix", ipFrom, availablePorts.removeFirst());
 //		return newSipLayer.sendInvite(dnid, address, "token1234");

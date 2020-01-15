@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
 import io.cloudonix.arity.models.AsteriskChannel;
+import io.cloudonix.arity.models.AsteriskChannel.HangupReasons;
 
 public class Channels {
 
@@ -19,8 +20,13 @@ public class Channels {
 				.thenApply(c -> new AsteriskChannel(arity, c));
 	}
 
-	public CompletableFuture<Channel> hangup(String channelId) {
-		return Operation.<Channel>retry(cb -> arity.getAri().channels().hangup(channelId));
+	public CompletableFuture<Void> hangup(String channelId) {
+		return hangup(channelId, null);
+	}
+
+	public CompletableFuture<Void> hangup(String channelId, HangupReasons reason) {
+		return Operation.<Void>retry(cb -> arity.getAri().channels().hangup(channelId)
+					.setReason(reason != null ? reason.toString() : null).execute(cb));
 	}
 
 }

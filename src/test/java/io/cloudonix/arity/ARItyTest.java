@@ -4,19 +4,19 @@ import static org.junit.Assert.*;
 
 import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
 import io.cloudonix.ARItySipInitiator;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
+import io.cloudonix.test.support.AsteriskContainer;
 
 public class ARItyTest {
 
@@ -40,27 +40,6 @@ public class ARItyTest {
 		}
 	}
 
-	public class LambdaApplication {
-		public boolean isSucceeded = false;
-		public void voiceApp(CallController call) {
-			logger.info("voice application started");
-			isSucceeded=false;
-			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
-				logger.info("finished playback!");
-				return call.hangup().run();
-			}).handle(call::endCall).thenCompose(x->x)
-			.thenRun(() ->{
-				isSucceeded = true;
-			}).exceptionally(t -> {
-				logger.severe(t.toString());
-				return null;
-			});
-		}
-	}
-
-	abstract class BrokenApp extends CallController {
-	}
-
 	@Rule
 	public AsteriskContainer asterisk = new AsteriskContainer();
 
@@ -73,55 +52,9 @@ public class ARItyTest {
 	}
 
 	@Test(timeout = 30000)
-	public void testARIty() throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.disconnect();
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterSupplier() throws Exception{
-		LambdaApplication app = new LambdaApplication();
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(app::voiceApp);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
-		arity.disconnect();
-		assertTrue(app.isSucceeded);
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterLambda() throws Exception {
-		AtomicInteger numCalled = new AtomicInteger(0);
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(call -> {
-			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run())
-			.thenAccept(pb -> {
-				logger.info("finished playback in lambda!");
-				numCalled.addAndGet(1);
-			}).handle(call::endCall).thenCompose(x->x).exceptionally(t -> {
-				logger.severe("Error: " + t);
-				return null;
-			});
-		});
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1", "1234").get();
-		arity.disconnect();
-		assertEquals(1, numCalled.get());
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterClass() throws Exception {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(Application.class);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
-		arity.disconnect();
-		assertTrue(Application.isSucceeded);
-	}
-
-	@Test(timeout = 30000)
-	// class problem
-	public void testErrAbstractClass() throws Exception {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(BrokenApp.class);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
+	public void testConncetion() throws ConnectionFailedException, URISyntaxException, InterruptedException, ExecutionException {
+		ARIty arity = asterisk.getARIty();
+		arity.getActiveChannels().get();
 		arity.disconnect();
 	}
 
@@ -138,12 +71,12 @@ public class ARItyTest {
 			throw new RuntimeException("some error");
 		});
 		logger.info("Registered app, calling");
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
-		logger.info("Call done");
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
 		arity.disconnect();
 		assertTrue(wasCalled.get());
-		logger.info("Ended testErrRun");
+		assertEquals(603, status);
 	}
+
 	@Test(timeout = 30000, expected = InvalidCallStateException.class)
 	//application is not registered
 	public void testNotRegisteredApp() throws Exception {

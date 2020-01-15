@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -14,6 +13,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -191,14 +191,20 @@ public abstract class Operation {
 	}
 
 	protected ActionChannels channels() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().channels();
 	}
 
 	protected ActionPlaybacks playbacks() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().playbacks();
 	}
 
 	protected ActionRecordings recordings() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().recordings();
 	}
 
@@ -217,15 +223,8 @@ public abstract class Operation {
 	 * @return an exception, if the operation should not be retried
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
-		if (Objects.isNull(ariError.getMessage())) {
-			Class<?> clz = getClass();
-			String name = clz.getName();
-			Logger log = Logger.getLogger(name);
-			ErrorStream stream = ErrorStream.fromThrowable(ariError);
-			String err = stream.toString();
-			String message = "ARI error with no message??? " + stream;
-			log.severe(message);
-		}
+		if (Objects.isNull(ariError.getMessage()))
+			System.err.println("ARI error with no message??? " + ErrorStream.fromThrowable(ariError));
 		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}

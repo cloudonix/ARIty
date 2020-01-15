@@ -7,6 +7,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.cloudonix.test.support.AsteriskContainer;
+
 public class DialTest {
 
 	public class Application extends CallController {
