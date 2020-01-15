@@ -41,7 +41,7 @@ public class ControllerRegistrationTest {
 
 	volatile static int runCount = 0;
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	public void testRegisterClass() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(MyCallController.class);
@@ -50,7 +50,7 @@ public class ControllerRegistrationTest {
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	public void testRegisterSupplier() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(PrivateMyCallController::new);
@@ -59,7 +59,7 @@ public class ControllerRegistrationTest {
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	public void testRegisterLambda() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(call -> {
