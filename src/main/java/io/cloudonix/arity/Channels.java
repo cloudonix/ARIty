@@ -19,4 +19,8 @@ public class Channels {
 				.thenApply(c -> new AsteriskChannel(arity, c));
 	}
 
+	public CompletableFuture<Channel> hangup(String channelId) {
+		return Operation.<Channel>retry(cb -> arity.getAri().channels().hangup(channelId));
+	}
+
 }
