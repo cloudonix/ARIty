@@ -6,7 +6,6 @@ import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,24 +40,6 @@ public class ARItyTest {
 		}
 	}
 
-	public class LambdaApplication {
-		public boolean isSucceeded = false;
-		public void voiceApp(CallController call) {
-			logger.info("voice application started");
-			isSucceeded=false;
-			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run()).thenCompose(pb -> {
-				logger.info("finished playback!");
-				return call.hangup().run();
-			}).handle(call::endCall).thenCompose(x->x)
-			.thenRun(() ->{
-				isSucceeded = true;
-			}).exceptionally(t -> {
-				logger.severe(t.toString());
-				return null;
-			});
-		}
-	}
-
 	@Rule
 	public AsteriskContainer asterisk = new AsteriskContainer();
 
@@ -90,12 +71,12 @@ public class ARItyTest {
 			throw new RuntimeException("some error");
 		});
 		logger.info("Registered app, calling");
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
-		logger.info("Call done");
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
 		arity.disconnect();
 		assertTrue(wasCalled.get());
-		logger.info("Ended testErrRun");
+		assertEquals(603, status);
 	}
+
 	@Test(timeout = 30000, expected = InvalidCallStateException.class)
 	//application is not registered
 	public void testNotRegisteredApp() throws Exception {

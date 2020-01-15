@@ -12,7 +12,7 @@ cache:
   
 stages: 
   - setup
-##  - test
+  - test
   - package 
   - deploy
   - s3
@@ -23,15 +23,15 @@ offline-deps:
   script:
     - '[ "$(($RANDOM%10))" == 0 ] && mvn -B -U dependency:go-offline || mvn -B dependency:go-offline'
 
-##test: 
-##  stage: test
-##  script:
-##     - apt update && apt install -q -y xvfb 
-##     - xvfb-run mvn -B test
-##  artifacts: 
-##    paths: 
-##      - target
-##  image: maven:3-jdk-11
+test: 
+  stage: test
+  script:
+     - apt update && apt install -q -y xvfb 
+     - xvfb-run mvn -B test
+  artifacts: 
+    paths: 
+      - target
+  image: maven:3-jdk-11
 
 package: 
   stage: package

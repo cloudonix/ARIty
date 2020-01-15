@@ -37,7 +37,10 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		super.start();
 		followOutput(output->{
 			String line = output.getUtf8String().replaceAll("\n$", "");
-			logger().debug(line);
+			if (System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true"))
+				logger().info(line);
+			else
+				logger().debug(line);
 			if (line.contains("Asterisk Ready"))
 				synchronized (monitor) {
 					monitor.notify();
