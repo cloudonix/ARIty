@@ -14,7 +14,9 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
@@ -32,7 +34,6 @@ import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ConnectionFailedException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.helpers.Lazy;
 
 /**
@@ -43,7 +44,7 @@ import io.cloudonix.arity.helpers.Lazy;
  *
  */
 public class ARIty implements AriCallback<Message> {
-	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
 	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<EventHandler<?>>();
 	private ARI ari;
 	private String appName;
@@ -140,7 +141,7 @@ public class ARIty implements AriCallback<Message> {
 				logger.info("Websocket is open");
 			}
 		} catch (ARIException e) {
-			logger.severe("Connection failed: " + ErrorStream.fromThrowable(e));
+			logger.error("Connection failed: ",e);
 			throw new ConnectionFailedException(e);
 		}
 	}
@@ -160,8 +161,8 @@ public class ARIty implements AriCallback<Message> {
 				try {
 					return controllerClass.getConstructor().newInstance();
 				} catch (Throwable e) {
-					logger.severe("Failed to instantiate call controller from no-args c'tor of " + controllerClass
-							+ ": " + ErrorStream.fromThrowable(e));
+					logger.error("Failed to instantiate call controller from no-args c'tor of " + controllerClass
+							+ ": ",e);
 					return hangupDefault();
 				}
 			}
@@ -211,7 +212,7 @@ public class ARIty implements AriCallback<Message> {
 		return new CallController() {
 			public CompletableFuture<Void> run() {
 				return hangup().run().thenAccept(hangup -> {
-					logger.severe("Your Application is not registered!");
+					logger.error("Your Application is not registered!");
 				});
 			}
 		};
@@ -256,7 +257,7 @@ public class ARIty implements AriCallback<Message> {
 		}
 
 		String channelId = getEventChannelId(event);
-		logger.finest("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
+		logger.debug("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
 		if (Objects.isNull(channelId))
 			return;
 
@@ -272,7 +273,7 @@ public class ARIty implements AriCallback<Message> {
 	private void handleStasisStart(Message event) {
 		StasisStart ss = (StasisStart) event;
 		if ("h".equals(ss.getChannel().getDialplan().getExten())) {
-			logger.finer("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
+			logger.debug("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
 			return;
 		}
 
@@ -281,24 +282,24 @@ public class ARIty implements AriCallback<Message> {
 		// see if an application waits for this channel
 		Consumer<CallState> channelHandler = stasisStartListeners.remove(ss.getChannel().getId());
 		if (Objects.nonNull(channelHandler)) {
-			logger.fine("Sending stasis start for " + ss.getChannel().getId() + " to event handler " + channelHandler);
+			logger.debug("Sending stasis start for " + ss.getChannel().getId() + " to event handler " + channelHandler);
 			channelHandler.accept(callState);
 			return;
 		}
 
-		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
+		logger.debug("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
 		try {
 			CallController cc = Objects.requireNonNull(callSupplier.get(),
 					"User call controller supplier failed to provide a CallController to handle the call");
 			cc.init(callState);
 			CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
 				if (Objects.nonNull(t)) {
-					logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
+					logger.error("Completation error while running the application ",t);
 					channels().hangup(callState.getChannelId());
 				}
 			});
 		} catch (Throwable t) { // a lot of user code is running here, so lets make sure they don't crash us
-			logger.severe("Unexpected error due to user code failure: " + ErrorStream.fromThrowable(t));
+			logger.error("Unexpected error due to user code failure: ",t);
 			channels().hangup(callState.getChannelId());
 		}
 	}
@@ -339,14 +340,14 @@ public class ARIty implements AriCallback<Message> {
 				return ((Channel) chan).getId();
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			logger.warning("Can not get channel id for event " + event + ": " + e);
+			logger.warn("Can not get channel id for event " + event + ": " + e);
 		}
 		return null;
 	}
 
 	@Override
 	public void onFailure(RestException e) {
-		logger.warning(e.getMessage());
+		logger.warn(e.getMessage());
 		ce.accept(e);
 	}
 
@@ -357,7 +358,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
-		logger.finer("Registering for " + type + " events on channel " + channelId);
+		logger.debug("Registering for " + type + " events on channel " + channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
 		eventHandlers.add(se);
 		return se;
@@ -369,7 +370,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
 		if(eventHandlers.remove(handler))
-			logger.finer("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
+			logger.debug("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
 	}
 
 	/**

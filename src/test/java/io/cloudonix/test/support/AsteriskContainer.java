@@ -18,6 +18,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
 public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
 	private ARIty arity;
+	private boolean testDebug = System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true");
 
 	public AsteriskContainer () {
 		super("andrius/asterisk:14.x");
@@ -37,7 +38,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		super.start();
 		followOutput(output->{
 			String line = output.getUtf8String().replaceAll("\n$", "");
-			if (System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true"))
+			if (testDebug)
 				logger().info(line);
 			else
 				logger().debug(line);

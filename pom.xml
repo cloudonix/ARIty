@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.8.21</version>
+	<version>0.8.22</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -55,6 +55,11 @@
 			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
 			<version>CX-0.8.0.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.8.0-beta4</version>
 		</dependency>
 
 		<dependency>
@@ -124,12 +129,6 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-			<version>1.8.0-beta4</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
 			<version>1.8.0-beta4</version>
 			<scope>test</scope>
 		</dependency>

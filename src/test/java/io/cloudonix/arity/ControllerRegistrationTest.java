@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -41,27 +42,41 @@ public class ControllerRegistrationTest {
 
 	volatile static int runCount = 0;
 
-	@Test(timeout = 15000)
+	@BeforeClass
+	public static void preloadImages() {
+		try {
+			ARItySipInitiator.call("test", "test", "test").get();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test(timeout = 30000)
 	public void testRegisterClass() throws Exception {
 		runCount = 0;
+		logger.info("testRegisterClass starting");
 		asterisk.getARIty().registerVoiceApp(MyCallController.class);
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		logger.info("testRegisterClass done");
 		assertTrue(runCount > 0);
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	public void testRegisterSupplier() throws Exception {
 		runCount = 0;
+		logger.info("testRegisterSupplier starting");
 		asterisk.getARIty().registerVoiceApp(PrivateMyCallController::new);
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		logger.info("testRegisterSupplier done");
 		assertTrue(runCount > 0);
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	public void testRegisterLambda() throws Exception {
 		runCount = 0;
+		logger.info("testRegisterLambda starting");
 		asterisk.getARIty().registerVoiceApp(call -> {
 			runCount++;
 			call.answer().run()
@@ -74,6 +89,7 @@ public class ControllerRegistrationTest {
 			.thenCompose(v -> call.hangup().run());
 		});
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		logger.info("testRegisterLambda done");
 		assertTrue(runCount > 0);
 		assertEquals(200, status);
 	}

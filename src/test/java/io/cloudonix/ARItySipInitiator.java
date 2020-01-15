@@ -12,6 +12,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,6 +52,7 @@ public class ARItySipInitiator {
 		boolean calldone = false, needreport = false;
 		int lastStatus;
 		Pattern statusCatcher = Pattern.compile("SIP/\\d\\.\\d (\\d+) \\w+");
+		private boolean testDebug = System.getProperty("io.cloudonix.arity.jvoip.debug", "false").equalsIgnoreCase("true");
 
 		@SuppressWarnings("resource")
 		WebphoneContainer(String address, String destination) {
@@ -73,7 +75,7 @@ public class ARItySipInitiator {
 					needreport = true;
 				else if (line.contains("[mt:"))
 					needreport = false;
-				if (needreport) {
+				if (needreport && testDebug) {
 					logger().info(line);
 				} else {
 					logger().debug(line);
@@ -112,6 +114,14 @@ public class ARItySipInitiator {
 	private static LinkedList<Integer> availablePorts = fillPortList();
 	private static LinkedList<ARItySipLayer> sipLayersInUse = new LinkedList<ARItySipLayer>();
 
+	static {
+		try {
+			// make sure the huge openjdk image is loaded before we starting counting time
+			webphoneImage.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+	}
 
 	private String getInstanceId() throws IOException {
 		try {
