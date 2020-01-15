@@ -66,7 +66,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass)
 			throws ConnectionFailedException, URISyntaxException {
-		this(uri, appName, login, pass, true, null);
+		this(uri, appName, login, pass, true, AriVersion.IM_FEELING_LUCKY, null);
 	}
 
 	/**
@@ -287,14 +287,20 @@ public class ARIty implements AriCallback<Message> {
 		}
 
 		logger.fine("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
-		CallController cc = callSupplier.get();
-		cc.init(callState);
-		CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
-			if (Objects.nonNull(t)) {
-				logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
-				cc.hangup().run();
-			}
-		});
+		try {
+			CallController cc = Objects.requireNonNull(callSupplier.get(),
+					"User call controller supplier failed to provide a CallController to handle the call");
+			cc.init(callState);
+			CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
+				if (Objects.nonNull(t)) {
+					logger.severe("Completation error while running the application " + ErrorStream.fromThrowable(t));
+					channels().hangup(callState.getChannelId());
+				}
+			});
+		} catch (Throwable t) { // a lot of user code is running here, so lets make sure they don't crash us
+			logger.severe("Unexpected error due to user code failure: " + ErrorStream.fromThrowable(t));
+			channels().hangup(callState.getChannelId());
+		}
 	}
 
 	/**
