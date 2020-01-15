@@ -126,6 +126,8 @@ public class ARIty implements AriCallback<Message> {
 		this.appName = appName;
 		this.ce = (Objects.isNull(ce)) ? e -> {
 		} : ce;
+		if (uri == null)
+			return; // users might want to not connect, start ARIty just for tests
 		if (!uri.endsWith("/"))
 			uri += "/";
 
