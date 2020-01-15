@@ -12,6 +12,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +114,14 @@ public class ARItySipInitiator {
 	private static LinkedList<Integer> availablePorts = fillPortList();
 	private static LinkedList<ARItySipLayer> sipLayersInUse = new LinkedList<ARItySipLayer>();
 
+	static {
+		try {
+			// make sure the huge openjdk image is loaded before we starting counting time
+			webphoneImage.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+	}
 
 	private String getInstanceId() throws IOException {
 		try {
