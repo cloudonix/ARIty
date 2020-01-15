@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,6 +13,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -177,10 +179,7 @@ public abstract class Operation {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t))
 				return Futures.completedFuture(v);
-			Throwable ex = unwrapCompletionError(t);
-			if (Objects.isNull(ex)) // this shouldn't happen, but apparently it happens all the time ?!?
-				ex = t;
-			Exception recognizedFailure = exceptionMapper.apply(ex);
+			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
@@ -218,7 +217,9 @@ public abstract class Operation {
 	 * @return an exception, if the operation should not be retried
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
-		switch (ariError.getMessage()) {
+		if (Objects.isNull(ariError.getMessage()))
+			Logger.getLogger(getClass().getName()).severe("ARI error with no message??? " + ErrorStream.fromThrowable(ariError));
+		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}
 		return null;
