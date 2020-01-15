@@ -217,8 +217,15 @@ public abstract class Operation {
 	 * @return an exception, if the operation should not be retried
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
-		if (Objects.isNull(ariError.getMessage()))
-			Logger.getLogger(getClass().getName()).severe("ARI error with no message??? " + ErrorStream.fromThrowable(ariError));
+		if (Objects.isNull(ariError.getMessage())) {
+			Class<?> clz = getClass();
+			String name = clz.getName();
+			Logger log = Logger.getLogger(name);
+			ErrorStream stream = ErrorStream.fromThrowable(ariError);
+			String err = stream.toString();
+			String message = "ARI error with no message??? " + stream;
+			log.severe(message);
+		}
 		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}
