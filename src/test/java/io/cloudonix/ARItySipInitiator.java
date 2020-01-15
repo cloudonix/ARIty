@@ -51,6 +51,7 @@ public class ARItySipInitiator {
 		boolean calldone = false, needreport = false;
 		int lastStatus;
 		Pattern statusCatcher = Pattern.compile("SIP/\\d\\.\\d (\\d+) \\w+");
+		private boolean testDebug = System.getProperty("io.cloudonix.arity.jvoip.debug", "false").equalsIgnoreCase("true");
 
 		@SuppressWarnings("resource")
 		WebphoneContainer(String address, String destination) {
@@ -73,7 +74,7 @@ public class ARItySipInitiator {
 					needreport = true;
 				else if (line.contains("[mt:"))
 					needreport = false;
-				if (needreport) {
+				if (needreport && testDebug) {
 					logger().info(line);
 				} else {
 					logger().debug(line);
