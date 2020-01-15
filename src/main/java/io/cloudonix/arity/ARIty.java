@@ -126,6 +126,8 @@ public class ARIty implements AriCallback<Message> {
 		this.appName = appName;
 		this.ce = (Objects.isNull(ce)) ? e -> {
 		} : ce;
+		if (!uri.endsWith("/"))
+			uri += "/";
 
 		try {
 			ari = ARI.build(uri, appName, login, pass, version);
