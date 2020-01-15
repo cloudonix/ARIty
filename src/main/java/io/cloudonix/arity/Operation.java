@@ -13,6 +13,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -190,14 +191,20 @@ public abstract class Operation {
 	}
 
 	protected ActionChannels channels() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().channels();
 	}
 
 	protected ActionPlaybacks playbacks() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().playbacks();
 	}
 
 	protected ActionRecordings recordings() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
 		return arity.getAri().recordings();
 	}
 
