@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 public class Lazy<T> {
 
-	AtomicReference<T> value;
+	AtomicReference<T> value = new AtomicReference<>(null);
 	Supplier<T> resolver;
 
 	public Lazy(Supplier<T> lazyProvider) {
