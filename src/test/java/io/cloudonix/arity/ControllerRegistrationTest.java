@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +31,9 @@ public class ControllerRegistrationTest {
 		}
 	}
 
+	abstract class BrokenApp extends CallController {
+	}
+
 	@Rule
 	public AsteriskContainer asterisk = new AsteriskContainer();
 
@@ -37,31 +41,48 @@ public class ControllerRegistrationTest {
 
 	volatile static int runCount = 0;
 
-	@Test
+	@Test(timeout = 15000)
 	public void testRegisterClass() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(MyCallController.class);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
 		assertTrue(runCount > 0);
+		assertEquals(603, status);
 	}
 
-	@Test
+	@Test(timeout = 15000)
 	public void testRegisterSupplier() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(PrivateMyCallController::new);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
 		assertTrue(runCount > 0);
+		assertEquals(603, status);
 	}
 
-	@Test
+	@Test(timeout = 15000)
 	public void testRegisterLambda() throws Exception {
 		runCount = 0;
 		asterisk.getARIty().registerVoiceApp(call -> {
 			runCount++;
-			call.hangup().run();
+			call.answer().run()
+			.thenCompose(v -> CompletableFuture.runAsync(() -> {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+			}))
+			.thenCompose(v -> call.hangup().run());
 		});
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
 		assertTrue(runCount > 0);
+		assertEquals(200, status);
+	}
+
+	@Test(timeout = 12000)
+	public void testErrAbstractClass() throws Exception {
+		asterisk.getARIty().registerVoiceApp(BrokenApp.class);
+		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
+		assertEquals(603, status);
 	}
 
 }

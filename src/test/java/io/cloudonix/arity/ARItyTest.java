@@ -59,9 +59,6 @@ public class ARItyTest {
 		}
 	}
 
-	abstract class BrokenApp extends CallController {
-	}
-
 	@Rule
 	public AsteriskContainer asterisk = new AsteriskContainer();
 
@@ -77,53 +74,6 @@ public class ARItyTest {
 	public void testConncetion() throws ConnectionFailedException, URISyntaxException, InterruptedException, ExecutionException {
 		ARIty arity = asterisk.getARIty();
 		arity.getActiveChannels().get();
-		arity.disconnect();
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterSupplier() throws Exception{
-		LambdaApplication app = new LambdaApplication();
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(app::voiceApp);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
-		arity.disconnect();
-		assertTrue(app.isSucceeded);
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterLambda() throws Exception {
-		AtomicInteger numCalled = new AtomicInteger(0);
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(call -> {
-			call.answer().run().thenCompose(v -> call.play("hello-world").loop(2).run())
-			.thenAccept(pb -> {
-				logger.info("finished playback in lambda!");
-				numCalled.addAndGet(1);
-			}).handle(call::endCall).thenCompose(x->x).exceptionally(t -> {
-				logger.severe("Error: " + t);
-				return null;
-			});
-		});
-		ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1", "1234").get();
-		arity.disconnect();
-		assertEquals(1, numCalled.get());
-	}
-
-	@Test(timeout = 30000)
-	public void testRegisterClass() throws Exception {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(Application.class);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
-		arity.disconnect();
-		assertTrue(Application.isSucceeded);
-	}
-
-	@Test(timeout = 30000)
-	// class problem
-	public void testErrAbstractClass() throws Exception {
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
-		arity.registerVoiceApp(BrokenApp.class);
-		ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 	}
 

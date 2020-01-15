@@ -15,6 +15,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.testcontainers.containers.GenericContainer;
@@ -47,6 +49,8 @@ public class ARItySipInitiator {
 	public static class WebphoneContainer extends GenericContainer<WebphoneContainer> {
 		private XVFBContainer xvfb;
 		boolean calldone = false, needreport = false;
+		int lastStatus;
+		Pattern statusCatcher = Pattern.compile("SIP/\\d\\.\\d (\\d+) \\w+");
 
 		@SuppressWarnings("resource")
 		WebphoneContainer(String address, String destination) {
@@ -74,6 +78,9 @@ public class ARItySipInitiator {
 				} else {
 					logger().debug(line);
 				}
+				Matcher m = statusCatcher.matcher(line);
+				if (m.find())
+					lastStatus = Integer.valueOf(m.group(1));
 				synchronized (this) {
 					if (line.contains("call done") || line.contains("EVENT,STATUS,1,Finished,")) {
 						calldone = true;
@@ -82,7 +89,7 @@ public class ARItySipInitiator {
 				}
 			});
 		}
-		public void waitUntilEnd() {
+		public int getFinalStatus() {
 			synchronized (this) {
 				while (!calldone)
 					try {
@@ -90,6 +97,7 @@ public class ARItySipInitiator {
 					} catch (InterruptedException e) {
 					}
 			}
+			return lastStatus;
 		}
 		@Override
 		public void stop() {
@@ -144,16 +152,17 @@ public class ARItySipInitiator {
 		return ports;
 	}
 
-	public static CompletableFuture<Void> call(String address, String ipFrom, String dnid) throws Exception {
+	public static CompletableFuture<Integer> call(String address, String ipFrom, String dnid) throws Exception {
 		logger.setLevel(Level.FINER);
 		logger.info("Started SipInitiator");
 
-		return CompletableFuture.runAsync(() -> {
-			WebphoneContainer webphone = new WebphoneContainer(address, dnid);
-			webphone.start();
-			webphone.waitUntilEnd();
-			webphone.close();
-			logger.info("Done with call!");
+		return CompletableFuture.supplyAsync(() -> {
+			try (WebphoneContainer webphone = new WebphoneContainer(address, dnid)) {
+				webphone.start();
+				return webphone.getFinalStatus();
+			} finally {
+				logger.info("Done with call!");
+			}
 		});
 
 //		ARItySipLayer newSipLayer = new ARItySipLayer("cloudonix", ipFrom, availablePorts.removeFirst());
