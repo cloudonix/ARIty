@@ -5,7 +5,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
-import ch.loway.oss.ari4java.generated.models.Variable;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.lib.Futures;
@@ -218,13 +217,7 @@ public abstract class CallController {
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getSipHeader(String headerName) {
-		return Operation.<Variable>retry(cb -> callState.getAri().channels()
-				.getChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")").execute(cb)).thenApply(v -> {
-					return v.getValue();
-				}).exceptionally(t -> {
-					logger.fine("Unable to find header: " + headerName);
-					return null;
-				});
+		return callState.readVariable("SIP_HEADER(" + headerName + ")");
 	}
 
 	/**
@@ -235,14 +228,7 @@ public abstract class CallController {
 	 * @throws RestException
 	 */
 	public CompletableFuture<String> getPJSipHeader(String headerName) {
-		return Operation.<Variable>retry(cb -> callState.getAri().channels()
-						.getChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")").execute(cb))
-				.thenApply(v -> {
-					return v.getValue();
-				}).exceptionally(t -> {
-					logger.fine("Unable to find header: " + headerName);
-					return null;
-				});
+		return callState.readVariable("PJSIP_HEADER(" + headerName + ")");
 	}
 
 	/**
@@ -253,12 +239,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public CompletableFuture<Void> setSipHeader(String headerName, String headerValue) {
-		return Operation.<Void>retry(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "SIP_HEADER(" + headerName + ")").setValue(headerValue).execute(cb))
-				.exceptionally(t -> {
-					logger.fine("Unable to find header: " + headerName);
-					return null;
-				});
+		return callState.setVariable("SIP_HEADER(" + headerName + ")", headerValue);
 	}
 
 	/**
@@ -269,12 +250,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
-		return Operation.<Void>retry(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "PJSIP_HEADER(" + headerName + ")").setValue(headerValue).execute(cb))
-				.exceptionally(t -> {
-					logger.fine("Unable to find header: " + headerName);
-					return null;
-				});
+		return callState.setVariable("PJSIP_HEADER(" + headerName + ")", headerValue);
 	}
 
 	/**
