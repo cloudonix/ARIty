@@ -62,7 +62,7 @@ public class ARItySipInitiator {
 			logger().info("Started XVFB");
 			withEnv("DISPLAY", xvfb.getContainerInfo().getNetworkSettings().getNetworks().entrySet()
 					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
-					.findFirst().orElseThrow() + ":1");
+					.findFirst().orElseThrow(RuntimeException::new) + ":1");
 			withCommand("/app/jvoip.sh", address, destination);
 		}
 		@Override
