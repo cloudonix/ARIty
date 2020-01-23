@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -196,7 +197,7 @@ public class CallState {
 	 * @return a set of variable entries.
 	 */
 	public Set<Entry<String, String>> allVariables() {
-		return variables.entrySet();
+		return Collections.unmodifiableSet(variables.entrySet());
 	}
 
 	class GetChannelVar extends Operation {
