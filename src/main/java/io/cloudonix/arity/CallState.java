@@ -176,6 +176,17 @@ public class CallState {
 		return variables.get(name);
 	}
 
+	/**
+	 * Pretend a variable with the specified name and value has been read from ARI
+	 * This is useful for unit tests as well as to preload variables that have been transported out of band,
+	 * for example when reading all SIP headers through a faster transport.
+	 * @param name variable name to pre-cache
+	 * @param value variable value to pre-cache
+	 */
+	public void cacheVariable(String name, String value) {
+		variables.put(name, value);
+	}
+
 	class GetChannelVar extends Operation {
 		private String name;
 		private String value;
