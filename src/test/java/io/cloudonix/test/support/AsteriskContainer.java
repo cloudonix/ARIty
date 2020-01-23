@@ -68,7 +68,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 	public String getSipHostPort() {
 		return getContainerInfo().getNetworkSettings().getNetworks().entrySet()
 		.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
-		.findFirst().orElseThrow() + ":" + 5060;
+		.findFirst().orElseThrow(RuntimeException::new) + ":" + 5060;
 	}
 
 	public String getMappedSipHostPort() {
