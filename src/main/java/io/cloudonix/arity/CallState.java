@@ -4,8 +4,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -185,6 +187,16 @@ public class CallState {
 	 */
 	public void cacheVariable(String name, String value) {
 		variables.put(name, value);
+	}
+
+	/**
+	 * Retrieve all variables that have been already loaded from ARI (or otherwise)
+	 * Please note that SIP headers will be included in the list, such that their names look like
+	 * they have been read using the Get Variable ARI command, with the format {@code SIP_HEADER(name)}.
+	 * @return a set of variable entries.
+	 */
+	public Set<Entry<String, String>> allVariables() {
+		return variables.entrySet();
 	}
 
 	class GetChannelVar extends Operation {
