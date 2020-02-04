@@ -61,7 +61,7 @@ public class Dial extends CancelableOperations {
 	private Instant endTime;
 	private Duration callDuration, ringingDuration, mediaDuration;
 	private final static Logger logger = Logger.getLogger(Dial.class.getName());
-	private transient Status dialStatus = Status.UNKNOWN;
+	private volatile Status dialStatus = Status.UNKNOWN;
 	private Map<String, String> headers = new Hashtable<>();
 	private Map<String, String> variables = new Hashtable<>();
 	private String callerId;
@@ -72,7 +72,7 @@ public class Dial extends CancelableOperations {
 			channelStateCancelled = new ArrayList<>(),
 			channelStateDisconnected = new ArrayList<>(),
 			channelStateActive = new ArrayList<>();
-	private transient boolean wasRinging = false,
+	private volatile boolean wasRinging = false,
 			wasConnected = false,
 			wasCancelled = false,
 			wasDisconnected = false,

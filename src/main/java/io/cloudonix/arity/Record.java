@@ -33,11 +33,11 @@ public class Record extends CancelableOperations {
 	private int maxSilenceSeconds;
 	private boolean beep;
 	private String terminateOnKey;
-	transient private LiveRecording recording;
+	volatile private LiveRecording recording;
 	private CallController callController;
 	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = Logger.getLogger(Record.class.getName());
-	transient private boolean wasTalkingDetected = false;
+	volatile private boolean wasTalkingDetected = false;
 	private int talkingDuration = 0;
 	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
 	private Instant recordingStartTime;
