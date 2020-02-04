@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -10,7 +9,6 @@ import java.util.logging.Logger;
 import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
-import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
 import io.cloudonix.lib.Futures;
@@ -26,7 +24,7 @@ public class Conference {
 	private final static Logger logger = Logger.getLogger(Conference.class.getName());
 	private Runnable handleChannelLeftConference = () -> {};
 	private String recordName = null;
-	private LiveRecording conferenceRecord;
+	volatile private RecordingData conferenceRecord;
 	private Bridge bridge;
 	private String musicOnHoldClassName = "default";
 	private ARIty arity;
@@ -81,9 +79,8 @@ public class Conference {
 	}
 
 	/**
-	 * close conference
-	 *
-	 * @return
+	 * Close conference
+	 * @return a promise that will resolve with the conference bridge has been shutdown
 	 */
 	public CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
@@ -91,16 +88,12 @@ public class Conference {
 	}
 
 	/**
-	 * add channel to the conference
-	 *
-	 * @param beep         true if need to play 'beep' sound when channel joins to
-	 *                     conference, false otherwise
-	 * @param mute         true if the channel should only listen to conference
-	 *                     without talking, false otherwise
-	 * @param needToRecord true if need to record the conference, false otherwise
-	 * @return
+	 * Add a channel to the conference
+	 * @param beep should a "beep" sound play when the channel joins the conference
+	 * @param mute should the new channel be muted
+	 * @return A promise that will resolve when the channel has been added and announced
 	 */
-	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean needToRecord) {
+	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
 		if (callController.getCallState().wasAnswered()) {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
@@ -125,18 +118,29 @@ public class Conference {
 	}
 
 	/**
-	 * record the conference
-	 *
-	 * @return
+	 * Start recording the conference
+	 * Call {@link #setRecordName(String)} to set the name of the recording, otherwise the name will be
+	 * a random UUID.
+	 * @return a promise that will be resolved when the recording starts
 	 */
 	public CompletableFuture<Void> recordConference() {
-		logger.info("Start recording conference " + conferenceName);
+		logger.info("Starting recording conference " + conferenceName);
 		if (Objects.isNull(recordName))
 			recordName = UUID.randomUUID().toString();
-		return bridge.record(recordName).thenAccept(recored -> {
+		return bridge.record(recordName, "overwrite", false, null, null, 0, 0).thenAccept(recored -> {
 			conferenceRecord = recored;
-			logger.info("Done recording");
+			logger.info("Started recording");
 		});
+	}
+	
+	/**
+	 * Stop the recording of this channel in the bridge, after which the recording is stored and can be read
+	 * @return promise that will resolve when the recording ends, or immediately if there was no live recording
+	 */
+	public CompletableFuture<Void> stopRecording() {
+		if (Objects.isNull(conferenceRecord))
+			return CompletableFuture.completedFuture(null);
+		return bridge.stopRecording(conferenceRecord.getRecordingName()).thenAccept(v -> {});
 	}
 
 	/**
@@ -236,7 +240,7 @@ public class Conference {
 	 *
 	 * @return
 	 */
-	public LiveRecording getConferenceRecord() {
+	public RecordingData getConferenceRecord() {
 		return conferenceRecord;
 	}
 
@@ -257,15 +261,6 @@ public class Conference {
 	 */
 	public void setMusicOnHoldClassName(String musicOnHoldClassName) {
 		this.musicOnHoldClassName = musicOnHoldClassName;
-	}
-
-	/**
-	 * Read recording start time
-	 * @return recording start time
-	 */
-	public LocalDateTime getRecordingStartTime() {
-		RecordingData recordData = bridge.getRecodingByName(recordName);
-		return Objects.nonNull(recordData) ? recordData.getStartingTime() : null;
 	}
 
 	/**
