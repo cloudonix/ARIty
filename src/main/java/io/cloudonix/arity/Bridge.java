@@ -16,6 +16,7 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
+import ch.loway.oss.ari4java.generated.models.StoredRecording;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
@@ -301,6 +302,12 @@ public class Bridge {
 					logger.info("Failed recording bridge");
 					throw e;
 				}));
+	}
+	
+	public CompletableFuture<StoredRecording> stopRecording(String recordingName) {
+		return Operation.<Void>retry(cb -> arity.getAri().recordings().stop(recordingName).execute(cb))
+				.thenCompose(v -> Operation.<StoredRecording>retry(cb -> arity.getAri()
+						.recordings().getStored(recordingName).execute(cb)));
 	}
 
 	private CompletableFuture<ch.loway.oss.ari4java.generated.models.Bridge> readBridge() {
