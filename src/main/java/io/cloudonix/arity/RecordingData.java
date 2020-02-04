@@ -1,23 +1,26 @@
 package io.cloudonix.arity;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.StoredRecording;
 
 /**
- * Class representing data about a recording
+ * Access to recording information, whether that recording is live or already stored.
  *
  * @author naamag
- *
+ * @author odeda
  */
 public class RecordingData {
+	
 	private String recordingName;
 	private LiveRecording recording;
 	private Instant startingTime;
+	private ARIty arity;
 
-	public RecordingData(String recordingName, LiveRecording recording, Instant startingTime) {
+	RecordingData(ARIty arity, String recordingName, LiveRecording recording, Instant startingTime) {
+		this.arity = arity;
 		this.recordingName = recordingName;
 		this.recording = recording;
 		this.startingTime = startingTime;
@@ -27,27 +30,16 @@ public class RecordingData {
 		return recordingName;
 	}
 
-	public void setRecordingName(String recordingName) {
-		this.recordingName = recordingName;
-	}
-
 	public LiveRecording getRecording() {
 		return recording;
 	}
 
-	public void setRecording(LiveRecording recording) {
-		this.recording = recording;
+	public Instant getStartingTime() {
+		return startingTime;
+	}
+	
+	public CompletableFuture<StoredRecording> getStoredRecording() {
+		return Operation.retry(cb -> arity.getAri().recordings().getStored(recordingName).execute(cb));
 	}
 
-	/**
-	 * Read recoding start time as a time stamp, such as 2007-12-03T10:15:30
-	 * @return
-	 */
-	public LocalDateTime getStartingTime() {
-		return LocalDateTime.parse(startingTime.toString(), DateTimeFormatter.ISO_INSTANT);
-	}
-
-	public void setStartingTime(Instant startingTime) {
-		this.startingTime = startingTime;
-	}
 }
