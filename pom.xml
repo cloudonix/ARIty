@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.8.25</version>
+	<version>0.8.26</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -42,7 +42,7 @@
 
 		<repository>
 			<id>cloudonix-dist</id>
-			<url>http://cloudonix-dist.s3-website-us-west-1.amazonaws.com/maven2/releases</url>
+			<url>https://cloudonix-dist.s3.amazonaws.com/maven2/releases</url>
 		</repository>
 
 		<repository>

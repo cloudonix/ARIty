@@ -1,5 +1,5 @@
 # ARIty Framework
-ARIty is a library that gives you services to run voice applications, using the Asterisk ARI protocol. 
+ARIty is a library that gives you services to run voice applications, using the Asterisk ARI protocol.
 
 Arity exposes the ARI API using a set of asynchronous operations, using java
 `[CompletableFuture](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.html)` and fluent API concepts.
@@ -11,14 +11,14 @@ public class Application extends CallController {
 
 	// Application class extends CallController, which includes an abstract method 'run()', and therefore need to implements
 	// it
-	
+
 	@Override
 	public CompletableFuture<Void> run() {
 			return CompletableFuture.completedFuture(null);
 	}
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
-		
+
 		// Connect to ARI and register a stasis application
 		ARIty arity = null;
 		try {
@@ -27,7 +27,7 @@ public class Application extends CallController {
 		} catch (Throwable e1) {
 			logger.info("Error When creating the ARIty: " + e1.getMessage());
 		}
-		
+
 		// main application flow
 	     arity.registerVoiceApp(call -> {
 			call.answer().run()
@@ -40,7 +40,7 @@ public class Application extends CallController {
 				return null;
 			});
 		});
-			
+
         // after registering, just stay running to get and handle calls
 		while (true) {
 			try {
@@ -50,7 +50,7 @@ public class Application extends CallController {
 			}
 		}
 	}
-	
+
 }
 ```
 
@@ -62,7 +62,7 @@ In your `pom.xml` file, add the repository for ARIty (we are currently not hoste
 <repositories>
   <repository>
     <id>cloudonix-dist</id>
-    <url>http://cloudonix-dist.s3-website-us-west-1.amazonaws.com/maven2/releases</url>
+    <url>https://cloudonix-dist.s3.amazonaws.com/maven2/releases</url>
   </repository>
 </repositories>
 ```
@@ -80,10 +80,10 @@ Then add ARIty as a dependency:
 ## Usage
 
 To use ARIty, we start by creating a connection to Asterisk's ARI URL and registering our Stasis application.
-ARIty will trigger the application entry point for each incoming call providing a `CallController` API using which the application 
+ARIty will trigger the application entry point for each incoming call providing a `CallController` API using which the application
 can manipulate the call state and perform channel-specific operation, such as playback and record.
 
-### Connecting 
+### Connecting
 
 ```
 String url = "http://asterisk:8088/";
@@ -92,9 +92,9 @@ ARIty ari = new ARIty(url, "myStasisApp", "user", "pass");
 ### Registering to receive incoming calls
 
 The `registerVoiceApp()` method receives a "callable" value (functional interface) that accepts a `CallController` object and executes
-the implementation for each call sent to the Stasis application by Asterisk. 
+the implementation for each call sent to the Stasis application by Asterisk.
 
-Please note that currently only one voice application may be registered. 
+Please note that currently only one voice application may be registered.
 
 In order to register your voice application, you have the following options:
 
@@ -112,19 +112,19 @@ public static void main(String[] args) throws ConnectionFailedException, URISynt
 					logger.severe(t.toString());
 					return null;
 				});
-			
+
 		});
 
 ```
 
-#### Give a `Supplier` of `CallController`:  
+#### Give a `Supplier` of `CallController`:
 
 ```
 	public void voiceApp(CallController call) {
-		// handle call 
+		// handle call
 		...
 	}
-	
+
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 	    Application app = new Application();
 	...
@@ -137,21 +137,21 @@ public static void main(String[] args) throws ConnectionFailedException, URISynt
 ```
 	@Override
 	public void run() {
-		// handle call 
+		// handle call
 		...
 	}
-	
+
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
 	...
 		arity.registerVoiceApp(Application.class);
 	...
-	
+
 	}
 ```
 
 ### Handling a call
 To handle a call scenario, create a method that takes a `CallController` argument. When the method is called, use the `CallController`
-API to execute operations on the channel connected to the application. Each API call creates an `Operation` instance that will start 
+API to execute operations on the channel connected to the application. Each API call creates an `Operation` instance that will start
 the specified operation when it's `run()` method is called. `run()` returns a `CompletableFuture` that will be completed when the ARI
 operation completes. Multiple operation can be scheduled in order, using `CompletableFuture`'s completion methods, such as
 `thenCompose()`, `thenAccept()`, etc.
@@ -176,8 +176,8 @@ operation completes. Multiple operation can be scheduled in order, using `Comple
 ## Features
 
 ### endCall feature
-In order to end the voice application, you can use the `endCall` method that will guarantee that the call will be hanged up (you 
-can see an example in "Sample Voice Application" section above). This method hang up the call anyway, even if an error occurred 
+In order to end the voice application, you can use the `endCall` method that will guarantee that the call will be hanged up (you
+can see an example in "Sample Voice Application" section above). This method hang up the call anyway, even if an error occurred
 during the execution.
 Therefore, you can use the `endCall` method to hang up the call and/or use `call.hangup().run();` like in the "Handling call" example.
- 
+
