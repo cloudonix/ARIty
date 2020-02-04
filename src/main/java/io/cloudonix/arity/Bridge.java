@@ -249,7 +249,7 @@ public class Bridge {
 	 * @param recordingName name of the recording
 	 * @return
 	 */
-	public CompletableFuture<LiveRecording> record(String recordingName) {
+	public CompletableFuture<RecordingData> record(String recordingName) {
 		return record(recordingName, "overwrite", false, "#", null, 0, 0);
 	}
 
@@ -266,11 +266,12 @@ public class Bridge {
 	 * @param maxSilenceSeconds Maximum seconds of silence for the recording to stop. set to 0 for none.
 	 * @return
 	 */
-	public CompletableFuture<LiveRecording> record(String recordingName, String ifExists, boolean beep, String terminateOn, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds) {
+	public CompletableFuture<RecordingData> record(String recordingName, String ifExists, boolean beep, String terminateOn, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds) {
 		String realRecordFormat = Objects.isNull(recordFormat) ? "ulaw" : recordFormat;
 		logger.info("Record bridge with id: " + bridgeId + ", and recording name is: " + recordingName);
-		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
 		Instant recordingStartTime = Instant.now();
+		RecordingData recordingData = new RecordingData(arity, recordingName, recordingStartTime);
+		recordings.put(recordingName, recordingData);
 		
 		arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
 			if (!Objects.equals(record.getRecording().getName(), recordingName)) {
@@ -278,14 +279,8 @@ public class Bridge {
 						record.getRecording().getName());
 				return;
 			}
-			long recordingEndTime = Instant.now().getEpochSecond();
 			logger.info("Finished recording: " + recordingName);
-			record.getRecording().setDuration(Integer.valueOf(
-					String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
-			RecordingData recordingData = new RecordingData(recordingName, record.getRecording(),
-					recordingStartTime);
-			recordings.put(recordingName, recordingData);
-			future.complete(record.getRecording());
+			recordingData.setLiveRecording(record.getRecording());
 			se.unregister();
 		});
 		
@@ -295,12 +290,21 @@ public class Bridge {
 				.thenApply(result -> {
 					logger.info("Started Recording bridge with id: " + bridgeId + " and recording name is: "
 							+ recordingName);
-					return result;
+					recordingData.setLiveRecording(result);
+					return recordingData;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
 					logger.info("Failed recording bridge");
 					throw e;
 				}));
+	}
+	
+	public CompletableFuture<RecordingData> stopRecording(String recordingName) {
+		RecordingData data = getRecodingByName(recordingName);
+		if (Objects.isNull(data))
+			return CompletableFuture.completedFuture(data);
+		return Operation.<Void>retry(cb -> arity.getAri().recordings().stop(recordingName).execute(cb))
+				.thenApply(v -> data);
 	}
 
 	private CompletableFuture<ch.loway.oss.ari4java.generated.models.Bridge> readBridge() {
