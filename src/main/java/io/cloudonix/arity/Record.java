@@ -263,7 +263,7 @@ public class Record extends CancelableOperations {
 	public File getRecordAsFile() {
 		if (Objects.isNull(recording))
 			return null;
-		return new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
+		return liveRecordingToFile(recording);
 	}
 
 	/**
@@ -274,5 +274,9 @@ public class Record extends CancelableOperations {
 		return Objects.nonNull(recordingStartTime)
 				? LocalDateTime.parse(recordingStartTime.toString(), DateTimeFormatter.ISO_INSTANT)
 				: null;
+	}
+	
+	public static File liveRecordingToFile(LiveRecording recording) {
+		return new File("/var/spool/asterisk/recording/" + recording.getName() + "." + recording.getFormat());
 	}
 }

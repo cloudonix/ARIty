@@ -271,25 +271,30 @@ public class Bridge {
 		logger.info("Record bridge with id: " + bridgeId + ", and recording name is: " + recordingName);
 		CompletableFuture<LiveRecording> future = new CompletableFuture<LiveRecording>();
 		Instant recordingStartTime = Instant.now();
+		
+		arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
+			if (!Objects.equals(record.getRecording().getName(), recordingName)) {
+				logger.warning("Unexpected recording finished for bridge id " + bridgeId + " with name: " + 
+						record.getRecording().getName());
+				return;
+			}
+			long recordingEndTime = Instant.now().getEpochSecond();
+			logger.info("Finished recording: " + recordingName);
+			record.getRecording().setDuration(Integer.valueOf(
+					String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+			RecordingData recordingData = new RecordingData(recordingName, record.getRecording(),
+					recordingStartTime);
+			recordings.put(recordingName, recordingData);
+			future.complete(record.getRecording());
+			se.unregister();
+		});
+		
 		return Operation.<LiveRecording>retry(cb -> api.record(bridgeId, recordingName, realRecordFormat)
 				.setMaxDurationSeconds(maxDurationSeconds).setMaxSilenceSeconds(maxSilenceSeconds)
 				.setIfExists(ifExists).setBeep(beep).setTerminateOn(terminateOn).execute(cb))
 				.thenApply(result -> {
-					logger.info("Strated Recording bridge with id: " + bridgeId + " and recording name is: "
+					logger.info("Started Recording bridge with id: " + bridgeId + " and recording name is: "
 							+ recordingName);
-					arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
-						if (!Objects.equals(record.getRecording().getName(), recordingName))
-							return;
-						long recordingEndTime = Instant.now().getEpochSecond();
-						logger.info("Finished recording: " + recordingName);
-						record.getRecording().setDuration(Integer.valueOf(
-								String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
-						RecordingData recordingData = new RecordingData(recordingName, record.getRecording(),
-								recordingStartTime);
-						recordings.put(recordingName, recordingData);
-						future.complete(record.getRecording());
-						se.unregister();
-					});
 					return result;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
