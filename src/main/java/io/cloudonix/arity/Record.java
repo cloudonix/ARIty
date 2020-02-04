@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -77,28 +78,33 @@ public class Record extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Record> run() {
-		if (beep) {
-			logger.info("Play beep before recording");
-			return callController.play("beep").run().thenAccept(res -> startRecording()).thenApply(res -> this);
-		} else
-			return startRecording().thenApply(res -> this);
+		return playBeep().thenCompose(res -> startRecording());
+	}
+	
+	private CompletableFuture<Void> playBeep() {
+		if (!beep)
+			return CompletableFuture.completedFuture(null);
+		logger.fine("Play beep before recording");
+		return callController.play("beep").run().thenAccept(v -> {});
 	}
 
 	/**
 	 * start recording
 	 *
 	 */
-	private CompletableFuture<Void> startRecording() {
+	private CompletableFuture<Record> startRecording() {
+		setupHandlers();
 		return Operation.<LiveRecording>retry(cb -> channels().record(getChannelId(), name, fileFormat)
 				.setMaxDurationSeconds(maxDuration).setMaxSilenceSeconds(maxSilenceSeconds)
 				.setIfExists(ifExists).setBeep(beep).execute(cb))
 				.thenCompose(result -> {
 					logger.info("Recording started! recording name is: " + name);
 					recordingStartTime = Instant.now();
+					recording = result;
 					Timers.schedule(this::stopRecording, TimeUnit.SECONDS.toMillis(maxDuration));
-					setupHandlers();
 					return Objects.requireNonNull(waitUntilDone, "Error setting up recording");
 				})
+				.thenApply(v -> this)
 				.exceptionally(Futures.on(RestException.class, e -> {
 					throw new RecordingException(name, e);
 				}));
@@ -113,8 +119,7 @@ public class Record extends CancelableOperations {
 						return;
 					long recordingEndTime = Instant.now().getEpochSecond();
 					recording = record.getRecording();
-					recording.setDuration(Integer.valueOf(
-							String.valueOf(Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()))));
+					updateDuration();
 					logger.info("Finished recording! recording duration is: "
 							+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
 					if (wasTalkingDetected)
@@ -145,6 +150,16 @@ public class Record extends CancelableOperations {
 		eventHandlers.clear();
 	}
 
+	private void updateDuration() {
+		try {
+			if (recording.getDuration() > 0)
+				return;
+		} catch (UnsupportedOperationException e) { // Don't do anything if protocol does not support it
+			return;
+		} catch (NullPointerException e) {} // could be from the server not sending duration at all
+		recording.setDuration((int) Duration.between(recordingStartTime, Instant.now()).getSeconds());
+	}
+	
 	/**
 	 * get the recording
 	 *
