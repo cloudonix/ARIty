@@ -380,9 +380,10 @@ public class ARIty implements AriCallback<Message> {
 	 * @param type          type of message to listen to (example: PlaybackFinished)
 	 * @param channelId     id of the channel to listen on
 	 * @param eventHandler  handler to call when the event arrives
+	 * @return 
 	 */
-	public <T extends Message> void listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
-		addEventHandler(type, channelId, (t,se) -> {
+	public <T extends Message> EventHandler<T> listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
+		return addEventHandler(type, channelId, (t,se) -> {
 			se.unregister();
 			eventHandler.accept(t);
 		});
