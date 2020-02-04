@@ -358,7 +358,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
-		logger.debug("Registering for " + type + " events on channel " + channelId);
+		logger.debug("Registering for " + type.getSimpleName() + " events on channel " + channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type,this);
 		eventHandlers.add(se);
 		return se;
