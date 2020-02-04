@@ -370,7 +370,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
 		if(eventHandlers.remove(handler))
-			logger.debug("Event "+handler.getClass1().getName()+" was removed for channel: "+handler.getChannelId());
+			logger.debug("Event "+handler.getClass1().getSimpleName() + " was removed for channel: "+handler.getChannelId());
 	}
 
 	/**
