@@ -90,7 +90,7 @@ public class Play extends CancelableOperations {
 
 		String playbackId = UUID.randomUUID().toString();
 		return () -> this.<Playback>retryOperation(h -> channels()
-				.play(getChannelId(), path).setLang(language).setOffsetms(0).setSkipms(0).setPlaybackId(playbackId).execute(h))
+				.play(getChannelId(), path).setLang(language).setPlaybackId(playbackId).execute(h))
 		.thenCompose(playback -> {
 			this.playback.setRelease(playback); // store ongoing playback for cancelling
 			logger.info("Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
