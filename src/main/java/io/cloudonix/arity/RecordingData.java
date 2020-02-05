@@ -28,6 +28,10 @@ public class RecordingData {
 		this.startingTime = startingTime;
 	}
 	
+	public RecordingData(ARIty arity, String name) {
+		this(arity, name, Instant.now());
+	}
+
 	void setLiveRecording(LiveRecording rec) {
 		recording = Objects.requireNonNull(rec);
 		try {
@@ -43,6 +47,10 @@ public class RecordingData {
 
 	public String getRecordingName() {
 		return recordingName;
+	}
+	
+	public boolean hasRecording() {
+		return Objects.nonNull(recording);
 	}
 
 	public LiveRecording getRecording() {
@@ -60,4 +68,15 @@ public class RecordingData {
 				.thenApply(s -> stored = s);
 	}
 
+	public CompletableFuture<byte[]> getStoredRecordingData() {
+		return Operation.retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb));
+	}
+
+	public int getDuration() {
+		try {
+			return hasRecording() ? recording.getDuration().intValue() : 0;
+		} catch (NullPointerException /* duration not set */ | UnsupportedOperationException /* wrong version */ e) {
+			return 0;
+		}
+	}
 }
