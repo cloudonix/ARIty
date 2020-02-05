@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -269,8 +268,7 @@ public class Bridge {
 	public CompletableFuture<RecordingData> record(String recordingName, String ifExists, boolean beep, String terminateOn, String recordFormat, int maxDurationSeconds, int maxSilenceSeconds) {
 		String realRecordFormat = Objects.isNull(recordFormat) ? "ulaw" : recordFormat;
 		logger.info("Record bridge with id: " + bridgeId + ", and recording name is: " + recordingName);
-		Instant recordingStartTime = Instant.now();
-		RecordingData recordingData = new RecordingData(arity, recordingName, recordingStartTime);
+		RecordingData recordingData = new RecordingData(arity, recordingName);
 		recordings.put(recordingName, recordingData);
 		
 		arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
