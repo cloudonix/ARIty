@@ -72,8 +72,7 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		// create a unique UUID for the playback
-		String fullPath = (playFileName.startsWith("http") ? "" : (uriScheme +":")) + playFileName;
+		String fullPath = uriScheme +":"+ playFileName;
 
 		return IntStream.range(0, timesToPlay)
 				.mapToObj(i -> playOnce(fullPath))
