@@ -71,10 +71,6 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Play play(String file) {
-		if (file.matches("^https?://.*")) {
-			String parts[] = file.split(":",2);
-			return new Play(this, parts[1]).setUriScheme(parts[0]);
-		}
 		return new Play(this, file);
 	}
 
