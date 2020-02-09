@@ -18,6 +18,7 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
+import io.cloudonix.arity.errors.RecordingNotFoundException;
 import io.cloudonix.lib.Futures;
 import io.cloudonix.lib.Timers;
 
@@ -221,6 +222,8 @@ public class Record extends CancelableOperations {
 		if (wasCancelled.getAcquire())
 			return Futures.completedFuture();
 		return Operation.<Void>retry(cb -> recordings().stop(name).execute(cb))
+				// recording not found can happen if the recording was finished due to a hangup or sth
+				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> null))
 				.thenAccept(v -> {
 					logger.info("Record " + name + " stoped");
 				})
@@ -283,4 +286,13 @@ public class Record extends CancelableOperations {
 		return recording.getDuration(); 
 	}
 	
+	@Override
+	protected Exception tryIdentifyError(Throwable ariError) {
+		return Objects.requireNonNullElseGet(super.tryIdentifyError(ariError), () -> {
+			switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
+			case "Recording not found": return new RecordingNotFoundException(name, ariError);
+			}
+			return null;
+		});
+	}
 }
