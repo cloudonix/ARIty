@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
+import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
@@ -136,6 +137,10 @@ public class Record extends CancelableOperations {
 					logger.info("Terminating key '"+dtmf.getDigit()+"' was pressed, stop recording");
 					isTermKeyWasPressed = true;
 					cancel();
+				}),
+				
+				getArity().addEventHandler(ChannelHangupRequest.class, getChannelId(), (hangup, se) -> {
+					cancel();
 				})
 				));
 	}
@@ -222,7 +227,14 @@ public class Record extends CancelableOperations {
 				.exceptionally(Futures.on(RestException.class, e -> {
 					logger.warning("Can't stop recording " + name + ": " + e);
 					throw e;
-				}));
+				}))
+				.whenComplete((v,t) -> {
+					cleanupHandlers();
+					if (Objects.isNull(t))
+						waitUntilDone.complete(null);
+					else
+						waitUntilDone.completeExceptionally(t);
+				});
 	}
 
 	/**
