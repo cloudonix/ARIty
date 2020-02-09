@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
@@ -43,6 +44,7 @@ public class Record extends CancelableOperations {
 	private Instant recordingStartTime;
 	private CompletableFuture<Void> waitUntilDone;
 	private LinkedList<EventHandler<?>> eventHandlers = new LinkedList<>();
+	private AtomicBoolean wasCancelled = new AtomicBoolean(false);
 
 	/**
 	 * Constructor
@@ -216,10 +218,8 @@ public class Record extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		if (Objects.nonNull(recording)) {
-			logger.fine("Recording has already stoped");
-			return CompletableFuture.completedFuture(null);
-		}
+		if (wasCancelled.getAcquire())
+			return Futures.completedFuture();
 		return Operation.<Void>retry(cb -> recordings().stop(name).execute(cb))
 				.thenAccept(v -> {
 					logger.info("Record " + name + " stoped");
@@ -229,6 +229,7 @@ public class Record extends CancelableOperations {
 					throw e;
 				}))
 				.whenComplete((v,t) -> {
+					wasCancelled .setRelease(true);
 					cleanupHandlers();
 					if (Objects.isNull(t))
 						waitUntilDone.complete(null);
