@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
@@ -17,6 +18,7 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
+import io.cloudonix.arity.errors.RecordingNotFoundException;
 import io.cloudonix.lib.Futures;
 import io.cloudonix.lib.Timers;
 
@@ -43,6 +45,7 @@ public class Record extends CancelableOperations {
 	private Instant recordingStartTime;
 	private CompletableFuture<Void> waitUntilDone;
 	private LinkedList<EventHandler<?>> eventHandlers = new LinkedList<>();
+	private AtomicBoolean wasCancelled = new AtomicBoolean(false);
 
 	/**
 	 * Constructor
@@ -94,7 +97,7 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<Record> startRecording() {
 		setupHandlers();
 		recording = new RecordingData(getArity(), name);
-		return Operation.<LiveRecording>retry(cb -> channels().record(getChannelId(), name, fileFormat)
+		return this.<LiveRecording>retryOperation(cb -> channels().record(getChannelId(), name, fileFormat)
 				.setMaxDurationSeconds(maxDuration).setMaxSilenceSeconds(maxSilenceSeconds)
 				.setIfExists(ifExists).setBeep(beep).execute(cb))
 				.thenAccept(recording::setLiveRecording)
@@ -216,11 +219,11 @@ public class Record extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		if (Objects.nonNull(recording)) {
-			logger.fine("Recording has already stoped");
-			return CompletableFuture.completedFuture(null);
-		}
-		return Operation.<Void>retry(cb -> recordings().stop(name).execute(cb))
+		if (wasCancelled.getAcquire())
+			return Futures.completedFuture();
+		return this.<Void>retryOperation(cb -> recordings().stop(name).execute(cb))
+				// recording not found can happen if the recording was finished due to a hangup or sth
+				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> null))
 				.thenAccept(v -> {
 					logger.info("Record " + name + " stoped");
 				})
@@ -229,6 +232,7 @@ public class Record extends CancelableOperations {
 					throw e;
 				}))
 				.whenComplete((v,t) -> {
+					wasCancelled .setRelease(true);
 					cleanupHandlers();
 					if (Objects.isNull(t))
 						waitUntilDone.complete(null);
@@ -282,4 +286,13 @@ public class Record extends CancelableOperations {
 		return recording.getDuration(); 
 	}
 	
+	@Override
+	protected Exception tryIdentifyError(Throwable ariError) {
+		return Objects.requireNonNullElseGet(super.tryIdentifyError(ariError), () -> {
+			switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
+			case "Recording not found": return new RecordingNotFoundException(name, ariError);
+			}
+			return null;
+		});
+	}
 }
