@@ -26,7 +26,7 @@ public class Mute extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Mute> run() {
-		return Operation.<Void>retry(cb -> channels().mute(channelId).setDirection(direction).execute(cb))
+		return this.<Void>retryOperation(cb -> channels().mute(channelId).setDirection(direction).execute(cb))
 				.thenAccept(v -> {
 					logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
 				})
@@ -39,7 +39,7 @@ public class Mute extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		return Operation.<Void>retry(cb -> channels().unmute(channelId).setDirection(direction).execute(cb))
+		return this.<Void>retryOperation(cb -> channels().unmute(channelId).setDirection(direction).execute(cb))
 				.thenAccept(res -> {
 					logger.info("Unmute channel " + channelId + " with audio direction " + direction);
 				})

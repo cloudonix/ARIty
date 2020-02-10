@@ -97,7 +97,7 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<Record> startRecording() {
 		setupHandlers();
 		recording = new RecordingData(getArity(), name);
-		return Operation.<LiveRecording>retry(cb -> channels().record(getChannelId(), name, fileFormat)
+		return this.<LiveRecording>retryOperation(cb -> channels().record(getChannelId(), name, fileFormat)
 				.setMaxDurationSeconds(maxDuration).setMaxSilenceSeconds(maxSilenceSeconds)
 				.setIfExists(ifExists).setBeep(beep).execute(cb))
 				.thenAccept(recording::setLiveRecording)
@@ -221,7 +221,7 @@ public class Record extends CancelableOperations {
 	public CompletableFuture<Void> cancel() {
 		if (wasCancelled.getAcquire())
 			return Futures.completedFuture();
-		return Operation.<Void>retry(cb -> recordings().stop(name).execute(cb))
+		return this.<Void>retryOperation(cb -> recordings().stop(name).execute(cb))
 				// recording not found can happen if the recording was finished due to a hangup or sth
 				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> null))
 				.thenAccept(v -> {
