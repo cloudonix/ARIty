@@ -30,7 +30,7 @@ import io.cloudonix.lib.Futures;
 public class Bridge {
 
 	private ARIty arity;
-	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
+	private final static Logger logger = Logger.getLogger(Bridge.class.getName());
 	private String bridgeId;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
