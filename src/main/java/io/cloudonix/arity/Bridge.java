@@ -85,8 +85,10 @@ public class Bridge {
 	 * @return
 	 */
 	public CompletableFuture<Void> destroy() {
-		logger.info("Destoying bridge with id: " + bridgeId);
-		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions).thenAccept(v -> {
+		logger.info("Destroying bridge with id: " + bridgeId);
+		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions)
+				.exceptionally(Futures.on(BridgeNotFoundException.class, e -> { return null; }))
+				.thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 		});
