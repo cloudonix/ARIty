@@ -30,7 +30,7 @@ import io.cloudonix.lib.Futures;
 public class Bridge {
 
 	private ARIty arity;
-	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
+	private final static Logger logger = Logger.getLogger(Bridge.class.getName());
 	private String bridgeId;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
@@ -85,8 +85,10 @@ public class Bridge {
 	 * @return
 	 */
 	public CompletableFuture<Void> destroy() {
-		logger.info("Destoying bridge with id: " + bridgeId);
-		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions).thenAccept(v -> {
+		logger.info("Destroying bridge with id: " + bridgeId);
+		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions)
+				.exceptionally(Futures.on(BridgeNotFoundException.class, e -> { return null; }))
+				.thenAccept(v -> {
 			recordings.clear();
 			logger.info("Bridge was destroyed successfully. Bridge id: " + bridgeId);
 		});
