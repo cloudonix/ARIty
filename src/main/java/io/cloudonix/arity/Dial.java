@@ -124,7 +124,8 @@ public class Dial extends CancelableOperations {
 	 * @return itself for fluent calls
 	 */
 	public Dial withHeaders(Map<String, String> headers) {
-		this.headers.putAll(headers);
+		if (Objects.nonNull(headers))
+			this.headers.putAll(headers);
 		return this;
 	}
 
@@ -434,6 +435,7 @@ public class Dial extends CancelableOperations {
 	private void active() {
 		if (wasActive)
 			return;
+		wasActive = true;
 		try {
 			channelStateActive.forEach(Runnable::run);
 		} catch (Throwable t) {
