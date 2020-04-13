@@ -435,6 +435,7 @@ public class Dial extends CancelableOperations {
 	private void active() {
 		if (wasActive)
 			return;
+		wasActive = true;
 		try {
 			channelStateActive.forEach(Runnable::run);
 		} catch (Throwable t) {
