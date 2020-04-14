@@ -16,6 +16,7 @@ import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
@@ -294,7 +295,7 @@ public class Bridge {
 					return recordingData;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
-					logger.severe("Failed recording bridge " + name + ":" + bridgeId);
+					logger.severe("Failed to record bridge " + this + ":\n" + ErrorStream.fromThrowable(e));
 					throw e;
 				}));
 	}
@@ -420,5 +421,10 @@ public class Bridge {
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
 		}
 		return null;
+	}
+	
+	@Override
+	public String toString() {
+		return "Bridge " + (name != null ? name + " ": "") + bridgeId; 
 	}
 }
