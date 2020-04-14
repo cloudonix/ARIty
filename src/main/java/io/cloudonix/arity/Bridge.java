@@ -294,7 +294,7 @@ public class Bridge {
 					return recordingData;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
-					logger.info("Failed recording bridge");
+					logger.severe("Failed recording bridge " + name + ":" + bridgeId);
 					throw e;
 				}));
 	}
