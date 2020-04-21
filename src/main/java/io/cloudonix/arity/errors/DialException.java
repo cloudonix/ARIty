@@ -12,4 +12,8 @@ public class DialException extends ARItyException {
 	public DialException (Throwable t) {
 		super(t);
 	}
+	
+	public DialException (String m, Throwable t) {
+		super(m, t);
+	}
 }
