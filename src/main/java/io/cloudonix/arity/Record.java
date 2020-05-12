@@ -67,8 +67,8 @@ public class Record extends CancelableOperations {
 			boolean beep, String terminateOnKey) {
 		super(callController.getChannelId(), callController.getARIty());
 		this.name = name;
-		this.fileFormat = (Objects.nonNull(fileFormat) && !Objects.equals(fileFormat, "")) ? fileFormat
-				: this.fileFormat;
+		if (fileFormat != null && !fileFormat.isEmpty())
+			this.fileFormat = fileFormat;
 		this.maxDuration = maxDuration;
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
@@ -104,7 +104,7 @@ public class Record extends CancelableOperations {
 				.thenCompose(v -> {
 					logger.info("Recording started! recording name is: " + name);
 					Timers.schedule(this::stopRecording, TimeUnit.SECONDS.toMillis(maxDuration));
-					return Objects.requireNonNull(waitUntilDone, "Error setting up recording");
+					return waitUntilDone;
 				})
 				.whenComplete((v,t) -> cleanupHandlers())
 				.thenApply(v -> this)
@@ -240,7 +240,7 @@ public class Record extends CancelableOperations {
 					Timers.schedule(() -> {
 						waitUntilDone.completeExceptionally(new RecordingException(name, 
 								"Stopping recording but timedout waiting for recording to finish"));
-						}, 1500);
+						}, 3000);
 					return waitUntilDone;
 				})
 				.exceptionally(t -> { // probably stopping failed
