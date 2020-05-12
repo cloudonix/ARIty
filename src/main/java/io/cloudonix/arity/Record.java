@@ -104,7 +104,7 @@ public class Record extends CancelableOperations {
 				.thenCompose(v -> {
 					logger.info("Recording started! recording name is: " + name);
 					Timers.schedule(this::stopRecording, TimeUnit.SECONDS.toMillis(maxDuration));
-					return Objects.requireNonNull(waitUntilDone, "Error setting up recording");
+					return waitUntilDone;
 				})
 				.whenComplete((v,t) -> cleanupHandlers())
 				.thenApply(v -> this)
