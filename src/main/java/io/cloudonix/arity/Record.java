@@ -240,7 +240,7 @@ public class Record extends CancelableOperations {
 					Timers.schedule(() -> {
 						waitUntilDone.completeExceptionally(new RecordingException(name, 
 								"Stopping recording but timedout waiting for recording to finish"));
-						}, 1500);
+						}, 3000);
 					return waitUntilDone;
 				})
 				.exceptionally(t -> { // probably stopping failed
