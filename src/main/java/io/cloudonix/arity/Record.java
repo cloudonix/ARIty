@@ -43,7 +43,7 @@ public class Record extends CancelableOperations {
 	private int talkingDuration = 0;
 	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
 	private Instant recordingStartTime;
-	private CompletableFuture<Void> waitUntilDone;
+	private CompletableFuture<Void> waitUntilDone = new CompletableFuture<>();
 	private LinkedList<EventHandler<?>> eventHandlers = new LinkedList<>();
 	private AtomicBoolean wasCancelled = new AtomicBoolean(false);
 
@@ -106,6 +106,7 @@ public class Record extends CancelableOperations {
 					Timers.schedule(this::stopRecording, TimeUnit.SECONDS.toMillis(maxDuration));
 					return Objects.requireNonNull(waitUntilDone, "Error setting up recording");
 				})
+				.whenComplete((v,t) -> cleanupHandlers())
 				.thenApply(v -> this)
 				.exceptionally(Futures.on(RestException.class, e -> {
 					throw new RecordingException(name, e);
@@ -113,17 +114,16 @@ public class Record extends CancelableOperations {
 	}
 
 	private void setupHandlers() {
-		waitUntilDone = new CompletableFuture<>();
+		recordingStartTime = Instant.now();
 		eventHandlers.addAll(Arrays.asList(
 				// wait until Asterisk says we're done
 				getArity().addEventHandler(RecordingFinished.class, getChannelId(), (record, se) -> {
-					if (!Objects.equals(record.getRecording().getName(), name))
+					String evName = record.getRecording().getName();
+					if (!name.equals(evName))
 						return;
-					long recordingEndTime = Instant.now().getEpochSecond();
+					long duration = Math.abs(Instant.now().toEpochMilli() - recordingStartTime.toEpochMilli());
+					logger.fine("Finished recording! recording duration is: " + duration + "ms, reported " + record.getRecording().getDuration() + "s");
 					recording.setLiveRecording(record.getRecording());
-					logger.info("Finished recording! recording duration is: "
-							+ Math.abs(recordingEndTime - recordingStartTime.getEpochSecond()) + " seconds");
-					cleanupHandlers();
 					waitUntilDone.complete(null);
 				}),
 				
@@ -223,9 +223,12 @@ public class Record extends CancelableOperations {
 			return Futures.completedFuture();
 		return this.<Void>retryOperation(cb -> recordings().stop(name).execute(cb))
 				// recording not found can happen if the recording was finished due to a hangup or sth
-				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> null))
+				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> {
+					logger.severe("Failed to stop recording - recording not found");
+					return null;
+				}))
 				.thenAccept(v -> {
-					logger.info("Record " + name + " stoped");
+					logger.info("Record '" + name + "' stoped");
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
 					logger.warning("Can't stop recording " + name + ": " + e);
@@ -235,15 +238,12 @@ public class Record extends CancelableOperations {
 					wasCancelled .setRelease(true);
 					// give some time for RecordingFinished event to be received
 					Timers.schedule(() -> {
-						if (waitUntilDone.completeExceptionally(new RecordingException(name, 
-								"Stopping recording but timedout waiting for recording to finish")))
-							// succeeded in throwing the exception, that means we are responsible for cleanup
-							cleanupHandlers();
+						waitUntilDone.completeExceptionally(new RecordingException(name, 
+								"Stopping recording but timedout waiting for recording to finish"));
 						}, 1500);
 					return waitUntilDone;
 				})
 				.exceptionally(t -> { // probably stopping failed
-					cleanupHandlers();
 					waitUntilDone.completeExceptionally(t);
 					return null;
 				});
