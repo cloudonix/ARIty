@@ -1,7 +1,5 @@
 package io.cloudonix.arity.errors;
 
-import java.util.logging.Logger;
-
 /**
  * The class throws an exception when a recording failed
  * @author naamag
@@ -10,11 +8,13 @@ import java.util.logging.Logger;
 public class RecordingException extends ARItyException {
 
 	private static final long serialVersionUID = 1L;
-	private final static Logger logger = Logger.getLogger(RecordingException.class.getName());
 
 	public RecordingException (String name, Throwable t) {
-		super(t);
-		logger.info("recording "+name+" failed: "+ ErrorStream.fromThrowable(t));
+		super("Recording "+name+" failed: "+ t.getMessage(), t);
+	}
+
+	public RecordingException (String name, String message) {
+		super("Recording "+name+" failed: "+ message);
 	}
 	
 }
