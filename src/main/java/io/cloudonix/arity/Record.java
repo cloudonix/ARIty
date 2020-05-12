@@ -67,8 +67,8 @@ public class Record extends CancelableOperations {
 			boolean beep, String terminateOnKey) {
 		super(callController.getChannelId(), callController.getARIty());
 		this.name = name;
-		this.fileFormat = (Objects.nonNull(fileFormat) && !Objects.equals(fileFormat, "")) ? fileFormat
-				: this.fileFormat;
+		if (fileFormat != null && !fileFormat.isEmpty())
+			this.fileFormat = fileFormat;
 		this.maxDuration = maxDuration;
 		this.maxSilenceSeconds = maxSilenceSeconds;
 		this.beep = beep;
