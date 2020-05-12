@@ -231,13 +231,21 @@ public class Record extends CancelableOperations {
 					logger.warning("Can't stop recording " + name + ": " + e);
 					throw e;
 				}))
-				.whenComplete((v,t) -> {
+				.thenCompose(v -> {
 					wasCancelled .setRelease(true);
+					// give some time for RecordingFinished event to be received
+					Timers.schedule(() -> {
+						if (waitUntilDone.completeExceptionally(new RecordingException(name, 
+								"Stopping recording but timedout waiting for recording to finish")))
+							// succeeded in throwing the exception, that means we are responsible for cleanup
+							cleanupHandlers();
+						}, 1500);
+					return waitUntilDone;
+				})
+				.exceptionally(t -> { // probably stopping failed
 					cleanupHandlers();
-					if (Objects.isNull(t))
-						waitUntilDone.complete(null);
-					else
-						waitUntilDone.completeExceptionally(t);
+					waitUntilDone.completeExceptionally(t);
+					return null;
 				});
 	}
 
