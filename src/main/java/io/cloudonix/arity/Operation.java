@@ -178,7 +178,7 @@ public abstract class Operation {
 		StackTraceElement[] caller = getCallingStack();
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t))
-				return Futures.completedFuture(v);
+				return CompletableFuture.completedFuture(v);
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
