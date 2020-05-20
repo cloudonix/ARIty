@@ -18,6 +18,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.ErrorStream;
+import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -300,6 +301,9 @@ public class Dial extends CancelableOperations {
 				.thenCompose(v -> compFuture)
 				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> {
 					throw new DialException("Error starting dial due to channel gone while working on it - likely the caller hanged up?",e);
+				}))
+				.exceptionally(Futures.on(BridgeNotFoundException.class, e -> {
+					throw new DialException("Error starting dial due to bridge gone while working on it - likely the caller hanged up?",e);
 				}));
 	}
 
