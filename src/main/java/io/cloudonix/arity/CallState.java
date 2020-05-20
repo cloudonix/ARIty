@@ -21,6 +21,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.models.ChannelVarset;
 import ch.loway.oss.ari4java.generated.models.Message;
+import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
 
@@ -36,27 +37,33 @@ import ch.loway.oss.ari4java.generated.models.Variable;
 public class CallState {
 
 	public static enum States {
-		Down("Down"),
-		Rsrvd("Rsrvd"),
-		OffHook("OffHook"),
-		Dialing("Dialing"),
-		Ring("Ring"),
-		Ringing("Ringing"),
-		Up("Up"),
-		Busy("Busy"),
-		DialingOffhook("Dialing Offhook"),
-		PreRing("Pre-ring"),
-		Hangup(""), // not on official state, just for ease of use
-		Unknown("Unknown");
+		Down("Down", true),
+		Rsrvd("Rsrvd", false),
+		OffHook("OffHook", false),
+		Dialing("Dialing", false),
+		Ring("Ring", false),
+		Ringing("Ringing", false),
+		Up("Up", false),
+		Busy("Busy", true),
+		DialingOffhook("Dialing Offhook", false),
+		PreRing("Pre-ring", false),
+		Hangup("", true), // not on official state, just for ease of use
+		Unknown("Unknown", false);
 
 		private String stateName;
+		private boolean terminal;
 
-		States(String stateName) {
+		States(String stateName, boolean isTerminal) {
 			this.stateName = stateName;
+			this.terminal = isTerminal;
 		}
 
 		public static States find(String state) {
 			return Arrays.stream(values()).filter(s -> s.stateName.equalsIgnoreCase(state)).findFirst().orElse(Unknown);
+		}
+		
+		public boolean isTerminal() {
+			return terminal;
 		}
 	}
 
@@ -103,6 +110,15 @@ public class CallState {
 			lastState = States.Hangup;
 			fireStateChangeListeners();
 			// need also to unregister from channel events
+			eventListeners.forEach(EventHandler::unregister);
+		});
+		registerEventHandler(StasisEnd.class, end -> {
+			log.info("Stasis application ended");
+			isActive = false;
+			if (!lastState.isTerminal()) { // simulate hangup, if needed, on stasis end
+				lastState = States.Hangup;
+				fireStateChangeListeners();
+			}
 			eventListeners.forEach(EventHandler::unregister);
 		});
 	}
