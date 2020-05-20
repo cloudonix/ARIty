@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.8.47</version>
+	<version>0.8.48</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -65,7 +65,7 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
-			<version>[1.5,)</version>
+			<version>[1.14,)</version>
 			<scope>test</scope>
 		</dependency>
 
