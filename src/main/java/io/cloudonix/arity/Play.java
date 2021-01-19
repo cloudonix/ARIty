@@ -83,7 +83,7 @@ public class Play extends CancelableOperations {
 				.thenApply(v -> this);
 	}
 
-	private Supplier<CompletableFuture<Void>> playOnce(String path) {
+	protected Supplier<CompletableFuture<Void>> playOnce(String path) {
 		if (cancelled.getAcquire()) // if we're already cancelled, make any additional iteration a no-op
 			return () -> CompletableFuture.completedFuture(null);
 
