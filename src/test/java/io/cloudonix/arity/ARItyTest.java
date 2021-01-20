@@ -10,6 +10,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -42,6 +43,11 @@ public class ARItyTest {
 
 	@Rule
 	public AsteriskContainer asterisk = new AsteriskContainer();
+	
+	@BeforeClass
+	static public void setup() {
+		ARItySipInitiator.class.getName(); // force class to init
+	}
 
 	private final static Logger logger = Logger.getLogger(ARItyTest.class.getName());
 	static {
@@ -58,7 +64,7 @@ public class ARItyTest {
 		arity.disconnect();
 	}
 
-	@Test(timeout = 30000)
+	@Test(timeout = 300000)
 	// error while running an application
 	public void testErrRun() throws Exception {
 		AtomicBoolean wasCalled = new AtomicBoolean(false);

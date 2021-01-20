@@ -28,7 +28,7 @@ import webphone.webphone;
 public class ARItySipInitiator {
 
 	static Future<String> webphoneImage = new ImageFromDockerfile("webphone", false)
-			.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/1.0.0/jvoip-1.0.0.jar"))
+			.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.4/jvoip-8.4.jar"))
 			.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
 					"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
 					"	username=usertest password=123 \\\n" +
@@ -64,6 +64,7 @@ public class ARItySipInitiator {
 					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
 					.findFirst().orElseThrow(RuntimeException::new) + ":1");
 			withCommand("/app/jvoip.sh", address, destination);
+			withLogConsumer(log -> logger.fine(log.getUtf8String()));
 		}
 		@Override
 		public void start() {
@@ -122,7 +123,7 @@ public class ARItySipInitiator {
 			e.printStackTrace();
 		}
 	}
-
+	
 	private String getInstanceId() throws IOException {
 		try {
 			logger.entering(this.getClass().getName(), "getInstanceId");
