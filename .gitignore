@@ -2,3 +2,4 @@
 mwphonedata/
 previous_webphonelog.dat
 webphonelog.dat
+.jdk*
