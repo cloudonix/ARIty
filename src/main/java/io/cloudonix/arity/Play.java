@@ -84,7 +84,7 @@ public class Play extends CancelableOperations {
 	}
 
 	protected Supplier<CompletableFuture<Void>> playOnce(String path) {
-		if (cancelled.getAcquire()) // if we're already cancelled, make any additional iteration a no-op
+		if (cancelled()) // if we're already cancelled, make any additional iteration a no-op
 			return () -> CompletableFuture.completedFuture(null);
 
 		String playbackId = UUID.randomUUID().toString();
@@ -140,6 +140,10 @@ public class Play extends CancelableOperations {
 		logger.info("Trying to cancel a playback. Playback id: " + current.getId());
 		return this.<Void>retryOperation(cb -> playbacks().stop(current.getId()).execute(cb))
 				.thenAccept(pb -> logger.info("Playback canceled " + current.getId()));
+	}
+	
+	public boolean cancelled() {
+		return cancelled.getAcquire();
 	}
 
 	/**
