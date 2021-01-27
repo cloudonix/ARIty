@@ -46,6 +46,7 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<Void> waitUntilDone = new CompletableFuture<>();
 	private LinkedList<EventHandler<?>> eventHandlers = new LinkedList<>();
 	private AtomicBoolean wasCancelled = new AtomicBoolean(false);
+	private Runnable talkingEventHandler = () -> {};
 
 	/**
 	 * Constructor
@@ -129,8 +130,9 @@ public class Record extends CancelableOperations {
 				
 				// Recognize if Talking was detected during the recording
 				getArity().listenForOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
-					logger.info("Recognised tallking in the channel");
+					logger.fine("Recognised tallking in the channel");
 					wasTalkingDetected = true;
+					talkingEventHandler.run();
 				}),
 				
 				// stop the recording by pressing the terminating key
@@ -257,6 +259,10 @@ public class Record extends CancelableOperations {
 	 */
 	public boolean isTalkingDetect() {
 		return wasTalkingDetected;
+	}
+	
+	public void registerTalkDetection(Runnable handler) {
+		talkingEventHandler = handler;
 	}
 
 	/**
