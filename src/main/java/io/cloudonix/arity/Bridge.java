@@ -189,7 +189,7 @@ public class Bridge {
 	private void handleChannelLeftBridge(ChannelLeftBridge channelLeftBridge) {
 		String chanId = channelLeftBridge.getChannel().getId();
 		logger.fine("Channel with id: "+chanId+" left the bridge");
-		CompletableFuture<Void> event = enteredEventListeners.remove(chanId);
+		CompletableFuture<Void> event = leftEventListeners.remove(chanId);
 		if (Objects.nonNull(event))
 			event.complete(null);
 	}
