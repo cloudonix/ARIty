@@ -23,6 +23,7 @@ public class ReceivedDTMF {
 	private ARIty arity;
 	private String channelId;
 	private BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> runDtmfHandler = null;
+	private EventHandler<ChannelDtmfReceived> handler;
 
 	/**
 	 * Constructor
@@ -55,7 +56,7 @@ public class ReceivedDTMF {
 	 * @return
 	 */
 	public CompletableFuture<ReceivedDTMF> run() {
-		arity.addEventHandler(ChannelDtmfReceived.class, channelId, this::handleDTMF);
+		this.handler = arity.addEventHandler(ChannelDtmfReceived.class, channelId, this::handleDTMF);
 		return compFuture;
 	}
 
@@ -73,12 +74,12 @@ public class ReceivedDTMF {
 		if (dtmf.getDigit().equals(terminatingKey)) {
 			logger.info("Done receiving DTMF. all input: " + userInput);
 			termKeyWasPressed = true;
-			unregister(se);
+			unregister();
 			return;
 		}
 		userInput = userInput + dtmf.getDigit();
 		if (Objects.equals(inputLength, userInput.length())) {
-			unregister(se);
+			unregister();
 			return;
 		}
 	}
@@ -113,7 +114,13 @@ public class ReceivedDTMF {
 
 	/**
 	 * unregister from listening to DTMF events
-	 *
+	 */
+	public void unregister() {
+		unregister(this.handler);
+	}
+
+	/**
+	 * unregister from listening to DTMF events
 	 * @param se saved event we want to unregister from it
 	 */
 	public void unregister(EventHandler<ChannelDtmfReceived>se) {
