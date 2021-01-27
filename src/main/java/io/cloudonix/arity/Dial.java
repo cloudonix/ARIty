@@ -13,9 +13,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
+import ch.loway.oss.ari4java.generated.actions.requests.ChannelsCreatePostRequest;
+import ch.loway.oss.ari4java.generated.actions.requests.ChannelsOriginatePostRequest;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
+import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
@@ -90,6 +93,7 @@ public class Dial extends CancelableOperations {
 	private Long priority = null;
 	private Bridge earlyBridge;
 	private AtomicReference<CallState> dialledCallState = new AtomicReference<>();
+	private boolean shouldAttachToCallingChannel = false;
 
 	/**
 	 * Dial from a call controller
@@ -129,6 +133,15 @@ public class Dial extends CancelableOperations {
 	public Dial withHeaders(Map<String, String> headers) {
 		if (Objects.nonNull(headers))
 			this.headers.putAll(headers);
+		return this;
+	}
+	
+	/**
+	 * By default create/originate channel will not set the originator channel ID - call this method to change that behavior.
+	 * @return itself for fluent calls
+	 */
+	public Dial withOriginateFromCallingChannel() {
+		shouldAttachToCallingChannel = true;
 		return this;
 	}
 
@@ -261,10 +274,7 @@ public class Dial extends CancelableOperations {
 		if (Objects.nonNull(earlyBridge))
 			return runEarlyBridingWorkflow();
 
-		return this.<Channel>retryOperation(
-				cb -> channels().originate(endpoint).setExtension(extension).setContext(context).setPriority(priority)
-				.setCallerId(callerId).setTimeout(timeout).setVariables(formatSIPHeaders())
-				.setChannelId(endpointChannelId).setOtherChannelId(otherChannelId).setOriginator(getChannelId()).execute(cb))
+		return this.<Channel>retryOperation(cb -> genOriginateChannelOperation().execute(cb))
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
@@ -281,8 +291,7 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
 		logger.finer("Starting early bridging dial " + callerId + " -> " + endpoint);
-		return this.<Channel>retryOperation(h -> channels().create(endpoint, getArity().getAppName())
-				.setAppArgs("").setChannelId(endpointChannelId).setOriginator(getChannelId()).execute(h))
+		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(Futures.delay(50)) // TODO: replace with arity.waitForStasisStart(getChannelId())
 				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
@@ -305,6 +314,23 @@ public class Dial extends CancelableOperations {
 				.exceptionally(Futures.on(BridgeNotFoundException.class, e -> {
 					throw new DialException("Error starting dial due to bridge gone while working on it - likely the caller hanged up?",e);
 				}));
+	}
+
+	private ChannelsOriginatePostRequest genOriginateChannelOperation() throws RestException {
+		ChannelsOriginatePostRequest op = channels().originate(endpoint).setExtension(extension).setContext(context).setPriority(priority)
+		.setCallerId(callerId).setTimeout(timeout).setVariables(formatSIPHeaders())
+		.setChannelId(endpointChannelId).setOtherChannelId(otherChannelId);
+		if (shouldAttachToCallingChannel)
+			op.setOriginator(getChannelId());
+		return op;
+	}
+
+	private ChannelsCreatePostRequest genCreateChannelOperation() throws RestException {
+		ChannelsCreatePostRequest op = channels().create(endpoint, getArity().getAppName())
+				.setAppArgs("").setChannelId(endpointChannelId);
+		if (shouldAttachToCallingChannel)
+			op.setOriginator(getChannelId());
+		return op;
 	}
 
 	/**
