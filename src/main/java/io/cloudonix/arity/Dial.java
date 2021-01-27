@@ -290,19 +290,21 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(num)", callerId);
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
+		Hashtable<String,String> vars = new Hashtable<>(variables);
+		vars.putAll(formatSIPHeaders());
+		CompletableFuture<Void> activated = new CompletableFuture<>();
+		whenActive(() -> activated.complete(null));
+		
 		logger.finer("Starting early bridging dial " + callerId + " -> " + endpoint);
 		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
-				.thenCompose(Futures.delay(50)) // TODO: replace with arity.waitForStasisStart(getChannelId())
+				.thenCompose(v -> activated) // wait until channels enter stasis
 				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
 				.whenComplete((v,t) -> logger.finer("Early bridging created channel " + channel.getId() + " setting variables and headers"))
-				.thenCompose(v -> variables.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
-				.thenApply(v -> formatSIPHeaders())
-				.thenCompose(headers -> headers.entrySet().stream().map(this::setVariable).collect(Futures.resolvingCollector()))
+				.thenCompose(v -> dialledCallState.get().setVariables(vars))
 				.whenComplete((v,t) -> logger.finer("Early bridging dialing out on " + endpointChannelId))
-				.thenCompose(v -> this.<Void>retryOperation(h -> channels()
-						.dial(endpointChannelId).setCaller(getChannelId()).setTimeout(timeout).execute(h)))
+				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
 					logger.fine("Early bridged dial started " + callerId + " -> " + endpoint);
@@ -317,17 +319,18 @@ public class Dial extends CancelableOperations {
 	}
 
 	private ChannelsOriginatePostRequest genOriginateChannelOperation() throws RestException {
-		ChannelsOriginatePostRequest op = channels().originate(endpoint).setExtension(extension).setContext(context).setPriority(priority)
-		.setCallerId(callerId).setTimeout(timeout).setVariables(formatSIPHeaders())
-		.setChannelId(endpointChannelId).setOtherChannelId(otherChannelId);
+		ChannelsOriginatePostRequest op = channels().originate(endpoint).setApp(getArity().getAppName()).setAppArgs("")
+				.setChannelId(endpointChannelId);
 		if (shouldAttachToCallingChannel)
 			op.setOriginator(getChannelId());
-		return op;
+		Map<String, String> vars = new Hashtable<>(variables);
+		vars.putAll(formatSIPHeaders());
+		return op.setCallerId(callerId).setTimeout(timeout).setVariables(vars).setOtherChannelId(otherChannelId);
 	}
 
 	private ChannelsCreatePostRequest genCreateChannelOperation() throws RestException {
-		ChannelsCreatePostRequest op = channels().create(endpoint, getArity().getAppName())
-				.setAppArgs("").setChannelId(endpointChannelId);
+		ChannelsCreatePostRequest op = channels().create(endpoint, getArity().getAppName()).setAppArgs("")
+				.setChannelId(endpointChannelId);
 		if (shouldAttachToCallingChannel)
 			op.setOriginator(getChannelId());
 		return op;
@@ -383,10 +386,6 @@ public class Dial extends CancelableOperations {
 		}
 	}
 
-	private CompletableFuture<Void> setVariable(Map.Entry<String, String> var) {
-		return this.retryOperation(h -> channels().setChannelVar(endpointChannelId, var.getKey()).setValue(var.getValue()).execute(h));
-	}
-
 	/**
 	 * Convert headers to ADDSIPHEADER variables as per
 	 * http://www.xdev.net/2015/10/16/ari-originate-and-sip-headers/
@@ -434,7 +433,8 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
-		return this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb))
+		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId) : Futures.completedFuture())
+				.thenCompose(v -> this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb)))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
