@@ -24,6 +24,7 @@ import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
+import io.cloudonix.lib.Futures;
 
 /**
  * View of the current call state.
@@ -300,6 +301,16 @@ public class CallState {
 		if (Objects.nonNull(value)) // the map can't store nulls
 			variables.put(name, value);
 		return new SetChannelVar(channelId, arity, name, value).run().thenAccept(v -> {});
+	}
+	
+	/**
+	 * Update multiple asterisk channel variables at once
+	 * @param variables a set of variables
+	 * @return a promise that will resolve when all variables have been set
+	 */
+	public CompletableFuture<Void> setVariables(Map<String,String> variables) {
+		return variables.entrySet().stream().map(e -> setVariable(e.getKey(), e.getValue()))
+				.collect(Futures.resolvingCollector()).thenAccept(v -> {});
 	}
 
 	/**
