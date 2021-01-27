@@ -22,6 +22,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
+import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -433,7 +434,8 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
-		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId) : Futures.completedFuture())
+		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId)
+				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> null)) : Futures.completedFuture())
 				.thenCompose(v -> this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb)))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
