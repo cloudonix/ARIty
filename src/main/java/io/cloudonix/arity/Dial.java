@@ -467,6 +467,8 @@ public class Dial extends CancelableOperations {
 
 	public Dial whenActive(Runnable func) {
 		channelStateActive.add(func);
+		if (wasActive)
+			func.run();
 		return this;
 	}
 
@@ -488,6 +490,8 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial whenRinging(Runnable func) {
 		channelStateRinging.add(func);
+		if (wasRinging)
+			func.run();
 		return this;
 	}
 
@@ -511,6 +515,8 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial whenConnect(Runnable func) {
 		channelStateUp.add(func);
+		if (wasConnected)
+			func.run();
 		return this;
 	}
 
@@ -537,6 +543,8 @@ public class Dial extends CancelableOperations {
 	 */
 	public Dial whenFailed(Runnable func) {
 		channelStateFail.add(func);
+		if (wasFailed)
+			func.run();
 		return this;
 	}
 
