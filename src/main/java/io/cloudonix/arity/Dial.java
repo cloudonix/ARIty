@@ -434,9 +434,7 @@ public class Dial extends CancelableOperations {
 		logger.info("Hang up channel with id: " + endpointChannelId);
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
-		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId)
-				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> null))
-				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> null)) : Futures.completedFuture())
+		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId).exceptionally(t -> null) : Futures.completedFuture())
 				.thenCompose(v -> this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb)))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
