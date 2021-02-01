@@ -42,4 +42,4 @@ release:
 	git commit pom.xml -m "develop back to snapshot mode"
 
 push:
-	git push --all && git push --tags
+	for remote in `git remote`; do git push $$remote --all && git push $$remote --tags; done
