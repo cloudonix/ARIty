@@ -5,10 +5,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Playback;
@@ -23,14 +22,15 @@ import io.cloudonix.arity.errors.PlaybackException;
  *
  */
 public class Play extends CancelableOperations {
+	private final static Logger logger = Logger.getLogger(Play.class.getName());
 
 	private String language="en";
-	private String playFileName;
-	private int timesToPlay = 1;
 	private String uriScheme = "sound";
-	private AtomicReference<Playback> playback = new AtomicReference<>();
+	private String playFileName;
+	private AtomicInteger timesToPlay = new AtomicInteger(1);
 	private AtomicBoolean cancelled = new AtomicBoolean(false);
-	private final static Logger logger = Logger.getLogger(Play.class.getName());
+	private AtomicReference<Playback> playback = new AtomicReference<>();
+	private volatile String currentPlaybackId;
 
 	/**
 	 * Play the specified content using the specified scheme (default "sound")
@@ -73,36 +73,34 @@ public class Play extends CancelableOperations {
 	 */
 	public CompletableFuture<Play> run() {
 		String fullPath = uriScheme +":"+ playFileName;
-
-		return IntStream.range(0, timesToPlay)
-				.mapToObj(i -> playOnce(fullPath))
-				.reduce((a,b) -> (() -> a.get().thenCompose(v -> b.get())))
-				.orElseGet(() -> (() -> CompletableFuture.<Void>completedFuture(null)))
-				.get()
-				.thenRun(() -> playback.setRelease(null))
-				.thenApply(v -> this);
+		return startPlay(fullPath)
+				.thenCompose(v -> {
+					if (timesToPlay.decrementAndGet() > 0 && !cancelled())
+						return run();
+					return CompletableFuture.completedStage(this);
+				});
 	}
 
-	protected Supplier<CompletableFuture<Void>> playOnce(String path) {
+	protected CompletableFuture<Play> startPlay(String path) {
 		if (cancelled()) // if we're already cancelled, make any additional iteration a no-op
-			return () -> CompletableFuture.completedFuture(null);
+			return CompletableFuture.completedFuture(null);
 
-		String playbackId = UUID.randomUUID().toString();
-		return () -> this.<Playback>retryOperation(h -> channels()
-				.play(getChannelId(), path).setLang(language).setPlaybackId(playbackId).execute(h))
+		currentPlaybackId = UUID.randomUUID().toString();
+		CompletableFuture<Play> playbackFinished = new CompletableFuture<>();
+		getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (finished, se) -> {
+			String finisheId = finished.getPlayback().getId();
+			if (Objects.equals(finisheId, currentPlaybackId))
+				return;
+			logger.info("Finished playback " + finisheId);
+			playback.setRelease(null);
+			playbackFinished.complete(this);
+			se.unregister();
+		});
+		
+		return this.<Playback>retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h))
 		.thenCompose(playback -> {
 			this.playback.setRelease(playback); // store ongoing playback for cancelling
 			logger.info("Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
-
-			// wait for PlaybackFinished event
-			CompletableFuture<Void> playbackFinished = new CompletableFuture<>();
-			getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (finished, se) -> {
-				if (!(finished.getPlayback().getId().equals(playbackId)))
-					return;
-				logger.info("Finished playback " + playbackId);
-				playbackFinished.complete(null);
-				se.unregister();
-			});
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
@@ -118,7 +116,7 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public Play loop(int times) {
-		this.timesToPlay = times;
+		timesToPlay.set(times);
 		return this;
 	}
 
@@ -134,12 +132,11 @@ public class Play extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		cancelled.setRelease(true);
-		Playback current = playback.getAndSet(null); // cancel is re-entrant
-		if (Objects.isNull(current))
+		if (Objects.isNull(playback.getAndSet(null)))
 			return CompletableFuture.completedFuture(null);
-		logger.info("Trying to cancel a playback. Playback id: " + current.getId());
-		return this.<Void>retryOperation(cb -> playbacks().stop(current.getId()).execute(cb))
-				.thenAccept(pb -> logger.info("Playback canceled " + current.getId()));
+		logger.info("Trying to cancel a playback. Playback id: " + currentPlaybackId);
+		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
+				.thenAccept(pb -> logger.info("Playback canceled " + currentPlaybackId));
 	}
 	
 	public boolean cancelled() {
