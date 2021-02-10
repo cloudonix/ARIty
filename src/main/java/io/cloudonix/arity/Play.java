@@ -91,6 +91,7 @@ public class Play extends CancelableOperations {
 			String finisheId = finished.getPlayback().getId();
 			if (Objects.equals(finisheId, currentPlaybackId))
 				return;
+			currentPlaybackId = null;
 			logger.info("Finished playback " + finisheId);
 			playback.setRelease(null);
 			playbackFinished.complete(this);
@@ -132,8 +133,8 @@ public class Play extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		cancelled.setRelease(true);
-		if (Objects.isNull(playback.getAndSet(null)))
-			return CompletableFuture.completedFuture(null);
+		if (currentPlaybackId == null)
+			return CompletableFuture.completedFuture(null); // no need to cancel, before startPlay is called again, cancelled() will be checked
 		logger.info("Trying to cancel a playback. Playback id: " + currentPlaybackId);
 		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
 				.thenAccept(pb -> logger.info("Playback canceled " + currentPlaybackId));
