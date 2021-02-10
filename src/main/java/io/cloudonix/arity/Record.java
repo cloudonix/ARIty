@@ -221,8 +221,8 @@ public class Record extends CancelableOperations {
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		if (wasCancelled.getAcquire())
-			return Futures.completedFuture();
+		if (wasCancelled.getAndSet(true))
+			return CompletableFuture.completedFuture(null);
 		return this.<Void>retryOperation(cb -> recordings().stop(name).execute(cb))
 				// recording not found can happen if the recording was finished due to a hangup or sth
 				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> {
@@ -237,7 +237,6 @@ public class Record extends CancelableOperations {
 					throw e;
 				}))
 				.thenCompose(v -> {
-					wasCancelled .setRelease(true);
 					// give some time for RecordingFinished event to be received
 					Timers.schedule(() -> {
 						waitUntilDone.completeExceptionally(new RecordingException(name, 

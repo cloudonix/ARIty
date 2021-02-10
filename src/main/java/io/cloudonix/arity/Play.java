@@ -72,12 +72,15 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
+		logger.info("Play::run");
 		String fullPath = uriScheme +":"+ playFileName;
 		return startPlay(fullPath)
 				.thenCompose(v -> {
+					logger.info("startPlay finished");
 					if (timesToPlay.decrementAndGet() > 0 && !cancelled())
 						return run();
-					return CompletableFuture.completedStage(this);
+					logger.info("Play::run exiting");
+					return CompletableFuture.completedFuture(this);
 				});
 	}
 
@@ -93,14 +96,14 @@ public class Play extends CancelableOperations {
 				return;
 			currentPlaybackId = null;
 			logger.info("Finished playback " + finisheId);
-			playback.setRelease(null);
+			playback.set(null);
 			playbackFinished.complete(this);
 			se.unregister();
 		});
 		
 		return this.<Playback>retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h))
 		.thenCompose(playback -> {
-			this.playback.setRelease(playback); // store ongoing playback for cancelling
+			this.playback.set(playback); // store ongoing playback for cancelling
 			logger.info("Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 			return playbackFinished;
 		})
@@ -127,12 +130,12 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public Playback getPlayback() {
-		return playback.getAcquire();
+		return playback.get();
 	}
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		cancelled.setRelease(true);
+		cancelled.set(true);
 		if (currentPlaybackId == null)
 			return CompletableFuture.completedFuture(null); // no need to cancel, before startPlay is called again, cancelled() will be checked
 		logger.info("Trying to cancel a playback. Playback id: " + currentPlaybackId);
@@ -141,7 +144,7 @@ public class Play extends CancelableOperations {
 	}
 	
 	public boolean cancelled() {
-		return cancelled.getAcquire();
+		return cancelled.get();
 	}
 
 	/**
