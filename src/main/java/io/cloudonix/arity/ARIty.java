@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -53,6 +54,7 @@ public class ARIty implements AriCallback<Message> {
 	private ExecutorService executor = ForkJoinPool.commonPool();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
+	private ExecutorService threadpool = Executors.newCachedThreadPool();
 
 	/**
 	 * Create and connect ARIty to Asterisk
@@ -145,6 +147,17 @@ public class ARIty implements AriCallback<Message> {
 			throw new ConnectionFailedException(e);
 		}
 	}
+	
+	/**
+	 * Use the specified executor service to provide threads where new calls will be started.
+	 * If this method is not called, ARIty uses a cache thread pool from {@link Executors}.
+	 * @param service an ExecutorService to manage call threads
+	 * @return itself for fluent calls
+	 */
+	public ARIty setExecutorService(ExecutorService service) {
+		threadpool = service;
+		return this;
+	}
 
 	/**
 	 * The method register a new application to be executed according to the class
@@ -195,7 +208,7 @@ public class ARIty implements AriCallback<Message> {
 				public CompletableFuture<Void> run() {
 					return CompletableFuture.runAsync(() -> {
 						cc.accept(this);
-					});
+					}, threadpool);
 				}
 			};
 		};
@@ -292,7 +305,7 @@ public class ARIty implements AriCallback<Message> {
 			CallController cc = Objects.requireNonNull(callSupplier.get(),
 					"User call controller supplier failed to provide a CallController to handle the call");
 			cc.init(callState);
-			CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run()).whenComplete((v,t) -> {
+			CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run(), threadpool).whenComplete((v,t) -> {
 				if (Objects.nonNull(t)) {
 					logger.error("Completation error while running the application ",t);
 					channels().hangup(callState.getChannelId());
