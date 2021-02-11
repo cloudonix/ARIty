@@ -77,9 +77,9 @@ public class Play extends CancelableOperations {
 		return startPlay(fullPath)
 				.thenCompose(v -> {
 					logger.info("startPlay finished");
-					if (timesToPlay.decrementAndGet() > 0 && !cancelled())
-						return run();
-					return CompletableFuture.completedFuture(this);
+					if (cancelled() || timesToPlay.decrementAndGet() <= 0)
+						return CompletableFuture.completedFuture(this);
+					return run();
 				})
 				.whenComplete((v,t) -> { logger.info("Play::run exiting"); });
 	}
