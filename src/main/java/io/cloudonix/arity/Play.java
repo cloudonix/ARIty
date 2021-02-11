@@ -72,16 +72,17 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
+		StackTraceElement caller = new Exception().fillInStackTrace().getStackTrace()[1];
 		logger.info("Play::run");
 		String fullPath = uriScheme +":"+ playFileName;
 		return startPlay(fullPath)
 				.thenCompose(v -> {
 					logger.info("startPlay finished");
-					if (timesToPlay.decrementAndGet() > 0 && !cancelled())
-						return run();
-					return CompletableFuture.completedFuture(this);
+					if (cancelled() || timesToPlay.decrementAndGet() <= 0)
+						return CompletableFuture.completedFuture(this);
+					return run();
 				})
-				.whenComplete((v,t) -> { logger.info("Play::run exiting"); });
+				.whenComplete((v,t) -> { logger.info("Play::run exiting back to " + caller); });
 	}
 
 	protected CompletableFuture<Play> startPlay(String path) {
