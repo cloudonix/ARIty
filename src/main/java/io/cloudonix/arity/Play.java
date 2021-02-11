@@ -22,7 +22,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  *
  */
 public class Play extends CancelableOperations {
-	private Logger logger = Logger.getLogger(Play.class.getName());
+	private Logger logger;
 
 	private String language="en";
 	private String uriScheme = "sound";
@@ -40,8 +40,8 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String filename) {
 		super(callController.getChannelId(), callController.getARIty());
+		logger = Logger.getLogger(getClass().getName() + "[" + filename + "]");
 		this.playFileName = filename;
-		logger = Logger.getLogger(getClass().getName() + "[" + playFileName + "]");
 		initLanguage(callController);
 	}
 
