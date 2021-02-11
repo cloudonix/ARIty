@@ -72,6 +72,7 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
+		StackTraceElement caller = new Exception().fillInStackTrace().getStackTrace()[1];
 		logger.info("Play::run");
 		String fullPath = uriScheme +":"+ playFileName;
 		return startPlay(fullPath)
@@ -81,7 +82,7 @@ public class Play extends CancelableOperations {
 						return CompletableFuture.completedFuture(this);
 					return run();
 				})
-				.whenComplete((v,t) -> { logger.info("Play::run exiting"); });
+				.whenComplete((v,t) -> { logger.info("Play::run exiting back to " + caller); });
 	}
 
 	protected CompletableFuture<Play> startPlay(String path) {
