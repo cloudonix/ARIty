@@ -22,7 +22,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  *
  */
 public class Play extends CancelableOperations {
-	private Logger logger;
+	private Logger logger = Logger.getLogger(getClass().getName());
 
 	private String language="en";
 	private String uriScheme = "sound";
@@ -40,7 +40,6 @@ public class Play extends CancelableOperations {
 	 */
 	public Play(CallController callController, String filename) {
 		super(callController.getChannelId(), callController.getARIty());
-		logger = Logger.getLogger(getClass().getName() + "[" + filename + "]");
 		this.playFileName = filename;
 		initLanguage(callController);
 	}
@@ -74,16 +73,16 @@ public class Play extends CancelableOperations {
 	 */
 	public CompletableFuture<Play> run() {
 		StackTraceElement caller = new Exception().fillInStackTrace().getStackTrace()[1];
-		logger.info("Play::run");
 		String fullPath = uriScheme +":"+ playFileName;
+		logger.info("Play::run (" + fullPath + ")");
 		return startPlay(fullPath)
 				.thenCompose(v -> {
-					logger.info("startPlay finished");
+					logger.info(currentPlaybackId+"|startPlay finished (" + fullPath + ")");
 					if (cancelled() || timesToPlay.decrementAndGet() <= 0)
 						return CompletableFuture.completedFuture(this);
 					return run();
 				})
-				.whenComplete((v,t) -> { logger.info("Play::run exiting back to " + caller); });
+				.whenComplete((v,t) -> { logger.info(currentPlaybackId+"|Play::run ("+ fullPath +") exiting back to " + caller); });
 	}
 
 	protected CompletableFuture<Play> startPlay(String path) {
@@ -93,11 +92,11 @@ public class Play extends CancelableOperations {
 		currentPlaybackId = UUID.randomUUID().toString();
 		CompletableFuture<Play> playbackFinished = new CompletableFuture<>();
 		getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (finished, se) -> {
-			String finisheId = finished.getPlayback().getId();
-			if (Objects.equals(finisheId, currentPlaybackId))
+			String finishId = finished.getPlayback().getId();
+			if (Objects.equals(finishId, currentPlaybackId))
 				return;
 			currentPlaybackId = null;
-			logger.info("Finished playback " + finisheId);
+			logger.info(finishId + "|Finished playback");
 			playback.set(null);
 			playbackFinished.complete(this);
 			se.unregister();
@@ -106,7 +105,7 @@ public class Play extends CancelableOperations {
 		return this.<Playback>retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h))
 		.thenCompose(playback -> {
 			this.playback.set(playback); // store ongoing playback for cancelling
-			logger.info("Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
+			logger.info(currentPlaybackId + "|Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
@@ -140,9 +139,9 @@ public class Play extends CancelableOperations {
 		cancelled.set(true);
 		if (currentPlaybackId == null)
 			return CompletableFuture.completedFuture(null); // no need to cancel, before startPlay is called again, cancelled() will be checked
-		logger.info("Trying to cancel a playback. Playback id: " + currentPlaybackId);
+		logger.info(currentPlaybackId + "|Trying to cancel a playback");
 		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
-				.thenAccept(pb -> logger.info("Playback canceled " + currentPlaybackId));
+				.thenAccept(pb -> logger.info(currentPlaybackId + "|Playback canceled"));
 	}
 	
 	public boolean cancelled() {
