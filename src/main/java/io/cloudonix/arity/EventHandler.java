@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
@@ -54,7 +55,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 		if (!class1.isInstance(m))
 			return;
 		logger.finest("Triggering " + this);
-		handler.accept(class1.cast(m), this);
+		CompletableFuture.runAsync(() -> handler.accept(class1.cast(m), this));
 	}
 
 	public Class<T> getClass1() {
