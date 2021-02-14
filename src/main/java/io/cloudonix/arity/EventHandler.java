@@ -67,7 +67,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 
 	@Override
 	public String toString() {
-		return "Event handler:" + class1.getSimpleName() + ":" + handler.getClass();
+		return "Event handler:" + class1.getSimpleName() + "[" + channelId + "]:" + handler.getClass();
 	}
 	
 	@Override
