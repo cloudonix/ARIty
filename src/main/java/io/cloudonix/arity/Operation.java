@@ -80,19 +80,19 @@ public abstract class Operation {
 
 			@Override
 			public void onSuccess(V result) {
-				cf.complete(result);
+				CompletableFuture.runAsync(() -> cf.complete(result));
 			}
 
 			@Override
 			public void onFailure(RestException e) {
-				cf.completeExceptionally(rewrapError("ARI operation failed: " + e, caller, e));
+				CompletableFuture.runAsync(() -> cf.completeExceptionally(rewrapError("ARI operation failed: " + e, caller, e)));
 			}
 		};
 
 		try {
 			op.accept(ariCallback);
 		} catch (RestException e1) {
-			cf.completeExceptionally(e1);
+			CompletableFuture.runAsync(() -> cf.completeExceptionally(e1));
 		}
 		return cf;
 	}
