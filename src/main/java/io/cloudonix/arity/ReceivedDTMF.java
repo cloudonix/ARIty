@@ -17,7 +17,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
  */
 public class ReceivedDTMF {
 	private String userInput = "";
-	private final static Logger logger = LoggerFactory.getLogger(ReceivedDTMF.class));
+	private final static Logger logger = LoggerFactory.getLogger(ReceivedDTMF.class);
 	private String terminatingKey;
 	private int inputLength;
 	private boolean termKeyWasPressed = false;
