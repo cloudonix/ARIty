@@ -1,7 +1,6 @@
 package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
@@ -21,8 +20,6 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	private Class<T> class1;
 	private ARIty arity;
 	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
-	private final static AtomicInteger instanceCount = new AtomicInteger(0);
-	private final int instanceId = instanceCount.getAndIncrement();
 
 	/**
 	 * Constructor
@@ -68,15 +65,5 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	@Override
 	public String toString() {
 		return "Event handler:" + class1.getSimpleName() + "[" + channelId + "]:" + handler.getClass();
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		return obj instanceof EventHandler && instanceId == ((EventHandler<?>)obj).instanceId;
-	}
-	
-	@Override
-	public int hashCode() {
-		return instanceId;
 	}
 }
