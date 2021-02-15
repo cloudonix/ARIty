@@ -22,7 +22,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  *
  */
 public class Play extends CancelableOperations {
-	private Logger logger = Logger.getLogger(getClass().getName());
+	private final static Logger logger = Logger.getLogger(Play.class.getName());
 
 	private String language="en";
 	private String uriScheme = "sound";
@@ -72,9 +72,8 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		StackTraceElement caller = new Exception().fillInStackTrace().getStackTrace()[1];
 		String fullPath = uriScheme +":"+ playFileName;
-		logger.info("Play::run (" + fullPath + ")");
+		logger.fine("Play::run (" + fullPath + ")");
 		return startPlay(fullPath)
 				.thenCompose(v -> {
 					logger.info(currentPlaybackId+"|startPlay finished (" + fullPath + ")");
@@ -82,7 +81,7 @@ public class Play extends CancelableOperations {
 						return CompletableFuture.completedFuture(this);
 					return run();
 				})
-				.whenComplete((v,t) -> { logger.info(currentPlaybackId+"|Play::run ("+ fullPath +") exiting back to " + caller); });
+				.whenComplete((v,t) -> { logger.fine(currentPlaybackId+"|Play::run ("+ fullPath +")"); });
 	}
 
 	protected CompletableFuture<Play> startPlay(String path) {
