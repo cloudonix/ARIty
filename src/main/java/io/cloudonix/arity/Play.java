@@ -89,12 +89,11 @@ public class Play extends CancelableOperations {
 		if (cancelled()) // if we're already cancelled, make any additional iteration a no-op
 			return CompletableFuture.completedFuture(null);
 
-		String colsureId = currentPlaybackId = UUID.randomUUID().toString();
+		currentPlaybackId = UUID.randomUUID().toString();
 		CompletableFuture<Play> playbackFinished = new CompletableFuture<>();
 		getArity().addEventHandler(PlaybackFinished.class, getChannelId(), (finished, se) -> {
 			String finishId = finished.getPlayback().getId();
-			logger.fine("Got finished playback with id " + finishId + " expecting " + currentPlaybackId + " or " + colsureId);
-			if (Objects.equals(finishId, colsureId))
+			if (!Objects.equals(finishId, currentPlaybackId))
 				return;
 			currentPlaybackId = null;
 			logger.info(finishId + "|Finished playback");
