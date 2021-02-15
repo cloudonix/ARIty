@@ -7,12 +7,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.LoggerFactory;
+
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.actions.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
@@ -224,7 +225,7 @@ public abstract class Operation {
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
 		if (Objects.isNull(ariError.getMessage()))
-			System.err.println("ARI error with no message??? " + ErrorStream.fromThrowable(ariError));
+			LoggerFactory.getLogger(getClass()).error("ARI error with no message???", ariError);
 		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}

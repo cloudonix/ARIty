@@ -14,11 +14,12 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
@@ -64,7 +65,7 @@ public class ARItySipInitiator {
 					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
 					.findFirst().orElseThrow(RuntimeException::new) + ":1");
 			withCommand("/app/jvoip.sh", address, destination);
-			withLogConsumer(log -> logger.fine(log.getUtf8String()));
+			withLogConsumer(log -> logger.debug(log.getUtf8String()));
 		}
 		@Override
 		public void start() {
@@ -109,7 +110,7 @@ public class ARItySipInitiator {
 		}
 	}
 
-	private final static Logger logger = Logger.getLogger(ARItySipInitiator.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(ARItySipInitiator.class);
 
 	//private static String queueUrl = null;
 	private static LinkedList<Integer> availablePorts = fillPortList();
@@ -126,7 +127,7 @@ public class ARItySipInitiator {
 	
 	private String getInstanceId() throws IOException {
 		try {
-			logger.entering(this.getClass().getName(), "getInstanceId");
+			logger.debug("{}::getInstanceId entering", getClass());
 			while (true) {
 				try {
 					return getResult(new URL("http://169.254.169.254/latest/meta-data/instance-id").getContent());
@@ -134,11 +135,11 @@ public class ARItySipInitiator {
 					e.printStackTrace();
 					throw new IOException(e);
 				} catch (ConnectException e) {
-					logger.warning("Retrying getInstanceId because of: " + e.getMessage());
+					logger.warn("Retrying getInstanceId because of: " + e.getMessage());
 				}
 			}
 		} finally {
-			logger.exiting(this.getClass().getName(), "getInstanceId");
+			logger.debug("{}::getInstanceId exiting", getClass());
 		}
 	}
 
@@ -164,7 +165,6 @@ public class ARItySipInitiator {
 	}
 
 	public static CompletableFuture<Integer> call(String address, String ipFrom, String dnid) throws Exception {
-		logger.setLevel(Level.FINER);
 		logger.info("Started SipInitiator");
 
 		return CompletableFuture.supplyAsync(() -> {

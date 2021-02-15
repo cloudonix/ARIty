@@ -1,7 +1,9 @@
 package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.errors.dial.FailedToAnswerChannel;
 
@@ -13,7 +15,7 @@ import io.cloudonix.arity.errors.dial.FailedToAnswerChannel;
  */
 public class Answer extends Operation {
 
-	private final static Logger logger = Logger.getLogger(Answer.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
 
 	public Answer(CallController callController) {
 		super(callController.getChannelId(), callController.getARIty());

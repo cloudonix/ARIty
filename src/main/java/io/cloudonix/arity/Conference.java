@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
@@ -21,7 +23,7 @@ import io.cloudonix.lib.Futures;
  */
 public class Conference {
 	private CallController callController;
-	private final static Logger logger = Logger.getLogger(Conference.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Conference.class);
 	private Runnable handleChannelLeftConference = () -> {};
 	private String recordName = null;
 	volatile private RecordingData conferenceRecord;
@@ -99,12 +101,12 @@ public class Conference {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
 			answer.complete(null);
 		} else {
-			logger.fine("Need to answer the channel with id: " + callController.getChannelId());
+			logger.debug("Need to answer the channel with id: " + callController.getChannelId());
 			answer = callController.answer().run();
 		}
 		return answer.thenCompose(answerRes -> bridge.addChannel(callController.getChannelId()))
 				.thenCompose(v -> {
-					logger.fine("Channel was added to the bridge");
+					logger.debug("Channel was added to the bridge");
 					return beep ? playMedia("beep") : CompletableFuture.completedFuture(null);
 				}).thenCompose(beepRes -> {
 					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
@@ -173,7 +175,7 @@ public class Conference {
 					closeConference().thenAccept(
 							v2 -> logger.info("Nobody in the conference, closed the conference" + conferenceName))
 							.exceptionally(t -> {
-								logger.warning("Conference bridge was already destroyed");
+								logger.warn("Conference bridge was already destroyed");
 								return null;
 							});
 				}
@@ -333,12 +335,12 @@ public class Conference {
 	public CompletableFuture<Void> startMusicOnHold() {
 		return bridge.startMusicOnHold(musicOnHoldClassName)
 				.thenApply(v->{
-					logger.fine("Started playing music on hold to conference bridge");
+					logger.debug("Started playing music on hold to conference bridge");
 					mohStarted = true;
 					return v;
 				}).exceptionally(t->{
 					if(t.getMessage().contains("Bridge not in Stasis application")) {
-						logger.fine("Music on hold already started, can't start it again");
+						logger.debug("Music on hold already started, can't start it again");
 					}
 					mohStarted = false;
 					return null;
@@ -352,12 +354,12 @@ public class Conference {
 	public CompletableFuture<Void> stopMusicOnHold() {
 		return bridge.stopMusicOnHold()
 				.thenApply(v->{
-					logger.fine("Stoped playing music on hold to conference bridge");
+					logger.debug("Stoped playing music on hold to conference bridge");
 					mohStopped = true;
 					return v;
 				}).exceptionally(t->{
 					if(t.getMessage().contains("Bridge not in Stasis application")) {
-						logger.fine("Music on hold already stoped, can't stop it again");
+						logger.debug("Music on hold already stoped, can't stop it again");
 					}
 					mohStopped = false;
 					return null;

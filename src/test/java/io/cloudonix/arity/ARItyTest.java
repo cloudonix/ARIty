@@ -6,9 +6,9 @@ import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -34,7 +34,7 @@ public class ARItyTest {
 			}).handle(this::endCall).thenRun(() ->{
 				isSucceeded = true;
 			}).exceptionally(t -> {
-				logger.severe(t.toString());
+				logger.error("Error ending call", t);
 				return null;
 			});
 
@@ -49,13 +49,7 @@ public class ARItyTest {
 		ARItySipInitiator.class.getName(); // force class to init
 	}
 
-	private final static Logger logger = Logger.getLogger(ARItyTest.class.getName());
-	static {
-		logger.setLevel(Level.ALL);
-		ConsoleHandler console = new ConsoleHandler();
-		console.setLevel(Level.ALL);
-		logger.addHandler(console);
-	}
+	private final static Logger logger = LoggerFactory.getLogger(ARItyTest.class);
 
 	@Test(timeout = 30000)
 	public void testConncetion() throws ConnectionFailedException, URISyntaxException, InterruptedException, ExecutionException {

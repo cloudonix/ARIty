@@ -2,7 +2,11 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.tools.RestException;
@@ -18,7 +22,8 @@ import io.cloudonix.lib.Futures;
  */
 public abstract class CallController {
 	private CallState callState = new CallState();
-	private Logger logger = Logger.getLogger(getClass().getName());
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	private Marker logmarker;
 
 	/**
 	 * Initialize the call controller with an existing transferable call state.
@@ -28,7 +33,7 @@ public abstract class CallController {
 	 */
 	void init(CallState callState) {
 		this.callState = callState;
-		initLogger();
+		logmarker = MarkerFactory.getDetachedMarker(callState.getChannelId());
 		init();
 	}
 
@@ -40,10 +45,6 @@ public abstract class CallController {
 	 * <tt>super</tt>.
 	 */
 	protected void init() {
-	}
-
-	private void initLogger() {
-		logger = Logger.getLogger(getClass().getName() + ":" + callState.getChannelId());
 	}
 
 	/**
@@ -269,7 +270,7 @@ public abstract class CallController {
 		return Operation.<Void>retry(cb -> callState.getAri().channels()
 				.setChannelVar(callState.getChannelId(), "TALK_DETECT(" + action + ")").setValue(actionValue).execute(cb))
 				.exceptionally(t -> {
-					logger.info("Unable to " + action + " with value " + actionValue + ": " + t);
+					logger.info(logmarker, "Unable to " + action + " with value " + actionValue + ": " + t);
 					return null;
 				});
 
@@ -466,11 +467,11 @@ public abstract class CallController {
 	public CompletableFuture<Boolean> isCallActive(String channelId) {
 		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(channelId).execute(cb))
 				.thenApply(result -> {
-					logger.info("Call with id: " + result.getId() + " is still active");
+					logger.info(logmarker, "Call with id: " + result.getId() + " is still active");
 					return true;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
-					logger.info("Call is not active ");
+					logger.info(logmarker, "Call is not active ");
 					return false;
 				}));
 	}

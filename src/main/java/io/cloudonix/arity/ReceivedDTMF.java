@@ -3,7 +3,9 @@ package io.cloudonix.arity;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
 
@@ -15,7 +17,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
  */
 public class ReceivedDTMF {
 	private String userInput = "";
-	private final static Logger logger = Logger.getLogger(ReceivedDTMF.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(ReceivedDTMF.class));
 	private String terminatingKey;
 	private int inputLength;
 	private boolean termKeyWasPressed = false;

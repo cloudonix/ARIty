@@ -7,7 +7,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Playback;
@@ -22,7 +24,7 @@ import io.cloudonix.arity.errors.PlaybackException;
  *
  */
 public class Play extends CancelableOperations {
-	private Logger logger = Logger.getLogger(getClass().getName());
+	private final static Logger logger = LoggerFactory.getLogger(Play.class);
 
 	private String language="en";
 	private String uriScheme = "sound";
@@ -53,7 +55,7 @@ public class Play extends CancelableOperations {
 		if (Objects.nonNull(callController.getCallState()) && Objects.nonNull(callController.getCallState().getChannel()))
 			this.language = callController.getCallState().getChannel().getLanguage();
 		else
-			logger.fine("Using default language: "+language);
+			logger.debug("Using default language: {}", language);
 	}
 
 	/**
@@ -72,9 +74,8 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		StackTraceElement caller = new Exception().fillInStackTrace().getStackTrace()[1];
 		String fullPath = uriScheme +":"+ playFileName;
-		logger.info("Play::run (" + fullPath + ")");
+		logger.debug("Play::run ({})", fullPath);
 		return startPlay(fullPath)
 				.thenCompose(v -> {
 					logger.info(currentPlaybackId+"|startPlay finished (" + fullPath + ")");
@@ -82,7 +83,7 @@ public class Play extends CancelableOperations {
 						return CompletableFuture.completedFuture(this);
 					return run();
 				})
-				.whenComplete((v,t) -> { logger.info(currentPlaybackId+"|Play::run ("+ fullPath +") exiting back to " + caller); });
+				.whenComplete((v,t) -> { logger.debug("{}|Play::run ({})", currentPlaybackId, fullPath); });
 	}
 
 	protected CompletableFuture<Play> startPlay(String path) {
@@ -109,7 +110,7 @@ public class Play extends CancelableOperations {
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
-			logger.warning("Failed in playing playback " + e.getMessage());
+			logger.warn("Failed in playing playback", e);
 			throw new CompletionException(new PlaybackException(path, e));
 		});
 	}

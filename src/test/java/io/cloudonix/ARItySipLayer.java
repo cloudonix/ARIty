@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Logger;
 
 import javax.sdp.SdpException;
 import javax.sdp.SdpFactory;
@@ -31,6 +30,8 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.MediaFormat;
 import org.jitsi.utils.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ARItySipLayer implements SipListener {
 	private String username;
@@ -55,7 +56,7 @@ public class ARItySipLayer implements SipListener {
 	private String remoteRtpAudioIp;
 	private CompletableFuture<Void> waitForBye = new CompletableFuture<Void>();
 
-	private final static Logger logger = Logger.getLogger(ARItySipInitiator.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(ARItySipInitiator.class);
 
 	public ARItySipLayer(String username, String ip, int port) throws PeerUnavailableException,
 			TransportNotSupportedException, InvalidArgumentException, TooManyListenersException, ObjectInUseException, FileNotFoundException {
@@ -180,7 +181,7 @@ public class ARItySipLayer implements SipListener {
 				break;
 			} catch (BindException e) {
 				if (++count == maxTries) {
-					logger.severe("couldn't connect rtp beacause of: " + e.getMessage());
+					logger.error("couldn't connect rtp beacause of", e);
 					break;
 				}
 			}
@@ -278,7 +279,7 @@ public class ARItySipLayer implements SipListener {
 						createRtpStack();
 						logger.info("RTP stack sent from port: " + this.port);
 					} catch (SocketException | UnknownHostException e) {
-						logger.warning("RTP stack failed");
+						logger.warn("RTP stack failed");
 						e.printStackTrace();
 					}
 					Thread.sleep(300);
