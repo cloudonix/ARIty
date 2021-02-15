@@ -158,6 +158,14 @@ public class ARIty implements AriCallback<Message> {
 		threadpool = service;
 		return this;
 	}
+	
+	/**
+	 * Execute a task (such as completing a CompletableFuture) in the ARIty completion executor service 
+	 * @param task task to dispatch using the executor
+	 */
+	void dispatchTask(Runnable task) {
+		CompletableFuture.runAsync(task, threadpool);
+	}
 
 	/**
 	 * The method register a new application to be executed according to the class
