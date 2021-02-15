@@ -11,7 +11,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsCreatePostRequest;
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsOriginatePostRequest;
@@ -20,9 +22,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.DialException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
-import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
@@ -67,7 +67,7 @@ public class Dial extends CancelableOperations {
 	private Instant ringingTime;
 	private Instant endTime;
 	private Duration callDuration, ringingDuration, mediaDuration;
-	private final static Logger logger = Logger.getLogger(Dial.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Dial.class);
 	private volatile Status dialStatus = Status.UNKNOWN;
 	private Map<String, String> headers = new Hashtable<>();
 	private Map<String, String> variables = new Hashtable<>();
@@ -261,7 +261,7 @@ public class Dial extends CancelableOperations {
 	 * @return A promise to return this instance when the dial operation completes
 	 */
 	public CompletableFuture<Dial> run() {
-		logger.fine("Running Dial");
+		logger.debug("Running Dial");
 		getArity().registerApplicationStartHandler(endpointChannelId, cs -> {
 			dialledCallState.set(cs);
 			active();
@@ -296,19 +296,19 @@ public class Dial extends CancelableOperations {
 		CompletableFuture<Void> activated = new CompletableFuture<>();
 		whenActive(() -> activated.complete(null));
 		
-		logger.finer("Starting early bridging dial " + callerId + " -> " + endpoint);
+		logger.debug("Starting early bridging dial " + callerId + " -> " + endpoint);
 		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
-				.whenComplete((v,t) -> logger.finer("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
+				.whenComplete((v,t) -> logger.debug("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
-				.whenComplete((v,t) -> logger.finer("Early bridging created channel " + channel.getId() + " setting variables and headers"))
+				.whenComplete((v,t) -> logger.debug("Early bridging created channel " + channel.getId() + " setting variables and headers"))
 				.thenCompose(v -> dialledCallState.get().setVariables(vars))
-				.whenComplete((v,t) -> logger.finer("Early bridging dialing out on " + endpointChannelId))
+				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on " + endpointChannelId))
 				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
-					logger.fine("Early bridged dial started " + callerId + " -> " + endpoint);
+					logger.debug("Early bridged dial started " + callerId + " -> " + endpoint);
 				})
 				.thenCompose(v -> compFuture)
 				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> {
@@ -344,7 +344,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleDialEvent(ch.loway.oss.ari4java.generated.models.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.models.Dial>se) {
-		logger.finer("Dial event detected on channel " + getChannelId() + ": " + dial.getDialstring() + " " + dial.getDialstatus());
+		logger.debug("Dial event detected on channel " + getChannelId() + ": " + dial.getDialstring() + " " + dial.getDialstatus());
 		if (dialStatus == Status.CANCEL) {
 			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
 			cancelled();
@@ -356,7 +356,7 @@ public class Dial extends CancelableOperations {
 			if (!status.isEmpty()) // ignore empty status which can happen in response to originate (and means unknown)
 				dialStatus = Status.valueOf(status);
 		} catch (IllegalArgumentException e) {
-			logger.severe("Unknown dial status " + dial.getDialstatus() + ", ignoring for now");
+			logger.error("Unknown dial status " + dial.getDialstatus() + ", ignoring for now");
 			dialStatus = Status.UNKNOWN;
 		}
 		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + " is: " + dialStatus);
@@ -480,7 +480,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateActive.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenActive callback: " +ErrorStream.fromThrowable(t));
+			logger.debug("Fatal error running whenActive callback", t);
 		}
 	}
 
@@ -504,7 +504,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateRinging.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenRinging callback: " +ErrorStream.fromThrowable(t));
+			logger.error("Fatal error running whenRinging callback", t);
 		}
 	}
 
@@ -533,7 +533,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateUp.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenConnect callback: " +ErrorStream.fromThrowable(t));
+			logger.error("Fatal error running whenConnect callback", t);
 		}
 	}
 
@@ -560,7 +560,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateFail.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenFailed callback: " +ErrorStream.fromThrowable(t));
+			logger.error("Fatal error running whenFailed callback", t);
 		}
 		compFuture.complete(this);
 	}
@@ -578,7 +578,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateCancelled.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenCancelled callback: " +ErrorStream.fromThrowable(t));
+			logger.error("Fatal error running whenCancelled callback", t);
 		}
 		compFuture.complete(this);
 	}
@@ -596,7 +596,7 @@ public class Dial extends CancelableOperations {
 		try {
 			channelStateDisconnected.forEach(Runnable::run);
 		} catch (Throwable t) {
-			logger.severe("Fatal error running whenDisconnected callback: " +ErrorStream.fromThrowable(t));
+			logger.error("Fatal error running whenDisconnected callback", t);
 		}
 		compFuture.complete(this);
 	}
@@ -619,7 +619,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleChannelStateChanged(ChannelStateChange channelState, EventHandler<ChannelStateChange> se) {
-		logger.finer("State change detected on channel " + getChannelId() + ": " + channelState.getChannel().getState());
+		logger.debug("State change detected on channel " + getChannelId() + ": " + channelState.getChannel().getState());
 //		if (channelState.getChannel().getState().equalsIgnoreCase("Ringing"))
 //			onRinging();
 	}

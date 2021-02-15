@@ -9,7 +9,9 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
 import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
@@ -38,7 +40,7 @@ public class Record extends CancelableOperations {
 	volatile private RecordingData recording;
 	private CallController callController;
 	private boolean isTermKeyWasPressed = false;
-	private final static Logger logger = Logger.getLogger(Record.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Record.class);
 	volatile private boolean wasTalkingDetected = false;
 	private int talkingDuration = 0;
 	private String ifExists = "overwrite"; // can be set to the following values: fail, overwrite, append
@@ -87,7 +89,7 @@ public class Record extends CancelableOperations {
 	private CompletableFuture<Void> playBeep() {
 		if (!beep)
 			return CompletableFuture.completedFuture(null);
-		logger.fine("Play beep before recording");
+		logger.debug("Play beep before recording");
 		return callController.play("beep").run().thenAccept(v -> {});
 	}
 
@@ -123,14 +125,14 @@ public class Record extends CancelableOperations {
 					if (!name.equals(evName))
 						return;
 					long duration = Math.abs(Instant.now().toEpochMilli() - recordingStartTime.toEpochMilli());
-					logger.fine("Finished recording! recording duration is: " + duration + "ms, reported " + record.getRecording().getDuration() + "s");
+					logger.debug("Finished recording! recording duration is: " + duration + "ms, reported " + record.getRecording().getDuration() + "s");
 					recording.setLiveRecording(record.getRecording());
 					waitUntilDone.complete(null);
 				}),
 				
 				// Recognize if Talking was detected during the recording
 				getArity().listenForOneTimeEvent(ChannelTalkingStarted.class, getChannelId(), (talkStarted) -> {
-					logger.fine("Recognised tallking in the channel");
+					logger.debug("Recognised tallking in the channel");
 					wasTalkingDetected = true;
 					talkingEventHandler.run();
 				}),
@@ -226,14 +228,14 @@ public class Record extends CancelableOperations {
 		return this.<Void>retryOperation(cb -> recordings().stop(name).execute(cb))
 				// recording not found can happen if the recording was finished due to a hangup or sth
 				.exceptionally(Futures.on(RecordingNotFoundException.class, t -> {
-					logger.severe("Failed to stop recording - recording not found");
+					logger.error("Failed to stop recording - recording not found");
 					return null;
 				}))
 				.thenAccept(v -> {
 					logger.info("Record '" + name + "' stoped");
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
-					logger.warning("Can't stop recording " + name + ": " + e);
+					logger.warn("Can't stop recording " + name, e);
 					throw e;
 				}))
 				.thenCompose(v -> {

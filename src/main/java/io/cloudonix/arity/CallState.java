@@ -1,7 +1,5 @@
 package io.cloudonix.arity;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -13,7 +11,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.models.Channel;
@@ -68,7 +70,8 @@ public class CallState {
 		}
 	}
 
-	private Logger log;
+	private static Logger log = LoggerFactory.getLogger(CallState.class);
+	private Marker logmarker;
 
 	private ARI ari;
 	private String channelId;
@@ -93,12 +96,12 @@ public class CallState {
 		this.arity = arity;
 		this.channel = chan;
 		this.channelId = channel.getId();
-		log = Logger.getLogger("CallState[" + channelId + "]");
+		logmarker = MarkerFactory.getDetachedMarker(channelId);
 		this.channelTechnology = channel.getName().split("/")[0];
 		lastState = States.find(channel.getState());
 		wasAnswered = lastState == States.Up;
 		registerEventHandler(ChannelVarset.class, varset -> {
-			log.info("Variable set: " + varset.getVariable() + " => " + varset.getValue());
+			log.info(logmarker, "Variable set: " + varset.getVariable() + " => " + varset.getValue());
 			variables.put(varset.getVariable(), varset.getValue());
 		});
 		registerEventHandler(ChannelStateChange.class, stateChange -> {
@@ -114,7 +117,7 @@ public class CallState {
 			eventListeners.forEach(EventHandler::unregister);
 		});
 		registerEventHandler(StasisEnd.class, end -> {
-			log.info("Stasis application ended");
+			log.info(logmarker, "Stasis application ended");
 			isActive = false;
 			if (!lastState.isTerminal()) { // simulate hangup, if needed, on stasis end
 				lastState = States.Hangup;
@@ -231,7 +234,7 @@ public class CallState {
 			return this.<Variable>retryOperation(cb -> channels().getChannelVar(getChannelId(), name).execute(cb))
 					.handle((var,e) -> {
 						if (Objects.nonNull(e))
-							log.info("getVar: " + e);
+							log.info(logmarker, "getVar: " + e);
 						else
 							value = var.getValue();
 						return this;
@@ -361,8 +364,7 @@ public class CallState {
 			try {
 				eventHandler.accept(ev);
 			} catch (Throwable t) {
-				log.warning("Error encountered running " + type + " listener " + eventHandler + ": " + t + "\n" +
-						getStackTraceReport(t));
+				log.warn(logmarker, "Error encountered running " + type + " listener " + eventHandler, t);
 			}
 		}));
 	}
@@ -385,16 +387,9 @@ public class CallState {
 			try {
 				run.run();
 			} catch (Throwable t) {
-				log.warning("Error encountered running " + lastState + " listener " + run + ": " + t + "\n" +
-						getStackTraceReport(t));
+				log.warn(logmarker, "Error encountered running " + lastState + " listener " + run, t);
 			}
 		});
-	}
-
-	private String getStackTraceReport(Throwable t) {
-		StringWriter stackTrace = new StringWriter();
-		t.printStackTrace(new PrintWriter(stackTrace));
-		return stackTrace.toString();
 	}
 
 	@Override

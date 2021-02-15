@@ -3,7 +3,9 @@ package io.cloudonix.arity;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Ring the call controller's channel.
@@ -20,7 +22,7 @@ import java.util.logging.Logger;
  */
 public class Ring extends CancelableOperations {
 
-	private final static Logger logger = Logger.getLogger(Answer.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
 	private String channelId;
 
 	/**
@@ -47,9 +49,9 @@ public class Ring extends CancelableOperations {
 	public CompletableFuture<Ring> run(boolean throwError) {
 		return this.<Void>retryOperation(h -> channels().ring(channelId).execute(h))
 				.handle((v,t) -> {
-					if (Objects.isNull(t)) logger.fine("Ringing");
+					if (Objects.isNull(t)) logger.debug("Ringing");
 					else if (throwError) throw new CompletionException(t);
-					else logger.warning("Failed ringing: " + t);
+					else logger.warn("Failed ringing", t);
 					return this;
 				});
 	}
@@ -58,8 +60,8 @@ public class Ring extends CancelableOperations {
 	public CompletableFuture<Void> cancel() {
 		return this.<Void>retryOperation(h -> channels().ringStop(channelId).execute(h))
 				.whenComplete((v,t) -> {
-					if (Objects.isNull(t)) logger.fine("Stoped ringing to channel with id: " + channelId);
-					else logger.warning("Failed to stop ringing to channel with id " + channelId + ": " + t);
+					if (Objects.isNull(t)) logger.debug("Stoped ringing to channel with id: " + channelId);
+					else logger.warn("Failed to stop ringing to channel with id " + channelId, t);
 				});
 	}
 }

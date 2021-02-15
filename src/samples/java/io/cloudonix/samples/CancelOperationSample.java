@@ -5,7 +5,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallController;
@@ -21,7 +23,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
  */
 public class CancelOperationSample extends CallController {
 
-	private final static Logger logger = Logger.getLogger(CancelOperationSample.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(CancelOperationSample.class);
 
 	@Override
 	public CompletableFuture<Void> run() {
@@ -41,7 +43,7 @@ public class CancelOperationSample extends CallController {
 			}).thenAccept(p -> logger.info("Finished playback! id: " + p.getPlayback().getId()))
 			.handle(call::endCall)
 			.exceptionally(t -> {
-				logger.severe(t.toString());
+				logger.error("Error ending call", t);
 				return null;
 			});
 		});

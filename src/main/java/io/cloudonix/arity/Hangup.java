@@ -1,7 +1,9 @@
 package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class represents the Hang up operation (hangs up a call)
@@ -12,7 +14,7 @@ import java.util.logging.Logger;
 
 public class Hangup extends Operation {
 
-	private final static Logger logger = Logger.getLogger(Hangup.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Hangup.class);
 	private String reason = "normal";
 
 	/**

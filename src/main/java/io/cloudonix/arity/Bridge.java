@@ -6,7 +6,9 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
 import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
@@ -16,7 +18,6 @@ import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ErrorStream;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
@@ -31,7 +32,7 @@ import io.cloudonix.lib.Futures;
 public class Bridge {
 
 	private ARIty arity;
-	private final static Logger logger = Logger.getLogger(Bridge.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Bridge.class);
 	private String bridgeId;
 	private HashMap<String, RecordingData> recordings = new HashMap<>();
 	private String bridgeType = "mixing";
@@ -151,7 +152,7 @@ public class Bridge {
 	 */
 	private void handleChannelEnteredBridge(ChannelEnteredBridge channelEnteredtBridge) {
 		String chanId = channelEnteredtBridge.getChannel().getId();
-		logger.fine("Channel with id: "+chanId+" entered the bridge");
+		logger.debug("Channel with id: "+chanId+" entered the bridge");
 		CompletableFuture<Void> event = enteredEventListeners.remove(chanId);
 		if (Objects.nonNull(event))
 			event.complete(null);
@@ -188,7 +189,7 @@ public class Bridge {
 	 */
 	private void handleChannelLeftBridge(ChannelLeftBridge channelLeftBridge) {
 		String chanId = channelLeftBridge.getChannel().getId();
-		logger.fine("Channel with id: "+chanId+" left the bridge");
+		logger.debug("Channel with id: "+chanId+" left the bridge");
 		CompletableFuture<Void> event = leftEventListeners.remove(chanId);
 		if (Objects.nonNull(event))
 			event.complete(null);
@@ -207,15 +208,15 @@ public class Bridge {
 				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), this::mapExceptions)
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
-					logger.fine("playing: " + fileToPlay);
+					logger.debug("playing: " + fileToPlay);
 					arity.addEventHandler(PlaybackFinished.class, bridgeId, (pbf, se) -> {
 						if (!(pbf.getPlayback().getId().equals(playbackId)))
 							return;
-						logger.fine("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
+						logger.debug("PlaybackFinished id is the same as playback id.  ID is: " + playbackId);
 						future.complete(pbf.getPlayback());
 						se.unregister();
 					});
-					logger.fine("Future event of playbackFinished was added");
+					logger.debug("Future event of playbackFinished was added");
 					return future;
 				});
 	}
@@ -231,7 +232,7 @@ public class Bridge {
 	 * @return
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
-		logger.fine("Try playing music on hold to bridge with id: " + bridgeId);
+		logger.debug("Try playing music on hold to bridge with id: " + bridgeId);
 		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), this::mapExceptions);
 	}
 
@@ -241,7 +242,7 @@ public class Bridge {
 	 * @return
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		logger.fine("Try to stop playing music on hold to bridge with id: " + bridgeId);
+		logger.debug("Try to stop playing music on hold to bridge with id: " + bridgeId);
 		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), this::mapExceptions);
 	}
 
@@ -276,7 +277,7 @@ public class Bridge {
 		
 		arity.addEventHandler(RecordingFinished.class, bridgeId, (record, se) -> {
 			if (!Objects.equals(record.getRecording().getName(), recordingName)) {
-				logger.warning("Unexpected recording finished for bridge id " + bridgeId + " with name: " + 
+				logger.warn("Unexpected recording finished for bridge id " + bridgeId + " with name: " + 
 						record.getRecording().getName());
 				return;
 			}
@@ -295,7 +296,7 @@ public class Bridge {
 					return recordingData;
 				})
 				.exceptionally(Futures.on(RestException.class, e -> {
-					logger.severe("Failed to record bridge " + this + ":\n" + ErrorStream.fromThrowable(e));
+					logger.error("Failed to record bridge " + this, e);
 					throw e;
 				}));
 	}
@@ -377,7 +378,7 @@ public class Bridge {
 		logger.info("Setting type of bridge with id: " + bridgeId + " to type:" + bridgeType);
 		if (!Objects.equals(bridgeType, "mixing") && !Objects.equals(bridgeType, "dtmf_events")
 				&& !Objects.equals(bridgeType, "proxy_media") && !Objects.equals(bridgeType, "holding")) {
-			logger.warning("Invalid bridge type: " + bridgeType);
+			logger.warn("Invalid bridge type: " + bridgeType);
 			return this;
 		}
 		this.bridgeType = bridgeType;

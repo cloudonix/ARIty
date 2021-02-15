@@ -1,7 +1,9 @@
 package io.cloudonix.arity;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.lib.Futures;
@@ -14,7 +16,7 @@ import io.cloudonix.lib.Futures;
  */
 public class Mute extends CancelableOperations {
 
-	private final static Logger logger = Logger.getLogger(Answer.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
 	private String channelId;
 	private String direction;
 
@@ -31,7 +33,7 @@ public class Mute extends CancelableOperations {
 					logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
 				})
 				.exceptionally(Futures.on(RestException.class,  e -> {
-					logger.warning("Failed to mute channel with id: " + channelId + " and direction: " + direction);
+					logger.warn("Failed to mute channel with id: " + channelId + " and direction: " + direction);
 					throw e;
 				}))
 				.thenApply(v -> this);
@@ -44,7 +46,7 @@ public class Mute extends CancelableOperations {
 					logger.info("Unmute channel " + channelId + " with audio direction " + direction);
 				})
 				.exceptionally(Futures.on(RestException.class,  e -> {
-					logger.warning("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
+					logger.warn("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
 					throw e;
 				}));
 	}

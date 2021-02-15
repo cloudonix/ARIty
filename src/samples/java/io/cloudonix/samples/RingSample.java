@@ -2,7 +2,9 @@ package io.cloudonix.samples;
 
 import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallController;
@@ -16,7 +18,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
  */
 public class RingSample extends CallController{
 
-	private final static Logger logger = Logger.getLogger(AnswerAndPlay.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(AnswerAndPlay.class);
 
 	@Override
 	public CompletableFuture<Void> run() {
@@ -33,7 +35,7 @@ public class RingSample extends CallController{
 			.thenCompose(v -> call.ring().run())
 			.handle(call::endCall)
 			.exceptionally(t -> {
-				logger.severe(t.toString());
+				logger.error("Error ending call ", t);
 				return null;
 			});
 		});

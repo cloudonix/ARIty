@@ -1,7 +1,9 @@
 package io.cloudonix.arity;
 
 import java.util.function.BiConsumer;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Message;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Consumer;
@@ -18,7 +20,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	private String channelId;
 	private Class<T> class1;
 	private ARIty arity;
-	private final static Logger logger = Logger.getLogger(ARIty.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
 
 	/**
 	 * Constructor
@@ -53,7 +55,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	public void accept(Message m) {
 		if (!class1.isInstance(m))
 			return;
-		logger.finest("Triggering " + this);
+		logger.debug("Triggering " + this);
 		arity.dispatchTask(() -> handler.accept(class1.cast(m), this));
 	}
 
