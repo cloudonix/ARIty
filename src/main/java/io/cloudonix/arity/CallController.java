@@ -125,21 +125,40 @@ public abstract class CallController {
 	}
 
 	/**
-	 * the method creates a new receivedDTMF object
-	 *
+	 * Create a new DTMF receiver with both key and max length stop condition
 	 * @param terminatingKey terminating key for stop receiving DTMF
-	 * @param inputLength    length of the input that we expect receiving from the
-	 *                       caller
-	 * @return
+	 * @param maxLength    maximum length of input we expect from the caller
+	 * Make sure you cancel this DTMF receiver before terminating the call, otherwise this operation will never end and will leak
+	 * @return a DTMF receiver operation
 	 */
-	public ReceiveDTMF receiveDTMF(String terminatingKey, int inputLength) {
-		return new ReceiveDTMF(this, terminatingKey, inputLength);
+	public ReceiveDTMF receiveDTMF(String terminatingKey, int maxLength) {
+		return new ReceiveDTMF(this, terminatingKey, maxLength);
 	}
 
 	/**
-	 * the method creates a new received DTMF operation with default values
-	 *
-	 * @return
+	 * Create a new DTMF receiver with a terminating key stop condition
+	 * @param terminatingKey terminating key for stop receiving DTMF
+	 * Make sure you cancel this DTMF receiver before terminating the call, otherwise this operation will never end and will leak
+	 * @return a DTMF receiver operation
+	 */
+	public ReceiveDTMF receiveDTMF(String terminatingKey) {
+		return new ReceiveDTMF(this, terminatingKey);
+	}
+
+	/**
+	 * Create a new DTMF receiver with a max length stop condition
+	 * @param maxLength    maximum length of input we expect from the caller
+	 * Make sure you cancel this DTMF receiver before terminating the call, otherwise this operation will never end and will leak
+	 * @return a DTMF receiver operation
+	 */
+	public ReceiveDTMF receiveDTMF(int maxLength) {
+		return new ReceiveDTMF(this, maxLength);
+	}
+
+	/**
+	 * Create a new DTMF receiver with no stop conditions
+	 * Make sure you cancel this DTMF receiver before terminating the call, otherwise this operation will never end and will leak
+	 * @return a DTMF receiver operation
 	 */
 	public ReceiveDTMF receiveDTMF() {
 		return new ReceiveDTMF(this);
