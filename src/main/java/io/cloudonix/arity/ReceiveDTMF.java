@@ -10,20 +10,17 @@ import org.slf4j.LoggerFactory;
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
 
 /**
- * The class represents the Received DTMF events
- *
+ * Register for receiving DTMF sequences
  * @author naamag
- *
+ * @author odeda
  */
-public class ReceivedDTMF {
+public class ReceiveDTMF extends CancelableOperations {
 	private String userInput = "";
-	private final static Logger logger = LoggerFactory.getLogger(ReceivedDTMF.class);
-	private String terminatingKey;
-	private int inputLength;
+	private final static Logger logger = LoggerFactory.getLogger(ReceiveDTMF.class);
+	private String terminatingKey = "#";
+	private int inputLength = -1;
 	private boolean termKeyWasPressed = false;
-	private CompletableFuture<ReceivedDTMF> compFuture = new CompletableFuture<>();
-	private ARIty arity;
-	private String channelId;
+	private CompletableFuture<ReceiveDTMF> compFuture = new CompletableFuture<>();
 	private BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> runDtmfHandler = null;
 	private EventHandler<ChannelDtmfReceived> handler;
 
@@ -35,30 +32,22 @@ public class ReceivedDTMF {
 	 * @param length         length of the input we are expecting to get from the
 	 *                       caller. for no limitation -1
 	 */
-	public ReceivedDTMF(CallController callController, String termKey, int length) {
+	public ReceiveDTMF(CallController callController, String termKey, int length) {
+		this(callController);
 		this.terminatingKey = termKey;
 		this.inputLength = length;
-		this.arity = callController.getARIty();
-		this.channelId = callController.getChannelId();
-
+	}
+	
+	public ReceiveDTMF(CallController callController) {
+		super(callController.getChannelId(), callController.getARIty());
 	}
 
 	/**
-	 * Constructor with default values
-	 *
-	 * @param callController
+	 * Start gathering DTMF input
+	 * @return a promise that will complete when stop conditions (terminating key or max length) have been reached, or the operation was cancelled
 	 */
-	public ReceivedDTMF(CallController callController) {
-		this(callController, "#", -1);
-	}
-
-	/**
-	 * The method gathers input from the user
-	 *
-	 * @return
-	 */
-	public CompletableFuture<ReceivedDTMF> run() {
-		this.handler = arity.addEventHandler(ChannelDtmfReceived.class, channelId, this::handleDTMF);
+	public CompletableFuture<ReceiveDTMF> run() {
+		this.handler = getArity().addEventHandler(ChannelDtmfReceived.class, getChannelId(), this::handleDTMF);
 		return compFuture;
 	}
 
@@ -76,12 +65,12 @@ public class ReceivedDTMF {
 		if (dtmf.getDigit().equals(terminatingKey)) {
 			logger.info("Done receiving DTMF. all input: " + userInput);
 			termKeyWasPressed = true;
-			unregister();
+			cancel();
 			return;
 		}
 		userInput = userInput + dtmf.getDigit();
 		if (Objects.equals(inputLength, userInput.length())) {
-			unregister();
+			cancel();
 			return;
 		}
 	}
@@ -92,7 +81,7 @@ public class ReceivedDTMF {
 	 * @param termKey
 	 * @return
 	 */
-	public ReceivedDTMF setTerminatingKey(String termKey) {
+	public ReceiveDTMF setTerminatingKey(String termKey) {
 		terminatingKey = termKey;
 		return this;
 	}
@@ -117,8 +106,10 @@ public class ReceivedDTMF {
 	/**
 	 * unregister from listening to DTMF events
 	 */
-	public void unregister() {
+	@Override
+	public CompletableFuture<Void> cancel() {
 		unregister(this.handler);
+		return CompletableFuture.completedFuture(null);
 	}
 
 	/**
@@ -138,4 +129,5 @@ public class ReceivedDTMF {
 	public void registerHandler(BiConsumer<ChannelDtmfReceived, EventHandler<ChannelDtmfReceived>> handler) {
 		this.runDtmfHandler = handler;
 	}
+
 }
