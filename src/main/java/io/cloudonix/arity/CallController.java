@@ -132,8 +132,8 @@ public abstract class CallController {
 	 *                       caller
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF(String terminatingKey, int inputLength) {
-		return new ReceivedDTMF(this, terminatingKey, inputLength);
+	public ReceiveDTMF receiveDTMF(String terminatingKey, int inputLength) {
+		return new ReceiveDTMF(this, terminatingKey, inputLength);
 	}
 
 	/**
@@ -141,8 +141,8 @@ public abstract class CallController {
 	 *
 	 * @return
 	 */
-	public ReceivedDTMF receivedDTMF() {
-		return new ReceivedDTMF(this);
+	public ReceiveDTMF receivedDTMF() {
+		return new ReceiveDTMF(this);
 	}
 
 	/**

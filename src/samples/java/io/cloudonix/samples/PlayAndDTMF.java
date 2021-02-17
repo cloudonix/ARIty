@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallController;
-import io.cloudonix.arity.ReceivedDTMF;
+import io.cloudonix.arity.ReceiveDTMF;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
 /**
@@ -37,9 +37,9 @@ public class PlayAndDTMF extends CallController {
 			call.answer().run()
 					.thenCompose(v -> call.play("followme/options").loop(1).run()) 
 					.thenAccept(pb -> logger.info("Finished playback! id: " + pb.getPlayback().getId()))
-					.thenCompose(g -> call.receivedDTMF("*", 2).run())
+					.thenCompose(g -> call.receiveDTMF("*", 2).run())
 					.thenAccept(v -> logger
-							.info("RecievedDTMF is finished! The input is: " + ((ReceivedDTMF) v).getInput()))
+							.info("RecievedDTMF is finished! The input is: " + ((ReceiveDTMF) v).getInput()))
 					.handle(call::endCall)
 					.exceptionally(t -> {
 						logger.error("Error ending call", t);
