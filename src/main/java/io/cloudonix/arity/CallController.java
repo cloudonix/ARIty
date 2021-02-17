@@ -141,7 +141,7 @@ public abstract class CallController {
 	 *
 	 * @return
 	 */
-	public ReceiveDTMF receivedDTMF() {
+	public ReceiveDTMF receiveDTMF() {
 		return new ReceiveDTMF(this);
 	}
 
