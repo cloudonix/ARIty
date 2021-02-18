@@ -30,6 +30,7 @@ import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.models.PlaybackStarted;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingStarted;
+import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
@@ -289,6 +290,8 @@ public class ARIty implements AriCallback<Message> {
 				continue;
 			currEntry.accept(event);
 		}
+		if (event instanceof StasisEnd) // clear event handlers for this channel
+			eventHandlers.removeIf(e -> e.getChannelId().equals(((StasisEnd)event).getChannel().getId()));
 	}
 
 	private void handleStasisStart(Message event) {
