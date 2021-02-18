@@ -97,7 +97,7 @@ public class Play extends CancelableOperations {
 			if (!Objects.equals(finishId, currentPlaybackId))
 				return;
 			currentPlaybackId = null;
-			logger.info(finishId + "|Finished playback");
+			logger.info(finishId + "|Finished playback: {}", finished.getPlayback().getState());
 			playback.set(null);
 			playbackFinished.complete(this);
 			se.unregister();
