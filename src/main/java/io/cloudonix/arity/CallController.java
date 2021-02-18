@@ -2,6 +2,8 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +11,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.lib.Futures;
@@ -508,5 +511,27 @@ public abstract class CallController {
 	 */
 	public Redirect redirect(String channelId, String endpoint) {
 		return new Redirect(channelId, this.getARIty(), endpoint);
+	}
+	
+	/**
+	 * Helper to capture a single event on the channel for this call controller
+	 * @param <T> Type of ARI message to listen for
+	 * @param type Type of ARI message to listen for
+	 * @param eventHandler handler for the first message received on this channel, since starting to listen
+	 * @return the event handler created, which can be used to cancel the registration
+	 */
+	public <T extends Message> EventHandler<T> listenForOneTimeEvent(Class<T> type, Consumer<T> eventHandler) {
+		return getARIty().listenForOneTimeEvent(type, getChannelId(), eventHandler);
+	}
+	
+	/**
+	 * Helper to capture events on the channel for this call controller
+	 * @param <T> Type of ARI message to listen for
+	 * @param type Type of ARI message to listen for
+	 * @param eventHandler handler for receiving messages of the specified type sent on the channel
+	 * @return the event handler created, which can be used to cancel the registration
+	 */
+	public <T extends Message> EventHandler<T> listenFroEvent(Class<T> type, BiConsumer<T,EventHandler<T>> eventHandler) {
+		return getARIty().addEventHandler(type, getChannelId(), eventHandler);
 	}
 }
