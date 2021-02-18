@@ -35,10 +35,9 @@ public class Record extends CancelableOperations {
 	private String fileFormat = "ulaw";
 	private int maxDuration; // maximum duration of the recording
 	private int maxSilenceSeconds;
-	private boolean beep;
+	private Play beep;
 	private String terminateOnKey;
 	volatile private RecordingData recording;
-	private CallController callController;
 	private boolean isTermKeyWasPressed = false;
 	private final static Logger logger = LoggerFactory.getLogger(Record.class);
 	volatile private boolean wasTalkingDetected = false;
@@ -74,11 +73,10 @@ public class Record extends CancelableOperations {
 			this.fileFormat = fileFormat;
 		this.maxDuration = maxDuration;
 		this.maxSilenceSeconds = maxSilenceSeconds;
-		this.beep = beep;
+		if (beep)
+			this.beep = new Play(callController, "beep");
 		this.terminateOnKey = Objects.requireNonNullElse(terminateOnKey, "");
 		callController.setTalkingInChannel("set", ""); // Enable talking detection in the channel
-		if (beep)
-			this.callController = callController;
 	}
 
 	@Override
@@ -87,10 +85,10 @@ public class Record extends CancelableOperations {
 	}
 	
 	private CompletableFuture<Void> playBeep() {
-		if (!beep)
+		if (beep == null)
 			return CompletableFuture.completedFuture(null);
 		logger.debug("Play beep before recording");
-		return callController.play("beep").run().thenAccept(v -> {});
+		return beep.run().thenAccept(v -> {});
 	}
 
 	/**
@@ -102,7 +100,7 @@ public class Record extends CancelableOperations {
 		recording = new RecordingData(getArity(), name);
 		return this.<LiveRecording>retryOperation(cb -> channels().record(getChannelId(), name, fileFormat)
 				.setMaxDurationSeconds(maxDuration).setMaxSilenceSeconds(maxSilenceSeconds)
-				.setIfExists(ifExists).setBeep(beep).execute(cb))
+				.setIfExists(ifExists).execute(cb))
 				.thenAccept(recording::setLiveRecording)
 				.thenCompose(v -> {
 					logger.info("Recording started! recording name is: " + name);
