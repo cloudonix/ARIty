@@ -359,6 +359,7 @@ public class ARIty implements AriCallback<Message> {
 			Object chan = msgClass.getMethod("getChannel").invoke(event);
 			if (Objects.nonNull(chan))
 				return ((Channel) chan).getId();
+			logger.warn("Channel ID is not set for event " + event);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
 			logger.warn("Can not get channel id for event " + event + ": " + e);
