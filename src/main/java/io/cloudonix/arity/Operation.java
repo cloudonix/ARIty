@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ChannelInInvalidState;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
@@ -228,6 +229,7 @@ public abstract class Operation {
 			LoggerFactory.getLogger(getClass()).error("ARI error with no message???", ariError);
 		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
+		case "Channel in invalid state": return new ChannelInInvalidState(ariError);
 		}
 		return null;
 	}
