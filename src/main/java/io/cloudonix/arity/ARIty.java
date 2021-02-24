@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -52,7 +51,6 @@ public class ARIty implements AriCallback<Message> {
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
-	private ExecutorService executor = ForkJoinPool.commonPool();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
 	private ExecutorService threadpool = Executors.newCachedThreadPool();
@@ -274,7 +272,7 @@ public class ARIty implements AriCallback<Message> {
 	@Override
 	public void onSuccess(Message event) {
 		if (event instanceof StasisStart) {
-			executor.submit(() -> handleStasisStart(event));
+			threadpool.submit(() -> handleStasisStart(event));
 			return;
 		}
 
