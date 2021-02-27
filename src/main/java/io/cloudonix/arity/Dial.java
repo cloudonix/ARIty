@@ -27,10 +27,28 @@ import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
- * The class represents the Dial operation
+ * A channel dial operation.
+ * 
+ * This operation implements two specific high level dial use cases:
+ * <ol>
+ * <li><a href="https://wiki.asterisk.org/wiki/display/AST/Asterisk+18+Channels+REST+API#Asterisk18ChannelsRESTAPI-originateWithId">Originate</a> -
+ *   a channel is create with a destination and is immediatelly INVITEd by Asterisk.</li>
+ * <li><a href="https://wiki.asterisk.org/wiki/display/AST/Asterisk+18+Channels+REST+API#Asterisk18ChannelsRESTAPI-create">Create</a>,
+ *   <a href="https://wiki.asterisk.org/wiki/display/AST/Asterisk+18+Bridges+REST+API#Asterisk18BridgesRESTAPI-addChannel">add to a bridge</a>,
+ *   then <a href="https://wiki.asterisk.org/wiki/display/AST/Asterisk+18+Channels+REST+API#Asterisk18ChannelsRESTAPI-dial">dial</a></li>
+ * </ul>
+ * 
+ * Because the use of "originate" to route calls (i.e. handle an incoming call by adding it to a bridge which will then be connected to an
+ * originating channel) does not correctly pass pre-OK channel states and early media to the caller channel, the alternative mode is offered
+ * as a ready-made implementation of the <a href="https://blogs.asterisk.org/2016/08/24/asterisk-14-ari-create-bridge-dial/">"Early Bridging"
+ * workflow BKM</a>.
+ * 
+ * In both workflows, the Dial operation assumes a call routing scenario and will attach a Hangup listener to the initating call controller's channel id
+ * (if present) that will automatically disconnect the outgoing channel when the caller hangs up. If you are not interested in that default behavior,
+ * consider calling {@link #detachFromCaller()} at some point.
  *
  * @author naamag
- *
+ * @author odeda
  */
 public class Dial extends CancelableOperations {
 
@@ -95,6 +113,7 @@ public class Dial extends CancelableOperations {
 	private Bridge earlyBridge;
 	private AtomicReference<CallState> dialledCallState = new AtomicReference<>();
 	private boolean shouldAttachToCallingChannel = false;
+	private volatile EventHandler<ChannelHangupRequest> callerHangupListener;
 
 	/**
 	 * Dial from a call controller
@@ -256,9 +275,8 @@ public class Dial extends CancelableOperations {
 	}
 
 	/**
-	 * The method dials to a number (end point)
-	 *
-	 * @return A promise to return this instance when the dial operation completes
+	 * Start the dial workflow.
+	 * @return A promise that will be fulfilled when the dial operation completes, i.e. the endpoint was hanged up
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.debug("Running Dial");
@@ -267,7 +285,7 @@ public class Dial extends CancelableOperations {
 			active();
 		});
 		if (Objects.nonNull(getChannelId()))
-			getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
+			callerHangupListener = getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
 		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endpointChannelId, this::handleChannelStateChanged);
 		getArity().addEventHandler(ch.loway.oss.ari4java.generated.models.Dial.class, endpointChannelId, this::handleDialEvent);
@@ -681,6 +699,24 @@ public class Dial extends CancelableOperations {
 
 	public Channel getChannel() {
 		return channel;
+	}
+	
+	/**
+	 * Disconnect dialed channel from the caller, by removing it from the early bridge (if exists) and removing the caller hangup listener
+	 * that would normally disconnect the dialed channel if the caller channel was hanged up.
+	 * @return a promise that will be fulfilled when the channel was removed from the early bridge, or immediately if no early bridge is used.
+	 *   This promise cannot fail - if early bridge removal fails, it will log the error and continue.
+	 */
+	public CompletableFuture<Void> detachFromCaller() {
+		EventHandler<ChannelHangupRequest> h = callerHangupListener;
+		if (h != null) h.unregister();
+		if (earlyBridge != null)
+			return earlyBridge.removeChannel(endpointChannelId).exceptionally(e -> { // log but ignore exceptions
+				// the most likely scenario here is that the user already removed the channel from the bridge or even from stasis
+				logger.warn("While detaching from caller, failed to remove channel from early bridge: ", e);
+				return null;
+			});
+		return CompletableFuture.completedFuture(null);
 	}
 
 }
