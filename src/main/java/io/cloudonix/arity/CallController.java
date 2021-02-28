@@ -17,11 +17,27 @@ import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.lib.Futures;
 
 /**
- * The class represents a call controller, including all the call operation and
- * needed information for a call
+ * The main implementation for ARIty based program logic - applications should subclass the {@link CallController}
+ * to implement their own logic.
+ * 
+ * You can think of a call controller as a context in a dial plan - it is triggered by Asterisk to implement a set
+ * of logic operations, part of which might be calling other CallControllers.
+ * 
+ * The CallController provides APIs for the application to:
+ * <ul>
+ * <li>Pass control to another call controller and get it back when it is done (unlike Asterisk dialplan extensions that
+ * can control flow with "goto", ARIty call controllers {@link #execute(CallController)} other controllers and then receive
+ * control back when they are done).</li>
+ * <li>Store and retrieve dynamic state using {@link #get(String)}, {@link #put(String, Object)} and {@link #contains(String)}.
+ * When delegating control to other call controllers, the dynamic state is automatically shared to the executing controllers.</li>
+ * <li>Easy access to read and write Asterisk channel variables with a local cache (so that multiple reads of the same value don't
+ * need to hit the ARI API multiple times) using {@link #getVariable(String)} and {@link #setVariable(String, String)}</li>
+ * <li>Easy access to ARIty operations that will be automatically invoked on the controller's channel, such as {@link #play(String)}
+ * or {@link #record(String, String, int, int, boolean, String)}</li>
+ * </ul> 
  *
+ * @author odeda
  * @author naamag
- *
  */
 public abstract class CallController {
 	private CallState callState = new CallState();
