@@ -40,6 +40,7 @@ import io.cloudonix.lib.Futures;
  * @author naamag
  */
 public abstract class CallController {
+	private final String ARITY_BOUND_BRIDGE = "arity-bound-bridge";
 	private CallState callState = new CallState();
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Marker logmarker;
@@ -82,6 +83,37 @@ public abstract class CallController {
 	 */
 	public String getChannelId() {
 		return callState.getChannelId();
+	}
+	
+	/**
+	 * Bind this call to a bridge - i.e. create a mixing bridge that is associated with this channel and have all ARIty
+	 * operations (such as {@link #play(String)} and {@link #dial(String, String)} operate on the bridge instead of
+	 * directly on the channel (this also forces the "Early Bridging" behavior of <code>dial()</code>, see {@link Dial#withBridge(Bridge)}).
+	 * 
+	 * @return A promise that will be fulfilled when the channel is bound to a new bridge.
+	 */
+	public CompletableFuture<Void> bindToBridge() {
+		return new Bridge(getARIty()).create("arity-bind-" + getChannelId()).thenCompose(bridge -> {
+			callState.put(ARITY_BOUND_BRIDGE, bridge);
+			return bridge.addChannel(getChannelId(), true);
+		});
+	}
+	
+	/**
+	 * Check whether this call is bound to a bridge.
+	 * @see #bindToBridge()
+	 * @return true if the call is bound to a bridge
+	 */
+	public boolean isBoundToBridge() {
+		return callState.contains(ARITY_BOUND_BRIDGE);
+	}
+	
+	/**
+	 * Retrieve the bridge this call is bound to.
+	 * @return a {@link Bridge} instance if the call is bound to a bridge, <code>null</code> otherwise
+	 */
+	public Bridge getBoundBridge() {
+		return callState.<Bridge>get(ARITY_BOUND_BRIDGE);
 	}
 
 	/**
@@ -190,7 +222,9 @@ public abstract class CallController {
 	 * @return Dial operation to be configured further and run
 	 */
 	public Dial dial(String callerId, String destination) {
-		return new Dial(this, callerId, destination);
+		Dial dial = new Dial(this, callerId, destination);
+		if (isBoundToBridge()) dial.withBridge(getBoundBridge());
+		return dial;
 	}
 
 	/**
