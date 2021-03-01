@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
 
+import ch.loway.oss.ari4java.generated.actions.ActionBridges;
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.actions.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
@@ -196,6 +197,12 @@ public abstract class Operation {
 		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
 				throw new InvalidCallStateException();
 		return arity.getAri().channels();
+	}
+
+	protected ActionBridges bridges() {
+		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+				throw new InvalidCallStateException();
+		return arity.getAri().bridges();
 	}
 
 	protected ActionPlaybacks playbacks() {
