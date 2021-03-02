@@ -34,6 +34,8 @@ public class Play extends CancelableOperations {
 	private AtomicReference<Playback> playback = new AtomicReference<>();
 	private volatile String currentPlaybackId;
 
+	private Bridge playBridge;
+
 	/**
 	 * Play the specified content using the specified scheme (default "sound")
 	 *
@@ -56,6 +58,11 @@ public class Play extends CancelableOperations {
 			this.language = callController.getCallState().getChannel().getLanguage();
 		else
 			logger.debug("Using default language: {}", language);
+	}
+	
+	public Play withBridge(Bridge bridge) {
+		this.playBridge = bridge;
+		return this;
 	}
 
 	/**
@@ -103,7 +110,7 @@ public class Play extends CancelableOperations {
 			se.unregister();
 		});
 		
-		return this.<Playback>retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h))
+		return executePlayOperation(path)
 		.thenCompose(playback -> {
 			this.playback.set(playback); // store ongoing playback for cancelling
 			logger.info(currentPlaybackId + "|Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
@@ -113,6 +120,12 @@ public class Play extends CancelableOperations {
 			logger.warn("Failed in playing playback", e);
 			throw new CompletionException(new PlaybackException(path, e));
 		});
+	}
+
+	private CompletableFuture<Playback> executePlayOperation(String path) {
+		if (this.playBridge == null)
+			return this.retryOperation(h -> bridges().play(this.playBridge.getId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h));
+		return this.retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h));
 	}
 
 	/**

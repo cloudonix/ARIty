@@ -54,6 +54,7 @@ public class ARIty implements AriCallback<Message> {
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
 	private ExecutorService threadpool = Executors.newCachedThreadPool();
+	boolean autoBindBridges = false;
 
 	/**
 	 * Create and connect ARIty to Asterisk
@@ -155,6 +156,17 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty setExecutorService(ExecutorService service) {
 		threadpool = service;
+		return this;
+	}
+	
+	/**
+	 * Sets the default behavior for call controllers' bridge binding (see @link {@link CallController#bindToBridge()}
+	 * @param shouldAutoBind set to <code>true</code> to have all call controller automatically bind to a bridge on init
+	 * (as needed). The default currently is not to auto-bind
+	 * @return itself for fluend calls
+	 */
+	public ARIty setAutoBindBridges(boolean shouldAutoBind) {
+		this.autoBindBridges = shouldAutoBind;
 		return this;
 	}
 	
@@ -314,7 +326,7 @@ public class ARIty implements AriCallback<Message> {
 			CallController cc = Objects.requireNonNull(callSupplier.get(),
 					"User call controller supplier failed to provide a CallController to handle the call");
 			cc.init(callState);
-			CompletableFuture.completedFuture(null).thenComposeAsync(v -> cc.run(), threadpool).whenComplete((v,t) -> {
+			(autoBindBridges ? cc.bindToBridge() : CompletableFuture.completedFuture(null)).thenComposeAsync(v -> cc.run(), threadpool).whenComplete((v,t) -> {
 				if (Objects.nonNull(t)) {
 					logger.error("Completation error while running the application ",t);
 					channels().hangup(callState.getChannelId());

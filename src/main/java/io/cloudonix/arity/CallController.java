@@ -17,13 +17,30 @@ import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.lib.Futures;
 
 /**
- * The class represents a call controller, including all the call operation and
- * needed information for a call
+ * The main implementation for ARIty based program logic - applications should subclass the {@link CallController}
+ * to implement their own logic.
+ * 
+ * You can think of a call controller as a context in a dial plan - it is triggered by Asterisk to implement a set
+ * of logic operations, part of which might be calling other CallControllers.
+ * 
+ * The CallController provides APIs for the application to:
+ * <ul>
+ * <li>Pass control to another call controller and get it back when it is done (unlike Asterisk dialplan extensions that
+ * can control flow with "goto", ARIty call controllers {@link #execute(CallController)} other controllers and then receive
+ * control back when they are done).</li>
+ * <li>Store and retrieve dynamic state using {@link #get(String)}, {@link #put(String, Object)} and {@link #contains(String)}.
+ * When delegating control to other call controllers, the dynamic state is automatically shared to the executing controllers.</li>
+ * <li>Easy access to read and write Asterisk channel variables with a local cache (so that multiple reads of the same value don't
+ * need to hit the ARI API multiple times) using {@link #getVariable(String)} and {@link #setVariable(String, String)}</li>
+ * <li>Easy access to ARIty operations that will be automatically invoked on the controller's channel, such as {@link #play(String)}
+ * or {@link #record(String, String, int, int, boolean, String)}</li>
+ * </ul> 
  *
+ * @author odeda
  * @author naamag
- *
  */
 public abstract class CallController {
+	private final String ARITY_BOUND_BRIDGE = "arity-bound-bridge";
 	private CallState callState = new CallState();
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Marker logmarker;
@@ -67,6 +84,37 @@ public abstract class CallController {
 	public String getChannelId() {
 		return callState.getChannelId();
 	}
+	
+	/**
+	 * Bind this call to a bridge - i.e. create a mixing bridge that is associated with this channel and have all ARIty
+	 * operations (such as {@link #play(String)} and {@link #dial(String, String)} operate on the bridge instead of
+	 * directly on the channel (this also forces the "Early Bridging" behavior of <code>dial()</code>, see {@link Dial#withBridge(Bridge)}).
+	 * 
+	 * @return A promise that will be fulfilled when the channel is bound to a new bridge.
+	 */
+	public CompletableFuture<Void> bindToBridge() {
+		return new Bridge(getARIty()).create("arity-bind-" + getChannelId()).thenCompose(bridge -> {
+			callState.put(ARITY_BOUND_BRIDGE, bridge);
+			return bridge.addChannel(getChannelId(), true);
+		});
+	}
+	
+	/**
+	 * Check whether this call is bound to a bridge.
+	 * @see #bindToBridge()
+	 * @return true if the call is bound to a bridge
+	 */
+	public boolean isBoundToBridge() {
+		return callState.contains(ARITY_BOUND_BRIDGE);
+	}
+	
+	/**
+	 * Retrieve the bridge this call is bound to.
+	 * @return a {@link Bridge} instance if the call is bound to a bridge, <code>null</code> otherwise
+	 */
+	public Bridge getBoundBridge() {
+		return callState.<Bridge>get(ARITY_BOUND_BRIDGE);
+	}
 
 	/**
 	 * play media to a channel
@@ -75,19 +123,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Play play(String file) {
-		return new Play(this, file);
-	}
-
-	/**
-	 * play stored recording to a channel
-	 *
-	 * @param recName recording name to play
-	 * @return
-	 */
-	public Play playRecording(String recName) {
-		Play playRecording = new Play(this, recName);
-		playRecording.playRecording();
-		return playRecording;
+		return new Play(this, file).withBridge(getBoundBridge());
 	}
 
 	/**
@@ -174,7 +210,7 @@ public abstract class CallController {
 	 * @return Dial operation to be configured further and run
 	 */
 	public Dial dial(String callerId, String destination) {
-		return new Dial(this, callerId, destination);
+		return new Dial(this, callerId, destination).withBridge(getBoundBridge());
 	}
 
 	/**
@@ -457,16 +493,6 @@ public abstract class CallController {
 	 */
 	public Mute mute(String channelId, String direction) {
 		return new Mute(this, channelId, direction);
-	}
-
-	/**
-	 * Create bridge instance to handle all bridge operations
-	 *
-	 * @param arity instance of ARIty
-	 * @return
-	 */
-	public Bridge bridge(ARIty arity) {
-		return new Bridge(arity);
 	}
 
 	/**
