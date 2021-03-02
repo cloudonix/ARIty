@@ -93,6 +93,8 @@ public abstract class CallController {
 	 * @return A promise that will be fulfilled when the channel is bound to a new bridge.
 	 */
 	public CompletableFuture<Void> bindToBridge() {
+		if (isBoundToBridge())
+			return CompletableFuture.completedFuture(null);
 		return new Bridge(getARIty()).create("arity-bind-" + getChannelId()).thenCompose(bridge -> {
 			callState.put(ARITY_BOUND_BRIDGE, bridge);
 			return bridge.addChannel(getChannelId(), true);
