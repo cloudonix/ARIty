@@ -46,8 +46,6 @@ public class Play extends CancelableOperations {
 		super(callController.getChannelId(), callController.getARIty());
 		this.playFileName = filename;
 		initLanguage(callController);
-		if (callController.isBoundToBridge())
-			withBridge(callController.getBoundBridge());
 	}
 
 	private void initLanguage(CallController callController) {

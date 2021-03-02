@@ -123,19 +123,7 @@ public abstract class CallController {
 	 * @return
 	 */
 	public Play play(String file) {
-		return new Play(this, file);
-	}
-
-	/**
-	 * play stored recording to a channel
-	 *
-	 * @param recName recording name to play
-	 * @return
-	 */
-	public Play playRecording(String recName) {
-		Play playRecording = new Play(this, recName);
-		playRecording.playRecording();
-		return playRecording;
+		return new Play(this, file).withBridge(getBoundBridge());
 	}
 
 	/**
@@ -222,9 +210,7 @@ public abstract class CallController {
 	 * @return Dial operation to be configured further and run
 	 */
 	public Dial dial(String callerId, String destination) {
-		Dial dial = new Dial(this, callerId, destination);
-		if (isBoundToBridge()) dial.withBridge(getBoundBridge());
-		return dial;
+		return new Dial(this, callerId, destination).withBridge(getBoundBridge());
 	}
 
 	/**
@@ -507,16 +493,6 @@ public abstract class CallController {
 	 */
 	public Mute mute(String channelId, String direction) {
 		return new Mute(this, channelId, direction);
-	}
-
-	/**
-	 * Create bridge instance to handle all bridge operations
-	 *
-	 * @param arity instance of ARIty
-	 * @return
-	 */
-	public Bridge bridge(ARIty arity) {
-		return new Bridge(arity);
 	}
 
 	/**
