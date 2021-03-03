@@ -53,6 +53,7 @@ public class ARIty implements AriCallback<Message> {
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
+	private Lazy<Bridges> bridges = new Lazy<>(() -> new Bridges(this));
 	private ExecutorService threadpool = Executors.newCachedThreadPool();
 	boolean autoBindBridges = false;
 
@@ -509,5 +510,9 @@ public class ARIty implements AriCallback<Message> {
 
 	public Channels channels() {
 		return channels.get();
+	}
+	
+	public Bridges bridges() {
+		return bridges.get();
 	}
 }
