@@ -46,7 +46,8 @@ import io.cloudonix.arity.helpers.Lazy;
  */
 public class ARIty implements AriCallback<Message> {
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
-	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<EventHandler<?>>();
+	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<>();
+	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
 	private ARI ari;
 	private String appName;
 	private Supplier<CallController> callSupplier = this::hangupDefault;
@@ -291,11 +292,15 @@ public class ARIty implements AriCallback<Message> {
 
 		String channelId = getEventChannelId(event);
 		logger.debug("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
-		if (Objects.isNull(channelId))
-			return;
+		if (channelId != null)
+			handleChannelEvents(event, channelId);
+		// dispatch global event handlers
+		for (Iterator<EventHandler<?>> itr = rawEventHandlers.iterator(); itr.hasNext(); )
+			itr.next().accept(event);
+	}
 
-		Iterator<EventHandler<?>> itr = eventHandlers.iterator();
-		while (itr.hasNext()) {
+	private void handleChannelEvents(Message event, String channelId) {
+		for (Iterator<EventHandler<?>> itr = eventHandlers.iterator(); itr.hasNext(); ) {
 			EventHandler<?> currEntry = itr.next();
 			if (!Objects.equals(currEntry.getChannelId(), channelId))
 				continue;
@@ -394,9 +399,16 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
-		logger.debug("Registering for " + type.getSimpleName() + " events on channel " + channelId);
+		logger.debug("Registering for {} events on channel {}", type.getSimpleName(), channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type, this);
 		eventHandlers.add(se);
+		return se;
+	}
+	
+	public <T extends Message> EventHandler<T> addGeneralEventHandler(Class<T> type, BiConsumer<T, EventHandler<T>> eventHandler) {
+		logger.debug("Registering for {} global events", type.getSimpleName());
+		EventHandler<T> se = new EventHandler<T>(null, eventHandler, type, this);
+		rawEventHandlers.add(se);
 		return se;
 	}
 
@@ -406,7 +418,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
 		if(eventHandlers.remove(handler))
-			logger.debug("Event "+handler.getClass1().getSimpleName() + " was removed for channel: "+handler.getChannelId());
+			logger.debug("Event {} was removed", handler);
 	}
 
 	/**
