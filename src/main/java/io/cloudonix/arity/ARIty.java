@@ -405,6 +405,12 @@ public class ARIty implements AriCallback<Message> {
 		return se;
 	}
 	
+	/**
+	 * Register an event handler for a specific message that may not be channel specific.
+	 * This type of handler can also be used if you want to listen to the same events on multiple channels and filter the channels yourself
+	 * @param type          type of message to listen to (example: PlaybackFinished)
+	 * @param eventHandler  handler to call when the event arrives
+	 */
 	public <T extends Message> EventHandler<T> addGeneralEventHandler(Class<T> type, BiConsumer<T, EventHandler<T>> eventHandler) {
 		logger.debug("Registering for {} global events", type.getSimpleName());
 		EventHandler<T> se = new EventHandler<T>(null, eventHandler, type, this);
