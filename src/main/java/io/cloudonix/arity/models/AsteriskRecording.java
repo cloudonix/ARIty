@@ -11,17 +11,20 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
+import io.cloudonix.arity.RecordingData;
 
 public class AsteriskRecording {
 
 	private ARIty arity;
 	private LiveRecording rec;
 	private ActionRecordings api;
+	private RecordingData storedRecording;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
 		this.rec = rec;
 		this.api = arity.getAri().recordings();
+		this.storedRecording = new RecordingData(arity, rec.getName());
 	}
 
 	public static class Builder {
@@ -164,6 +167,10 @@ public class AsteriskRecording {
 			waitForDone.complete(this);
 		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
 				.thenCompose(v -> waitForDone);
+	}
+
+	public RecordingData getRecording() {
+		return storedRecording;
 	}
 
 }
