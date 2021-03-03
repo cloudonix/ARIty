@@ -40,4 +40,8 @@ public class AsteriskChannel {
 		return arity.channels().hangup(channel.getId(), reason).thenApply(v -> this);
 	}
 
+	public String getId() {
+		return channel.getId();
+	}
+
 }
