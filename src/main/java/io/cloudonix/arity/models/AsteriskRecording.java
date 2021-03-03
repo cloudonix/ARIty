@@ -1,22 +1,27 @@
 package io.cloudonix.arity.models;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.generated.actions.requests.BridgesRecordPostRequest;
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsRecordPostRequest;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.Operation;
 
 public class AsteriskRecording {
 
 	private ARIty arity;
 	private LiveRecording rec;
+	private ActionRecordings api;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
 		this.rec = rec;
-		
+		this.api = arity.getAri().recordings();
 	}
 
 	public static class Builder {
@@ -88,9 +93,33 @@ public class AsteriskRecording {
 		}
 	}
 
-	public static Builder build(Consumer<Builder> withBuilder) {
+	static Builder build(Consumer<Builder> withBuilder) {
 		Builder builder = new Builder();
 		withBuilder.accept(builder);
 		return builder;
+	}
+	
+	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
+		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
+		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
+			if (!e.getRecording().getName().equals(rec.getName())) return;
+			se.unregister();
+			waitForDone.complete(this);
+		});
+		return waitForDone;
+	}
+	
+	public CompletableFuture<AsteriskRecording> cancel() {
+		return cancel(false);
+	}
+
+	private CompletableFuture<AsteriskRecording> cancel(boolean waitUntilEnd) {
+		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
+		if (waitUntilEnd)
+			waitUntilEnd().thenAccept(waitForDone::complete);
+		else
+			waitForDone.complete(this);
+		return Operation.<Void>retry(cb -> api.cancel(rec.getName()).execute(cb))
+				.thenCompose(v -> waitForDone);
 	}
 }
