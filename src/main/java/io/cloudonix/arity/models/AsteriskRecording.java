@@ -98,7 +98,35 @@ public class AsteriskRecording {
 		withBuilder.accept(builder);
 		return builder;
 	}
+
+	public String getName() {
+		return rec.getName();
+	}
 	
+	public String getFormat() {
+		return rec.getFormat();
+	}
+
+	public String getState() {
+		return rec.getState();
+	}
+
+	public String getCause() {
+		return rec.getCause();
+	}
+
+	public int getDuration() {
+		return rec.getDuration();
+	}
+
+	public int getTalkingDuration() {
+		return rec.getTalking_duration();
+	}
+
+	public int getSilenceDuration() {
+		return rec.getSilence_duration();
+	}
+
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
@@ -113,7 +141,7 @@ public class AsteriskRecording {
 		return cancel(false);
 	}
 
-	private CompletableFuture<AsteriskRecording> cancel(boolean waitUntilEnd) {
+	public CompletableFuture<AsteriskRecording> cancel(boolean waitUntilEnd) {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		if (waitUntilEnd)
 			waitUntilEnd().thenAccept(waitForDone::complete);
@@ -122,4 +150,20 @@ public class AsteriskRecording {
 		return Operation.<Void>retry(cb -> api.cancel(rec.getName()).execute(cb))
 				.thenCompose(v -> waitForDone);
 	}
+
+	
+	public CompletableFuture<AsteriskRecording> stop() {
+		return stop(false);
+	}
+	
+	public CompletableFuture<AsteriskRecording> stop(boolean waitUntilEnd) {
+		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
+		if (waitUntilEnd)
+			waitUntilEnd().thenAccept(waitForDone::complete);
+		else
+			waitForDone.complete(this);
+		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
+				.thenCompose(v -> waitForDone);
+	}
+
 }
