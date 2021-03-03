@@ -37,7 +37,15 @@ public class Bridges {
 	
 	public CompletableFuture<AsteriskBridge> get(String bridgeId) {
 		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb))
-				.thenApply(b -> new AsteriskBridge(arity, b));
+				.thenApply(this::get);
+	}
+
+	public AsteriskBridge get(ch.loway.oss.ari4java.generated.models.Bridge bridge) {
+		return new AsteriskBridge(arity, bridge);
+	}
+
+	public CompletableFuture<AsteriskBridge> get(Bridge boundBridge) {
+		return get(boundBridge.getId());
 	}
 
 }

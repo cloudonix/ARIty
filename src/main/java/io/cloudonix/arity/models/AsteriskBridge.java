@@ -1,11 +1,10 @@
 package io.cloudonix.arity.models;
 
-import java.util.UUID;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
-import ch.loway.oss.ari4java.generated.actions.requests.BridgesRecordPostRequest;
 import ch.loway.oss.ari4java.generated.models.Bridge;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
@@ -98,62 +97,19 @@ public class AsteriskBridge {
 	
 	/* Recording */
 	
-	public class RecordBuilder {
-		private String filename = UUID.randomUUID().toString();
-		private String format = "slin";
-		private Boolean playBeep;
-		private Integer maxDuration;
-		private Integer maxSilence;
-		private String dtmf;
-		public RecordBuilder withName(String filename) {
-			this.filename = filename;
-			return this;
-		}
-		public RecordBuilder withFormat(String format) {
-			this.format = format;
-			return this;
-		}
-		public RecordBuilder withPlayBeep(boolean playBeep) {
-			this.playBeep = playBeep;
-			return this;
-		}
-		public RecordBuilder withMaxDuration(int maxDuration) {
-			this.maxDuration = maxDuration;
-			return this;
-		}
-		public RecordBuilder withMaxSilence(int maxSilence) {
-			this.maxSilence = maxSilence;
-			return this;
-		}
-		public RecordBuilder withTerminateOn(String dtmf) {
-			this.dtmf = dtmf;
-			return this;
-		}
-		private BridgesRecordPostRequest build(BridgesRecordPostRequest req) {
-			req.setFormat(format);
-			req.setName(filename);
-			if (playBeep != null) req.setBeep(playBeep);
-			if (maxDuration != null) req.setMaxDurationSeconds(maxDuration);
-			if (maxSilence != null) req.setMaxSilenceSeconds(maxSilence);
-			if (dtmf != null) req.setTerminateOn(dtmf);
-			return req;
-		}
-	}
-
-	public CompletableFuture<LiveRecording> record() {
+	public CompletableFuture<AsteriskRecording> record() {
 		return record(b -> {});
 	}
 
-	public CompletableFuture<LiveRecording> record(Consumer<RecordBuilder> withBuilder) {
-		RecordBuilder req = new RecordBuilder();
-		withBuilder.accept(req);
-		return Operation.retry(cb -> req.build(api.record(bridge.getId(), null, null)).execute(cb));
+	public CompletableFuture<AsteriskRecording> record(boolean playBeep, int maxDuration, int maxSilence, String terminateOnDTMF) {
+		return record(b -> b.withPlayBeep(playBeep).withMaxDuration(maxDuration).withMaxSilence(maxSilence).withTerminateOn(Objects.requireNonNull(terminateOnDTMF)));
 	}
 	
-	public CompletableFuture<LiveRecording> record(boolean playBeep, int maxDuration, int maxSilence, String terminateOnDTMF) {
-		return record(b -> b.withPlayBeep(playBeep).withMaxDuration(maxDuration).withMaxSilence(maxSilence).withTerminateOn(terminateOnDTMF));
+	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(bridge.getId(), null, null)).execute(cb), this::mapExceptions)
+				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
-
+	
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(ariError);
