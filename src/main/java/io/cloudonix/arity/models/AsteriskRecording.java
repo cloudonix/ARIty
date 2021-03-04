@@ -1,7 +1,9 @@
 package io.cloudonix.arity.models;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
@@ -9,7 +11,9 @@ import ch.loway.oss.ari4java.generated.actions.requests.BridgesRecordPostRequest
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsRecordPostRequest;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
+import ch.loway.oss.ari4java.generated.models.RecordingStarted;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.EventHandler;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.RecordingData;
 
@@ -34,6 +38,7 @@ public class AsteriskRecording {
 		private Integer maxDuration;
 		private Integer maxSilence;
 		private String dtmf;
+		private Consumer<AsteriskRecording> startHandler;
 		
 		private Builder() {}
 
@@ -67,7 +72,7 @@ public class AsteriskRecording {
 			return this;
 		}
 
-		BridgesRecordPostRequest build(BridgesRecordPostRequest req) {
+		BridgesRecordPostRequest build(BridgesRecordPostRequest req, ARIty arity) {
 			req.setFormat(format);
 			req.setName(filename);
 			if (playBeep != null)
@@ -78,10 +83,12 @@ public class AsteriskRecording {
 				req.setMaxSilenceSeconds(maxSilence);
 			if (dtmf != null)
 				req.setTerminateOn(dtmf);
+			if (startHandler != null)
+				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
 		}
 
-		public ChannelsRecordPostRequest build(ChannelsRecordPostRequest req) {
+		public ChannelsRecordPostRequest build(ChannelsRecordPostRequest req, ARIty arity) {
 			req.setFormat(format);
 			req.setName(filename);
 			if (playBeep != null)
@@ -92,7 +99,22 @@ public class AsteriskRecording {
 				req.setMaxSilenceSeconds(maxSilence);
 			if (dtmf != null)
 				req.setTerminateOn(dtmf);
+			if (startHandler != null)
+				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
+		}
+
+		public Builder onStart(Consumer<AsteriskRecording> handler) {
+			this.startHandler = handler;
+			return this;
+		}
+		
+		private BiConsumer<RecordingStarted, EventHandler<RecordingStarted>> recordingStartedHandler(ARIty arity) {
+			return (rs,se) -> {
+				if (!Objects.equals(rs.getRecording().getName(), filename)) return;
+				se.unregister();
+				startHandler.accept(new AsteriskRecording(arity, rs.getRecording()));
+			};
 		}
 	}
 
