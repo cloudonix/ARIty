@@ -18,6 +18,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	private String channelId;
 	private Class<T> clazz;
 	private ARIty arity;
+	private volatile boolean registered = true;
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
 
 	/**
@@ -47,12 +48,13 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	 * Unregister from listening to this event
 	 */
 	public void unregister() {
+		registered = false;
 		arity.removeEventHandler(this);
 	}
 
 	@Override
 	public void accept(Message m) {
-		if (!clazz.isInstance(m))
+		if (!registered || !clazz.isInstance(m))
 			return;
 		logger.debug("Triggering " + this);
 		arity.dispatchTask(() -> handler.accept(clazz.cast(m), this));
