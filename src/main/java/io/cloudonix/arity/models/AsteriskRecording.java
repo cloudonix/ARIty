@@ -3,6 +3,7 @@ package io.cloudonix.arity.models;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -38,7 +39,7 @@ public class AsteriskRecording {
 		private Integer maxDuration;
 		private Integer maxSilence;
 		private String dtmf;
-		private Consumer<AsteriskRecording> startHandler;
+		private AtomicReference<Consumer<AsteriskRecording>> startHandler = new AtomicReference<>();
 		
 		private Builder() {}
 
@@ -105,16 +106,16 @@ public class AsteriskRecording {
 		}
 
 		public Builder onStart(Consumer<AsteriskRecording> handler) {
-			this.startHandler = handler;
+			this.startHandler.set(handler);
 			return this;
 		}
 		
 		private BiConsumer<RecordingStarted, EventHandler<RecordingStarted>> recordingStartedHandler(ARIty arity) {
 			return (rs,se) -> {
-				if (!Objects.equals(rs.getRecording().getName(), filename) || startHandler == null) return;
+				if (!Objects.equals(rs.getRecording().getName(), filename) || startHandler.get() == null) return;
 				se.unregister();
-				startHandler.accept(new AsteriskRecording(arity, rs.getRecording()));
-				startHandler = null;
+				Consumer<AsteriskRecording> h = startHandler.getAndSet(null);
+				h.accept(new AsteriskRecording(arity, rs.getRecording()));
 			};
 		}
 	}
