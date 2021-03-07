@@ -141,15 +141,15 @@ public class AsteriskRecording {
 	}
 
 	public int getDuration() {
-		return rec.getDuration();
+		return rec.getDuration() != null ? rec.getDuration() : 0;
 	}
 
 	public int getTalkingDuration() {
-		return rec.getTalking_duration();
+		return rec.getTalking_duration() != null ? rec.getTalking_duration() : 0;
 	}
 
 	public int getSilenceDuration() {
-		return rec.getSilence_duration();
+		return rec.getSilence_duration() != null ? rec.getSilence_duration() : 0;
 	}
 
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
