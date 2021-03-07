@@ -270,7 +270,7 @@ public class Conference {
 	 *
 	 * @return true if there is a bridge, false otherwise
 	 */
-	public CompletableFuture<Boolean> isConfereBridgeExists() {
+	public CompletableFuture<Boolean> doesBridgeExist() {
 		return bridge.isActive();
 	}
 
