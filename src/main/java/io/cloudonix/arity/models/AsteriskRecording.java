@@ -82,7 +82,7 @@ public class AsteriskRecording {
 				req.setMaxDurationSeconds(maxDuration);
 			if (maxSilence != null)
 				req.setMaxSilenceSeconds(maxSilence);
-			if (dtmf != null)
+			if (dtmf != null && !dtmf.isEmpty())
 				req.setTerminateOn(dtmf);
 			if (startHandler != null)
 				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
