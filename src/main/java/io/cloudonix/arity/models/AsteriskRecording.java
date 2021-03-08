@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.generated.actions.requests.BridgesRecordPostRequest;
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsRecordPostRequest;
@@ -24,6 +27,7 @@ public class AsteriskRecording {
 	private LiveRecording rec;
 	private ActionRecordings api;
 	private RecordingData storedRecording;
+	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
@@ -160,6 +164,7 @@ public class AsteriskRecording {
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
 			rec = e.getRecording();
+			log.debug("Recording finished: {}:{}:{}:{}:{}s", rec.getName(), rec.getState(), rec.getCause(), rec.getFormat(), rec.getDuration());
 			waitForDone.complete(this);
 		});
 		return waitForDone;
