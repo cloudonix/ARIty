@@ -159,6 +159,7 @@ public class AsteriskRecording {
 		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
+			rec = e.getRecording();
 			waitForDone.complete(this);
 		});
 		return waitForDone;
