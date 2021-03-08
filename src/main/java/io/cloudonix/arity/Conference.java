@@ -96,6 +96,16 @@ public class Conference {
 	 * @return A promise that will resolve when the channel has been added and announced
 	 */
 	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute) {
+		return addChannelToConf(beep, mute, true);
+	}
+	
+	/**
+	 * Add a channel to the conference
+	 * @param beep should a "beep" sound play when the channel joins the conference
+	 * @param mute should the new channel be muted
+	 * @return A promise that will resolve when the channel has been added and announced
+	 */
+	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean joinLeavePrompts) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
 		if (callController.getCallState().wasAnswered()) {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
@@ -110,13 +120,16 @@ public class Conference {
 					return beep ? playMedia("beep") : CompletableFuture.completedFuture(null);
 				}).thenCompose(beepRes -> {
 					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
-							this::channelLeftConference);
+							e -> channelLeftConference(e, joinLeavePrompts));
 					return mute ? callController.mute(callController.getChannelId(), "out").run()
 							: CompletableFuture.completedFuture(null);
-				}).thenCompose(muteRes -> annouceUser("joined")).exceptionally(Futures.on(Exception.class, t -> {
+				})
+				.thenCompose(muteRes -> annouceUser(joinLeavePrompts ? UserAnnounce.joined : UserAnnounce.quiet))
+				.exceptionally(Futures.on(Exception.class, t -> {
 					logger.info("Unable to add channel to conference: " + t);
 					throw new ConferenceException(t);
-				})).thenApply(v -> this);
+				}))
+				.thenApply(v -> this);
 	}
 
 	/**
@@ -161,11 +174,12 @@ public class Conference {
 	 * handle when a channel left conference bridge
 	 *
 	 * @param channelLeftBridge channelLeftBridge event instance
+	 * @param joinLeavePrompts 
 	 */
-	private void channelLeftConference(ChannelLeftBridge channelLeftBridge) {
+	private void channelLeftConference(ChannelLeftBridge channelLeftBridge, boolean joinLeavePrompts) {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
-		annouceUser("left").thenAccept(pb -> {
+		annouceUser(joinLeavePrompts ? UserAnnounce.left : UserAnnounce.quiet).thenAccept(pb -> {
 			bridge.getChannelCount().thenAccept(numberOfChannelsInConf -> {
 				if (numberOfChannelsInConf == 1) {
 					logger.info("Only one channel left in bridge, play music on hold");
@@ -182,14 +196,22 @@ public class Conference {
 			});
 		});
 	}
+	
+	public enum UserAnnounce { quiet, joined, left }
 
 	/**
 	 * Announce new channel joined/left a conference
 	 *
 	 * @param status 'joined' or 'left' conference
 	 */
-	public CompletableFuture<Playback> annouceUser(String status) {
-		return (Objects.equals(status, "joined")) ? playMedia("confbridge-has-joined") : playMedia("conf-hasleft");
+	public CompletableFuture<Void> annouceUser(UserAnnounce status) {
+		switch (status) {
+		case joined: return playMedia("confbridge-has-joined").thenAccept(v -> {});
+		case left: return playMedia("conf-hasleft").thenAccept(v -> {});
+		case quiet:
+		default:
+			return CompletableFuture.completedFuture(null);
+		}
 	}
 
 	/**
@@ -270,7 +292,7 @@ public class Conference {
 	 *
 	 * @return true if there is a bridge, false otherwise
 	 */
-	public CompletableFuture<Boolean> isConfereBridgeExists() {
+	public CompletableFuture<Boolean> doesBridgeExist() {
 		return bridge.isActive();
 	}
 

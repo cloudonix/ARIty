@@ -44,8 +44,8 @@ public class Bridges {
 		return new AsteriskBridge(arity, bridge);
 	}
 
-	public CompletableFuture<AsteriskBridge> get(Bridge boundBridge) {
-		return get(boundBridge.getId());
+	public CompletableFuture<AsteriskBridge> get(Bridge bridge) {
+		return get(bridge.getId());
 	}
 
 }

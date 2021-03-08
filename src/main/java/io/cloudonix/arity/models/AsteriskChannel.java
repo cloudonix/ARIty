@@ -62,7 +62,7 @@ public class AsteriskChannel {
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
-		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null)).execute(cb), this::mapExceptions)
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb), this::mapExceptions)
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 

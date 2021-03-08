@@ -1,15 +1,23 @@
 package io.cloudonix.arity.models;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.generated.actions.requests.BridgesRecordPostRequest;
 import ch.loway.oss.ari4java.generated.actions.requests.ChannelsRecordPostRequest;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
+import ch.loway.oss.ari4java.generated.models.RecordingStarted;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.EventHandler;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.RecordingData;
 
@@ -19,6 +27,7 @@ public class AsteriskRecording {
 	private LiveRecording rec;
 	private ActionRecordings api;
 	private RecordingData storedRecording;
+	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
@@ -34,6 +43,7 @@ public class AsteriskRecording {
 		private Integer maxDuration;
 		private Integer maxSilence;
 		private String dtmf;
+		private AtomicReference<Consumer<AsteriskRecording>> startHandler = new AtomicReference<>();
 		
 		private Builder() {}
 
@@ -67,7 +77,7 @@ public class AsteriskRecording {
 			return this;
 		}
 
-		BridgesRecordPostRequest build(BridgesRecordPostRequest req) {
+		BridgesRecordPostRequest build(BridgesRecordPostRequest req, ARIty arity) {
 			req.setFormat(format);
 			req.setName(filename);
 			if (playBeep != null)
@@ -76,12 +86,14 @@ public class AsteriskRecording {
 				req.setMaxDurationSeconds(maxDuration);
 			if (maxSilence != null)
 				req.setMaxSilenceSeconds(maxSilence);
-			if (dtmf != null)
+			if (dtmf != null && !dtmf.isEmpty())
 				req.setTerminateOn(dtmf);
+			if (startHandler != null)
+				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
 		}
 
-		public ChannelsRecordPostRequest build(ChannelsRecordPostRequest req) {
+		public ChannelsRecordPostRequest build(ChannelsRecordPostRequest req, ARIty arity) {
 			req.setFormat(format);
 			req.setName(filename);
 			if (playBeep != null)
@@ -92,7 +104,23 @@ public class AsteriskRecording {
 				req.setMaxSilenceSeconds(maxSilence);
 			if (dtmf != null)
 				req.setTerminateOn(dtmf);
+			if (startHandler != null)
+				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
+		}
+
+		public Builder onStart(Consumer<AsteriskRecording> handler) {
+			this.startHandler.set(handler);
+			return this;
+		}
+		
+		private BiConsumer<RecordingStarted, EventHandler<RecordingStarted>> recordingStartedHandler(ARIty arity) {
+			return (rs,se) -> {
+				if (!Objects.equals(rs.getRecording().getName(), filename) || startHandler.get() == null) return;
+				se.unregister();
+				Consumer<AsteriskRecording> h = startHandler.getAndSet(null);
+				h.accept(new AsteriskRecording(arity, rs.getRecording()));
+			};
 		}
 	}
 
@@ -119,15 +147,15 @@ public class AsteriskRecording {
 	}
 
 	public int getDuration() {
-		return rec.getDuration();
+		return rec.getDuration() != null ? rec.getDuration() : 0;
 	}
 
 	public int getTalkingDuration() {
-		return rec.getTalking_duration();
+		return rec.getTalking_duration() != null ? rec.getTalking_duration() : 0;
 	}
 
 	public int getSilenceDuration() {
-		return rec.getSilence_duration();
+		return rec.getSilence_duration() != null ? rec.getSilence_duration() : 0;
 	}
 
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
@@ -135,6 +163,8 @@ public class AsteriskRecording {
 		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
+			rec = e.getRecording();
+			log.debug("Recording finished: {}:{}:{}:{}:{}s", rec.getName(), rec.getState(), rec.getCause(), rec.getFormat(), rec.getDuration());
 			waitForDone.complete(this);
 		});
 		return waitForDone;
