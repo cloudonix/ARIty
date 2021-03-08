@@ -76,7 +76,7 @@ public class Record extends CancelableOperations {
 		if (beep)
 			this.beep = new Play(callController, "beep");
 		this.terminateOnKey = Objects.requireNonNullElse(terminateOnKey, "");
-		callController.setTalkingInChannel("set", ""); // Enable talking detection in the channel
+		callController.talkDetection(true); // Enable talking detection in the channel
 	}
 
 	@Override

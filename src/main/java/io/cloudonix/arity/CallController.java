@@ -321,10 +321,21 @@ public abstract class CallController {
 
 	/**
 	 * Enable or disable talk detection using TALK_DETECTION function
+	 * @param enable whether to enable or disable talking detection using the built-in thresholds
 	 * @return a promise that will be completed when the TALK_DETECTION function had been called
 	 */
 	public CompletableFuture<Void> talkDetection(boolean enable) {
 		return setVariable(enable ? "TALK_DETECT(set)" : "TALK_DETECT(remove)", "");
+	}
+	
+	/**
+	 * Enable talk detection using TALK_DETECTION function and set the detection thresholds
+	 * @param talkMS talking detection threshold in milliseconds
+	 * @param silenceMS silence detection threshold in milliseconds
+	 * @return a promise that will be completed when the TALK_DETECTION function had been called
+	 */
+	public CompletableFuture<Void> talkDetection(int talkMS, int silenceMS) {
+		return setVariable("TALK_DETECT(set)", talkMS + "," + silenceMS);
 	}
 
 	/**

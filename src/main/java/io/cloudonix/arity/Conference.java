@@ -57,7 +57,7 @@ public class Conference {
 		this.arity = callController.getARIty();
 		this.callController = callController;
 		this.bridge = bridge;
-		callController.setTalkingInChannel("set", "1500,750");
+		callController.talkDetection(1500, 750);
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 	}
