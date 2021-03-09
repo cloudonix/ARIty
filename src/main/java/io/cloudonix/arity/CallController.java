@@ -335,7 +335,7 @@ public abstract class CallController {
 	 * @return a promise that will be completed when the TALK_DETECTION function had been called
 	 */
 	public CompletableFuture<Void> talkDetection(int talkMS, int silenceMS) {
-		return setVariable("TALK_DETECT(set)", talkMS + "," + silenceMS);
+		return setVariable("TALK_DETECT(set)", silenceMS + "," + talkMS);
 	}
 
 	/**
