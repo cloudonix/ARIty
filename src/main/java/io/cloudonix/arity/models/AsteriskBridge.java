@@ -15,6 +15,7 @@ import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
+import io.cloudonix.lib.Futures;
 
 public class AsteriskBridge {
 
@@ -91,6 +92,10 @@ public class AsteriskBridge {
 		else
 			waitForRemoved.complete(null);
 		return Operation.<Void>retry(cb -> api.removeChannel(bridge.getId(), channelId).execute(cb), this::mapExceptions)
+				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> {
+					waitForRemoved.complete(null);
+					return null;
+				}))
 				.thenCompose(v -> waitForRemoved);
 	}
 
