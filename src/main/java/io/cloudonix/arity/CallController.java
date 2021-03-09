@@ -561,7 +561,7 @@ public abstract class CallController {
 	 * @param eventHandler handler for receiving messages of the specified type sent on the channel
 	 * @return the event handler created, which can be used to cancel the registration
 	 */
-	public <T extends Message> EventHandler<T> listenFroEvent(Class<T> type, BiConsumer<T,EventHandler<T>> eventHandler) {
+	public <T extends Message> EventHandler<T> listenForEvent(Class<T> type, BiConsumer<T,EventHandler<T>> eventHandler) {
 		return getARIty().addEventHandler(type, getChannelId(), eventHandler);
 	}
 }
