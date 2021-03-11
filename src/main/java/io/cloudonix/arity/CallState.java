@@ -79,8 +79,8 @@ public class CallState {
 	private Channel channel;
 	private String channelTechnology;
 	private States lastState = States.Unknown;
-	private boolean isActive = true;
-	private boolean wasAnswered = false;
+	private volatile boolean isActive = true;
+	private volatile boolean wasAnswered = false;
 
 	private Map<String, Object> metadata = new ConcurrentHashMap<>();
 	private Map<String, String> variables = new ConcurrentHashMap<>();
