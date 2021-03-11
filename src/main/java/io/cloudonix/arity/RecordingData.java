@@ -32,7 +32,7 @@ public class RecordingData {
 		this(arity, name, Instant.now());
 	}
 
-	void setLiveRecording(LiveRecording rec) {
+	public void setLiveRecording(LiveRecording rec) {
 		recording = Objects.requireNonNull(rec);
 		try {
 			if (recording.getDuration() > 0)
@@ -78,7 +78,8 @@ public class RecordingData {
 
 	public int getDuration() {
 		try {
-			return hasRecording() ? recording.getDuration().intValue() : 0;
+			return hasRecording() ? recording.getDuration().intValue() : 
+				(int)Duration.between(startingTime,  Instant.now()).getSeconds();
 		} catch (NullPointerException /* duration not set */ | UnsupportedOperationException /* wrong version */ e) {
 			return 0;
 		}
