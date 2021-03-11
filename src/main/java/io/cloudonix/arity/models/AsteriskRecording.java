@@ -28,6 +28,7 @@ public class AsteriskRecording {
 	private ActionRecordings api;
 	private RecordingData storedRecording;
 	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
+	private volatile boolean wasCancelled = false;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
@@ -144,7 +145,7 @@ public class AsteriskRecording {
 	}
 
 	public String getCause() {
-		return rec.getCause();
+		return getCause();
 	}
 
 	public int getDuration() {
@@ -158,7 +159,11 @@ public class AsteriskRecording {
 	public int getSilenceDuration() {
 		return rec.getSilence_duration() != null ? rec.getSilence_duration() : 0;
 	}
-
+	
+	public boolean cancelled() {
+		return wasCancelled;
+	}
+	
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
@@ -176,6 +181,7 @@ public class AsteriskRecording {
 	}
 
 	public CompletableFuture<AsteriskRecording> cancel(boolean waitUntilEnd) {
+		wasCancelled = true;
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		if (waitUntilEnd)
 			waitUntilEnd().thenAccept(waitForDone::complete);
