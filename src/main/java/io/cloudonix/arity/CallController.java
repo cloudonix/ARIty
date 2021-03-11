@@ -510,14 +510,14 @@ public abstract class CallController {
 	}
 
 	/**
-	 * if the channel is still active return true, false otherwise
-	 *
-	 * @param channelId channel id of the call to be checked
-	 * @return
-	 * @throws RestException
+	 * Check if the current call's channel is still available in Asterisk.
+	 * A faster check might be to call {@link CallState#isActive()} as that gets updated automatically when Asterisk
+	 * reports that a channel was disconnected.
+	 * @return a promise that will resolve to <code>true</code> if the channel is still in Asterisk, <code>false</code>
+	 * otherwise
 	 */
-	public CompletableFuture<Boolean> isCallActive(String channelId) {
-		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(channelId).execute(cb))
+	public CompletableFuture<Boolean> isCallActive() {
+		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(getChannelId()).execute(cb))
 				.thenApply(result -> {
 					logger.info(logmarker, "Call with id: " + result.getId() + " is still active");
 					return true;
