@@ -164,7 +164,7 @@ public class AsteriskRecording {
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
 			rec = e.getRecording();
-			log.debug("Recording finished: {}:{}:{}:{}:{}s", rec.getName(), rec.getState(), rec.getCause(), rec.getFormat(), rec.getDuration());
+			log.debug("Recording finished: {}", this);
 			waitForDone.complete(this);
 		});
 		return waitForDone;
@@ -183,7 +183,6 @@ public class AsteriskRecording {
 		return Operation.<Void>retry(cb -> api.cancel(rec.getName()).execute(cb))
 				.thenCompose(v -> waitForDone);
 	}
-
 	
 	public CompletableFuture<AsteriskRecording> stop() {
 		return stop(false);
@@ -201,6 +200,11 @@ public class AsteriskRecording {
 
 	public RecordingData getRecording() {
 		return storedRecording;
+	}
+	
+	@Override
+	public String toString() {
+		return rec.getName() + ":" + rec.getState() + ":" + rec.getCause() + ":" + rec.getFormat() + ":" + rec.getDuration() + "s";
 	}
 
 }
