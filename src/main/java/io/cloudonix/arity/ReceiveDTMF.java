@@ -147,12 +147,13 @@ public class ReceiveDTMF extends CancelableOperations {
 	}
 
 	/**
-	 * register an handler that will run when DTMF events arrives
-	 *
-	 * @param handler
+	 * Register a callback to receive DTMF events
+	 * @param handler callback to handle DTMF events
+	 * @return itself for call chaining
 	 */
-	public void registerHandler(Consumer<String> handler) {
+	public ReceiveDTMF registerHandler(Consumer<String> handler) {
 		this.applicationDTMFHandler = Objects.requireNonNull(handler);
+		return this;
 	}
 
 }
