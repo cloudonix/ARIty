@@ -2,14 +2,13 @@ package io.cloudonix.arity;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.ChannelDtmfReceived;
-import io.cloudonix.lib.Timers;
+import io.cloudonix.arity.CallState.States;
 
 /**
  * Register for receiving DTMF sequences
@@ -19,7 +18,7 @@ import io.cloudonix.lib.Timers;
 public class ReceiveDTMF extends CancelableOperations {
 	private String userInput = "";
 	private final static Logger logger = LoggerFactory.getLogger(ReceiveDTMF.class);
-	private String terminatingKey = "#";
+	private String terminatingKey = "";
 	private int inputLength = -1;
 	private boolean termKeyWasPressed = false;
 	private CompletableFuture<ReceiveDTMF> compFuture = new CompletableFuture<>();
@@ -27,47 +26,48 @@ public class ReceiveDTMF extends CancelableOperations {
 	private Consumer<String> applicationDTMFHandler = v -> {};
 
 	/**
-	 * Create a new DTMF receiver
+	 * Create a new DTMF receiver with both a terminating key list and a maximum input length
 	 * @param callController call instance
-	 * @param termKey        define terminating key (otherwise '#' is the default)
-	 * @param length         length of the input we are expecting to get from the
-	 *                       caller. for no limitation -1
+	 * @param termKeys DTMF signals that will terminate the DTMF receiver (cause the {@link #run()} completion to resolve).
+	 * 	Specify the empty string for no automatic termination.
+	 * @param length the maximum number of DTMF signals that can be received, after which the DTMF receiver will terminate.
+	 * 	Specify -1 for no maximum.
 	 */
-	public ReceiveDTMF(CallController callController, String termKey, int length) {
+	public ReceiveDTMF(CallController callController, String termKeys, int length) {
 		this(callController);
-		this.terminatingKey = termKey;
+		this.terminatingKey = Objects.requireNonNull(termKeys);
 		this.inputLength = length;
 	}
 	
 	/**
-	 * Create a new DTMF receiver with just a terminating key stop condition
+	 * Create a new DTMF receiver with just a terminating key list and no maximum length
 	 * @param callController call instance
-	 * @param termKey        define terminating key (otherwise '#' is the default)
+	 * @param termKeys DTMF signals that will terminate the DTMF receiver (cause the {@link #run()} completion to resolve).
+	 * 	Specify the empty string for no automatic termination.
 	 */
-	public ReceiveDTMF(CallController callController, String termKey) {
+	public ReceiveDTMF(CallController callController, String termKeys) {
 		this(callController);
-		this.terminatingKey = termKey;
+		this.terminatingKey = termKeys;
 	}
 	
 	/**
-	 * Create a new DTMF receiver with just a length stop condition
+	 * Create a new DTMF receiver with just a maximum input length and no terminating key list
 	 * @param callController call instance
-	 * @param length         length of the input we are expecting to get from the
-	 *                       caller. for no limitation -1
+	 * @param length the maximum number of DTMF signals that can be received, after which the DTMF receiver will terminate.
+	 * 	Specify -1 for no maximum.
 	 */
 	public ReceiveDTMF(CallController callController, int length) {
 		this(callController);
 		this.inputLength = length;
-		this.terminatingKey = null;
 	}
 	
 	/**
-	 * Create a new DTMF receiver with a default terminating key stop condition
+	 * Create a new DTMF receiver with no stop conditions (you must call {@link #cancel()} manually to stop receiving DTMF
 	 * @param callController call instance
 	 */
 	public ReceiveDTMF(CallController callController) {
 		super(callController.getChannelId(), callController.getARIty());
-		Timers.schedule(this::cancel, TimeUnit.HOURS.toMillis(2));
+		callController.getCallState().registerStateHandler(States.Hangup, this::cancel);
 	}
 
 	/**
@@ -147,12 +147,13 @@ public class ReceiveDTMF extends CancelableOperations {
 	}
 
 	/**
-	 * register an handler that will run when DTMF events arrives
-	 *
-	 * @param handler
+	 * Register a callback to receive DTMF events
+	 * @param handler callback to handle DTMF events
+	 * @return itself for call chaining
 	 */
-	public void registerHandler(Consumer<String> handler) {
+	public ReceiveDTMF registerHandler(Consumer<String> handler) {
 		this.applicationDTMFHandler = Objects.requireNonNull(handler);
+		return this;
 	}
 
 }

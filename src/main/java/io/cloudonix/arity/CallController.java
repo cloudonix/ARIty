@@ -313,27 +313,29 @@ public abstract class CallController {
 	public CompletableFuture<Void> setPJSipHeader(String headerName, String headerValue) {
 		return callState.setVariable("PJSIP_HEADER(" + headerName + ")", headerValue);
 	}
+	
+	public enum DenoiseDirection { rx, tx }
+	public CompletableFuture<Void> denoiseFilter(DenoiseDirection direction, boolean enable) {
+		return setVariable("DENOISE(" + direction.name() + ")", enable ? "on" : "off");
+	}
 
 	/**
-	 * change setting regarding to TALK_DETECT function
-	 *
-	 * @param action      'set' or 'remove'
-	 * @param actionValue if set action is used, action value will be in the form:
-	 *                    'threshold1,threshold2' such that threshold 1 is the time
-	 *                    in milliseconds before which a user is considered silent.
-	 *                    and threshold 2 is the time in milliseconds after which a
-	 *                    user is considered talking. use the empty string for no
-	 *                    threshold
-	 * @return
+	 * Enable or disable talk detection using TALK_DETECTION function
+	 * @param enable whether to enable or disable talking detection using the built-in thresholds
+	 * @return a promise that will be completed when the TALK_DETECTION function had been called
 	 */
-	public CompletableFuture<Void> setTalkingInChannel(String action, String actionValue) {
-		return Operation.<Void>retry(cb -> callState.getAri().channels()
-				.setChannelVar(callState.getChannelId(), "TALK_DETECT(" + action + ")").setValue(actionValue).execute(cb))
-				.exceptionally(t -> {
-					logger.info(logmarker, "Unable to " + action + " with value " + actionValue + ": " + t);
-					return null;
-				});
-
+	public CompletableFuture<Void> talkDetection(boolean enable) {
+		return setVariable(enable ? "TALK_DETECT(set)" : "TALK_DETECT(remove)", "");
+	}
+	
+	/**
+	 * Enable talk detection using TALK_DETECTION function and set the detection thresholds
+	 * @param talkMS talking detection threshold in milliseconds
+	 * @param silenceMS silence detection threshold in milliseconds
+	 * @return a promise that will be completed when the TALK_DETECTION function had been called
+	 */
+	public CompletableFuture<Void> talkDetection(int talkMS, int silenceMS) {
+		return setVariable("TALK_DETECT(set)", silenceMS + "," + talkMS);
 	}
 
 	/**
@@ -508,14 +510,14 @@ public abstract class CallController {
 	}
 
 	/**
-	 * if the channel is still active return true, false otherwise
-	 *
-	 * @param channelId channel id of the call to be checked
-	 * @return
-	 * @throws RestException
+	 * Check if the current call's channel is still available in Asterisk.
+	 * A faster check might be to call {@link CallState#isActive()} as that gets updated automatically when Asterisk
+	 * reports that a channel was disconnected.
+	 * @return a promise that will resolve to <code>true</code> if the channel is still in Asterisk, <code>false</code>
+	 * otherwise
 	 */
-	public CompletableFuture<Boolean> isCallActive(String channelId) {
-		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(channelId).execute(cb))
+	public CompletableFuture<Boolean> isCallActive() {
+		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(getChannelId()).execute(cb))
 				.thenApply(result -> {
 					logger.info(logmarker, "Call with id: " + result.getId() + " is still active");
 					return true;
@@ -559,7 +561,7 @@ public abstract class CallController {
 	 * @param eventHandler handler for receiving messages of the specified type sent on the channel
 	 * @return the event handler created, which can be used to cancel the registration
 	 */
-	public <T extends Message> EventHandler<T> listenFroEvent(Class<T> type, BiConsumer<T,EventHandler<T>> eventHandler) {
+	public <T extends Message> EventHandler<T> listenForEvent(Class<T> type, BiConsumer<T,EventHandler<T>> eventHandler) {
 		return getARIty().addEventHandler(type, getChannelId(), eventHandler);
 	}
 }
