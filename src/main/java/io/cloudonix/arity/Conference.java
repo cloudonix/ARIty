@@ -312,13 +312,13 @@ public class Conference {
 	}
 
 	/**
-	 * remove a channel from this conference
+	 * remove the call controller from this conference
 	 *
 	 * @param channelId the id of the channel we want to remove
 	 * @return
 	 */
-	public CompletableFuture<Void> removeChannelFromConf(String channelId) {
-		return bridge.removeChannel(channelId);
+	public CompletableFuture<Void> removeChannelFromConf() {
+		return bridge.removeChannel(callController.getChannelId());
 	}
 
 	/**
@@ -338,16 +338,6 @@ public class Conference {
 	 */
 	public CompletableFuture<Playback> playMedia(String mediaToPlay) {
 		return bridge.playMedia(mediaToPlay);
-	}
-
-	/**
-	 * remove channel from conference
-	 *
-	 * @param channelID id of the channel we want to remove
-	 * @return
-	 */
-	public CompletableFuture<Void> removeChannel(String channelID) {
-		return bridge.removeChannel(channelID);
 	}
 
 	/**

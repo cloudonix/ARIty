@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.9.7</version>
+	<version>0.9.8</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -102,9 +102,9 @@
 			<version>[4,)</version>
 		</dependency>
 		<dependency>
-			<groupId>io.cloudonix</groupId>
-			<artifactId>future-helper</artifactId>
-			<version>[1.8,)</version>
+			<groupId>com.github.cloudonix</groupId>
+			<artifactId>java-future-helper</artifactId>
+			<version>2.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>io.vertx</groupId>
