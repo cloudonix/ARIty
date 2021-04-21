@@ -215,15 +215,6 @@ public class Conference {
 	}
 
 	/**
-	 * get conference name
-	 *
-	 * @return
-	 */
-	public String getConfName() {
-		return conferenceName;
-	}
-
-	/**
 	 * get number of channels in conference
 	 *
 	 * @return
@@ -288,19 +279,19 @@ public class Conference {
 	}
 
 	/**
-	 * check if there is a bridge for the conference
-	 *
+	 * Check if there is a bridge for the conference
 	 * @return true if there is a bridge, false otherwise
 	 */
 	public CompletableFuture<Boolean> doesBridgeExist() {
-		return bridge.isActive();
+		return bridge.isActive().thenApply(e -> {
+			if (conferenceName == null) conferenceName = bridge.getName();
+			return e;
+		});
 	}
 
 	/**
-	 * create a bridge for the conference without selecting the bridge id
-	 *
+	 * Create a bridge for the conference without selecting the bridge id
 	 * @param conferenceName name of the conference
-	 *
 	 * @return the conference bridge
 	 */
 	public CompletableFuture<Bridge> createConferenceBridge(String conferenceName) {
@@ -315,34 +306,33 @@ public class Conference {
 	 * remove the call controller from this conference
 	 *
 	 * @param channelId the id of the channel we want to remove
-	 * @return
+	 * @return a promise that will complete when the call controller has been removed from the conference bridge
 	 */
 	public CompletableFuture<Void> removeChannelFromConf() {
 		return bridge.removeChannel(callController.getChannelId());
 	}
 
 	/**
-	 * get conference name
-	 *
-	 * @return
+	 * Retrieve conference name
+	 * @return the conference name that was set when creating the conference bridge
 	 */
 	public String getConferenceName() {
 		return conferenceName;
 	}
 
 	/**
-	 * play media to the bridge
-	 *
+	 * Play media to the bridge
 	 * @param mediaToPlay name of the media to play
-	 * @return promise to a Playback
+	 * @return a promise that will complete when the media has started playing in the conference bridge, providing
+	 * the ARI playback instance
 	 */
 	public CompletableFuture<Playback> playMedia(String mediaToPlay) {
 		return bridge.playMedia(mediaToPlay);
 	}
 
 	/**
-	 * start playing music on hold to conference bridge
-	 * @return
+	 * Start playing music on hold to conference bridge
+	 * @return a promise that will complete when the music on hold has started
 	 */
 	public CompletableFuture<Void> startMusicOnHold() {
 		return bridge.startMusicOnHold(musicOnHoldClassName)
@@ -360,8 +350,8 @@ public class Conference {
 	}
 
 	/**
-	 * stop playing to music on hold to conference bridge
-	 * @return
+	 * Stop playing to music on hold to conference bridge
+	 * @return a promise that will complete when the music on hold has stopped playing
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
 		return bridge.stopMusicOnHold()
