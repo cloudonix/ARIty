@@ -215,15 +215,6 @@ public class Conference {
 	}
 
 	/**
-	 * get conference name
-	 *
-	 * @return
-	 */
-	public String getConfName() {
-		return conferenceName;
-	}
-
-	/**
 	 * get number of channels in conference
 	 *
 	 * @return
@@ -292,7 +283,10 @@ public class Conference {
 	 * @return true if there is a bridge, false otherwise
 	 */
 	public CompletableFuture<Boolean> doesBridgeExist() {
-		return bridge.isActive();
+		return bridge.isActive().thenApply(e -> {
+			if (conferenceName == null) conferenceName = bridge.getName();
+			return e;
+		});
 	}
 
 	/**
