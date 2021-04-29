@@ -424,7 +424,7 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
 		if(eventHandlers.remove(handler))
-			logger.debug("Event {} was removed", handler);
+			logger.debug("{} was removed", handler);
 	}
 
 	/**
