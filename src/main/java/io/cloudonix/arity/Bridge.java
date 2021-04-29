@@ -180,6 +180,7 @@ public class Bridge {
 		logger.info("Removing channel with id: " + channelId + " to bridge with id: " + bridgeId);
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, this::handleChannelLeftBridge);
 		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), this::mapExceptions)
+				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> null))
 				.thenCompose(v -> waitForRemoved);
 	}
 
