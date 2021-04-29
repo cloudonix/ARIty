@@ -5,6 +5,9 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
+import io.cloudonix.lib.Futures;
+
 /**
  * The class represents the Hang up operation (hangs up a call)
  *
@@ -33,6 +36,7 @@ public class Hangup extends Operation {
 	 */
 	public CompletableFuture<Hangup> run() {
 		return this.<Void>retryOperation(cb->channels().hangup(getChannelId()).setReason(reason).execute(cb))
+				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> null))
 				.thenApply(res->{
 					logger.info("Channel with id: "+getChannelId()+" was hanged up");
 					return this;
