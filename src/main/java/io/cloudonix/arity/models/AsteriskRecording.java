@@ -28,7 +28,7 @@ public class AsteriskRecording {
 	private ActionRecordings api;
 	private RecordingData storedRecording;
 	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
-	private volatile boolean wasCancelled = false;
+	private volatile boolean wasCancelled = false, wasStopped = false;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
@@ -164,6 +164,14 @@ public class AsteriskRecording {
 		return wasCancelled;
 	}
 	
+	public boolean stopped() {
+		return wasStopped;
+	}
+	
+	public boolean isActive() {
+		return !cancelled() && !stopped();
+	}
+	
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
@@ -202,6 +210,7 @@ public class AsteriskRecording {
 		else
 			waitForDone.complete(this);
 		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
+				.thenRun(() -> wasStopped = true)
 				.thenCompose(v -> waitForDone);
 	}
 
