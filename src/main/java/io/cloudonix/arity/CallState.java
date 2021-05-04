@@ -267,6 +267,8 @@ public class CallState {
 	public CompletableFuture<String> readVariable(String name) {
 		if (variables.containsKey(name))
 			return CompletableFuture.completedFuture(variables.get(name));
+		if (!isActive)
+			return CompletableFuture.completedFuture(null);
 		return new GetChannelVar(channelId, arity, name).run()
 			.thenApply(GetChannelVar::getValue)
 			.thenApply(val -> { // cache the variable value locally for next time
@@ -313,6 +315,8 @@ public class CallState {
 	public CompletableFuture<Void> setVariable(String name, String value) {
 		if (Objects.nonNull(value)) // the map can't store nulls
 			variables.put(name, value);
+		if (!isActive)
+			return CompletableFuture.completedFuture(null);
 		return new SetChannelVar(channelId, arity, name, value).run().thenAccept(v -> {});
 	}
 	
