@@ -26,6 +26,7 @@ import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -247,8 +248,13 @@ public class CallState {
 
 		@Override
 		protected Exception tryIdentifyError(Throwable ariError) {
+			switch (ariError.getMessage()) {
+			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
+			default:
 			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+			}
 		}
+		
 	}
 
 	/**
@@ -290,7 +296,11 @@ public class CallState {
 
 		@Override
 		protected Exception tryIdentifyError(Throwable ariError) {
+			switch (ariError.getMessage()) {
+			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
+			default:
 			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+			}
 		}
 	}
 
