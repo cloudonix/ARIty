@@ -21,6 +21,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.lib.Futures;
 
 /**
@@ -418,7 +419,7 @@ public class Bridge {
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(ariError);
-		case "Channel not found": return new ChannelNotInBridgeException(ariError);
+		case "Channel not found": return new ChannelNotFoundException(ariError);
 		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
 		}
