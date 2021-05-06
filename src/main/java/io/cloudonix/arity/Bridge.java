@@ -89,7 +89,7 @@ public class Bridge {
 	 */
 	public CompletableFuture<Void> destroy() {
 		logger.info("Destroying bridge with id: " + bridgeId);
-		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptionsForDestroyBridge)
 				.exceptionally(Futures.on(BridgeNotFoundException.class, e -> { return null; }))
 				.thenAccept(v -> {
 			recordings.clear();
@@ -422,6 +422,13 @@ public class Bridge {
 		case "Channel not found": return new ChannelNotFoundException(ariError);
 		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
+		}
+		return null;
+	}
+	
+	private Exception mapExceptionsForDestroyBridge(Throwable ariError) {
+		switch (ariError.getMessage()) {
+		case "Bridge not found": return new BridgeNotFoundException(ariError);
 		}
 		return null;
 	}
