@@ -185,10 +185,12 @@ public abstract class Operation {
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
-			if (triesLeft <= 0 || !(t.getMessage().toLowerCase().contains("timeout")))
-				throw rewrapError("Unrecoverable ARI operation error: " + t, caller, t);
-			return Futures.delay(RETRY_TIME).apply(null)
-					.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper));
+			if (triesLeft <= 0)
+				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
+			if (t.getMessage().toLowerCase().contains("timeout"))
+				return Futures.delay(RETRY_TIME).apply(null)
+						.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper));
+			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);
 		})
 		.thenCompose(x -> x);
 	}
