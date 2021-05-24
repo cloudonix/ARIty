@@ -3,7 +3,6 @@ package io.cloudonix.arity.models;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SocketChannel;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
@@ -120,7 +119,10 @@ public class AsteriskChannel {
 	public long getPriority() {
 		return channel != null && channel.getDialplan() != null ? channel.getDialplan().getPriority() : 0;
 	}
-
+	
+	public String getLanguage() {
+		return channel != null ? channel.getLanguage() : null;
+	}
 
 	/* Recording */
 	
@@ -139,21 +141,11 @@ public class AsteriskChannel {
 	
 	/* External Media */
 	
-	public CompletableFuture<SocketChannel> externalMediaAudioSocket() {
-		return externalMediaAudioSocket("");
-	}
-	
-	public CompletableFuture<SocketChannel> externalMediaAudioSocket(String host) {
-		InetSocketAddress addr = new InetSocketAddress(host, 0);
-		String uuid = UUID.randomUUID().toString();
-		try (SocketChannel socket = SocketChannel.open().bind(addr)) {
-			int realport = ((InetSocketAddress)socket.getLocalAddress()).getPort();
-			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), host + ":" + realport, "slin")
-					.setChannelId(getId()).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
-					.thenApply(v -> socket);
-		} catch (IOException e) {
-			return CompletableFuture.failedFuture(e);
-		}
+	public CompletableFuture<Void> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
+		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
+		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
+				.setChannelId(getId()).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
+				.thenAccept(v -> {});
 	}
 
 	public CompletableFuture<DatagramChannel> externalMediaRTP() {
@@ -165,8 +157,8 @@ public class AsteriskChannel {
 		String uuid = UUID.randomUUID().toString();
 		try (DatagramChannel socket = DatagramChannel.open().bind(addr)) {
 			addr = ((InetSocketAddress)socket.getLocalAddress());
-			String realaddr = addr.getAddress().getHostAddress() + ":" + addr.getPort(); 
-			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), realaddr, "slin")
+			String sockaddr = addr.getAddress().getHostAddress() + ":" + addr.getPort(); 
+			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
 					.setChannelId(getId()).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
 					.thenApply(v -> socket);
 		} catch (IOException e) {
