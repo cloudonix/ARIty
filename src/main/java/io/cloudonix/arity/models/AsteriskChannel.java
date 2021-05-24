@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -55,6 +56,71 @@ public class AsteriskChannel {
 	public String getId() {
 		return channel.getId();
 	}
+
+	/**
+	 * The extension that put this channel in stasis
+	 * @return the current dialplan extension or null if no dial plan is found
+	 */
+	public String getExtension() {
+		return (channel != null && channel.getDialplan() != null) ? channel.getDialplan().getExten() : null;
+	}
+	
+	/**
+	 * Return account code of the channel (information about the channel)
+	 * @return channel account code or null if no channel is found
+	 */
+	public String getAccountCode() {
+		return channel != null ? channel.getAccountcode() : null;
+	}
+	
+	/**
+	 * Retrieve the caller identifier number for the caller that ran this stasis application
+	 * @return the caller id number or null if no channel is found
+	 */
+	public String getCallerIdNumber() {
+		return channel != null && channel.getCaller() != null ? channel.getCaller().getNumber() : null;
+	}
+
+	/**
+	 * Retrieve the name of the channel (for example: SIP/myapp-000001)
+	 * @return the name of the channel or null if no channel is found
+	 */
+	public String getChannelName() {
+		return channel != null ? channel.getName() : null;
+	}
+
+	/**
+	 * Retrieve the channel state when the stasis application launched
+	 * @return The channel state or null if no channel is found
+	 */
+	public String getChannelState() {
+		return channel != null ? channel.getState() : null;
+	}
+
+	/**
+	 * Retrieve the channel creation time
+	 * @return the channel creation time or null if no channel is found
+	 */
+	public Date getChannelCreationTime() {
+		return channel != null ? channel.getCreationtime() : null;
+	}
+
+	/**
+	 * Retrieve the dialplan context (for example: ari-context) that ran this stasis application
+	 * @return contet name or null if no channel is found
+	 */
+	public String getDialplanContext() {
+		return channel != null && channel.getDialplan() != null ? channel.getDialplan().getContext() : null;
+	}
+
+	/**
+	 * Retrieve the current priority of the extension that ran this stasis application
+	 * @return priority number
+	 */
+	public long getPriority() {
+		return channel != null && channel.getDialplan() != null ? channel.getDialplan().getPriority() : 0;
+	}
+
 
 	/* Recording */
 	
