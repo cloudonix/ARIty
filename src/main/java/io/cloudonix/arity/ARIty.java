@@ -57,6 +57,7 @@ public class ARIty implements AriCallback<Message> {
 	private Lazy<Bridges> bridges = new Lazy<>(() -> new Bridges(this));
 	private ExecutorService threadpool = Executors.newCachedThreadPool();
 	boolean autoBindBridges = false;
+	private String url;
 
 	/**
 	 * Create and connect ARIty to Asterisk
@@ -137,7 +138,7 @@ public class ARIty implements AriCallback<Message> {
 			uri += "/";
 
 		try {
-			ari = ARI.build(uri, appName, login, pass, version);
+			ari = ARI.build(this.url = uri, appName, login, pass, version);
 			logger.info("Ari created");
 			logger.info("Ari version: " + ari.getVersion());
 			if (openWebSocket) {
@@ -487,7 +488,7 @@ public class ARIty implements AriCallback<Message> {
 	 * @return
 	 */
 	public String getConnetion() {
-		return ari.getUrl();
+		return url;
 	}
 
 	/**
