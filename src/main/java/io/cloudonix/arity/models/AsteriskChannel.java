@@ -1,6 +1,11 @@
 package io.cloudonix.arity.models;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SocketChannel;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -64,6 +69,43 @@ public class AsteriskChannel {
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
 		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb), this::mapExceptions)
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
+	}
+	
+	/* External Media */
+	
+	public CompletableFuture<SocketChannel> externalMediaAudioSocket() {
+		return externalMediaAudioSocket("");
+	}
+	
+	public CompletableFuture<SocketChannel> externalMediaAudioSocket(String host) {
+		InetSocketAddress addr = new InetSocketAddress(host, 0);
+		String uuid = UUID.randomUUID().toString();
+		try (SocketChannel socket = SocketChannel.open().bind(addr)) {
+			int realport = ((InetSocketAddress)socket.getLocalAddress()).getPort();
+			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), host + ":" + realport, "slin")
+					.setChannelId(getId()).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
+					.thenApply(v -> socket);
+		} catch (IOException e) {
+			return CompletableFuture.failedFuture(e);
+		}
+	}
+
+	public CompletableFuture<DatagramChannel> externalMediaRTP() {
+		return externalMediaRTP("");
+	}
+	
+	public CompletableFuture<DatagramChannel> externalMediaRTP(String host) {
+		InetSocketAddress addr = new InetSocketAddress(host, 0);
+		String uuid = UUID.randomUUID().toString();
+		try (DatagramChannel socket = DatagramChannel.open().bind(addr)) {
+			addr = ((InetSocketAddress)socket.getLocalAddress());
+			String realaddr = addr.getAddress().getHostAddress() + ":" + addr.getPort(); 
+			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), realaddr, "slin")
+					.setChannelId(getId()).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
+					.thenApply(v -> socket);
+		} catch (IOException e) {
+			return CompletableFuture.failedFuture(e);
+		}
 	}
 
 	private Exception mapExceptions(Throwable ariError) {
