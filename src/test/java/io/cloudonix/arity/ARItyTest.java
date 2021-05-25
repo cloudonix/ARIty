@@ -64,13 +64,15 @@ public class ARItyTest {
 		logger.info("Starting testErrRun");
 		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		logger.info("Setup complete");
-		arity.registerVoiceApp(call->{
+		arity.registerVoiceApp(call -> {
+			logger.info("Call started");
 			wasCalled.set(true);
 			call.play("hello-world").loop(2).run();
 			throw new RuntimeException("some error, this is on purpose for the test");
 		});
 		logger.info("Registered app, calling");
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
+		logger.info("call done");
 		arity.disconnect();
 		assertTrue(wasCalled.get());
 		assertEquals(603, status);
@@ -79,7 +81,7 @@ public class ARItyTest {
 	@Test(timeout = 30000, expected = InvalidCallStateException.class)
 	//application is not registered
 	public void testNotRegisteredApp() throws Exception {
-		logger.info("Starting testErrRun");
+		logger.info("Starting testNotRegisteredApp");
 		Application app = new Application();
 		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		app.run();
