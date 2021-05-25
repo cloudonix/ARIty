@@ -51,14 +51,13 @@ public class ARItyTest {
 
 	private final static Logger logger = LoggerFactory.getLogger(ARItyTest.class);
 
-	@Test(timeout = 30000)
+	@Test(timeout = 15000)
 	public void testConncetion() throws ConnectionFailedException, URISyntaxException, InterruptedException, ExecutionException {
 		ARIty arity = asterisk.getARIty();
 		arity.getActiveChannels().get();
-		arity.disconnect();
 	}
 
-	@Test(timeout = 300000)
+	@Test(timeout = 15000)
 	// error while running an application
 	public void testErrRun() throws Exception {
 		AtomicBoolean wasCalled = new AtomicBoolean(false);
@@ -68,7 +67,7 @@ public class ARItyTest {
 		arity.registerVoiceApp(call->{
 			wasCalled.set(true);
 			call.play("hello-world").loop(2).run();
-			throw new RuntimeException("some error");
+			throw new RuntimeException("some error, this is on purpose for the test");
 		});
 		logger.info("Registered app, calling");
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
