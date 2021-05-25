@@ -1,22 +1,12 @@
 package io.cloudonix;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.ConnectException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,18 +18,7 @@ import webphone.webphone;
 
 public class ARItySipInitiator {
 
-	static Future<String> webphoneImage = new ImageFromDockerfile("webphone", false)
-			.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.4/jvoip-8.4.jar"))
-			.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
-					"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
-					"	username=usertest password=123 \\\n" +
-					"	autocall=true loglevel=5 register=0 hasgui=false logtocnosole=true \\\n" +
-					"	events=3 canlogtofile=false iscommandline=true")
-			.withDockerfileFromBuilder(b -> b.from("openjdk:11-jre")
-					.run("apt update && apt install -q -y x11-utils")
-					.add("jvoip.jar", "/app/jvoip.jar")
-					.add("jvoip.sh", "/app/jvoip.sh")
-					.run("chmod a+x /app/jvoip.sh"));
+	static Future<String> webphoneImage = buildWebPhone();
 
 	public static class XVFBContainer extends GenericContainer<XVFBContainer> {
 		XVFBContainer() {
@@ -112,10 +91,6 @@ public class ARItySipInitiator {
 
 	private final static Logger logger = LoggerFactory.getLogger(ARItySipInitiator.class);
 
-	//private static String queueUrl = null;
-	private static LinkedList<Integer> availablePorts = fillPortList();
-	private static LinkedList<ARItySipLayer> sipLayersInUse = new LinkedList<ARItySipLayer>();
-
 	static {
 		try {
 			// make sure the huge openjdk image is loaded before we starting counting time
@@ -125,43 +100,19 @@ public class ARItySipInitiator {
 		}
 	}
 	
-	private String getInstanceId() throws IOException {
-		try {
-			logger.debug("{}::getInstanceId entering", getClass());
-			while (true) {
-				try {
-					return getResult(new URL("http://169.254.169.254/latest/meta-data/instance-id").getContent());
-				} catch (MalformedURLException e) {
-					e.printStackTrace();
-					throw new IOException(e);
-				} catch (ConnectException e) {
-					logger.warn("Retrying getInstanceId because of: " + e.getMessage());
-				}
-			}
-		} finally {
-			logger.debug("{}::getInstanceId exiting", getClass());
-		}
-	}
-
-	private String getResult(Object obj) {
-		if (obj instanceof InputStream) {
-			try (BufferedReader br = new BufferedReader(new InputStreamReader((InputStream) obj, "UTF-8"))) {
-				return br.lines().collect(Collectors.joining());
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
-		return obj.toString();
-	}
-
-	private static LinkedList<Integer> fillPortList() {
-		LinkedList<Integer> ports = new LinkedList<Integer>();
-		for (int i = 5300; i > 5060; i--) {
-			ports.add(i);
-		}
-		return ports;
+	private static Future<String> buildWebPhone() {
+		return new ImageFromDockerfile("webphone", false)
+		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.4/jvoip-8.4.jar"))
+		.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
+				"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
+				"	username=usertest password=123 \\\n" +
+				"	autocall=true loglevel=5 register=0 hasgui=false logtocnosole=true \\\n" +
+				"	events=3 canlogtofile=false iscommandline=true")
+		.withDockerfileFromBuilder(b -> b.from("openjdk:11-jre")
+				.run("apt update && apt install -q -y x11-utils")
+				.add("jvoip.jar", "/app/jvoip.jar")
+				.add("jvoip.sh", "/app/jvoip.sh")
+				.run("chmod a+x /app/jvoip.sh"));
 	}
 
 	public static CompletableFuture<Integer> call(String address, String ipFrom, String dnid) throws Exception {
