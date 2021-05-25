@@ -27,7 +27,7 @@ import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * View of the current call state.

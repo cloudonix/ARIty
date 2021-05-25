@@ -13,7 +13,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * The class handles and saves all needed information for a conference call

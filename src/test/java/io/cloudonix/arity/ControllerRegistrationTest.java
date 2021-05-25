@@ -51,7 +51,7 @@ public class ControllerRegistrationTest {
 		}
 	}
 
-	@Test(timeout = 30000)
+	@Test(timeout = 15000)
 	public void testRegisterClass() throws Exception {
 		runCount = 0;
 		logger.info("testRegisterClass starting");
@@ -62,7 +62,7 @@ public class ControllerRegistrationTest {
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 30000)
+	@Test(timeout = 15000)
 	public void testRegisterSupplier() throws Exception {
 		runCount = 0;
 		logger.info("testRegisterSupplier starting");
@@ -73,7 +73,7 @@ public class ControllerRegistrationTest {
 		assertEquals(603, status);
 	}
 
-	@Test(timeout = 30000)
+	@Test(timeout = 15000)
 	public void testRegisterLambda() throws Exception {
 		runCount = 0;
 		logger.info("testRegisterLambda starting");

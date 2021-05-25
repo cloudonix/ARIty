@@ -18,7 +18,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ChannelInInvalidState;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * A general class that represents an Asterisk operation

@@ -21,8 +21,8 @@ import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.RecordingException;
 import io.cloudonix.arity.errors.RecordingNotFoundException;
-import io.cloudonix.lib.Futures;
-import io.cloudonix.lib.Timers;
+import io.cloudonix.arity.helpers.Futures;
+import io.cloudonix.arity.helpers.Timers;
 
 /**
  * Class for recording a channel operation

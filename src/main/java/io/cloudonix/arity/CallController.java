@@ -15,7 +15,7 @@ import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.models.AsteriskChannel;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * The main implementation for ARIty based program logic - applications should subclass the {@link CallController}
