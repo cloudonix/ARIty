@@ -21,7 +21,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 	private boolean testDebug = System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true");
 
 	public AsteriskContainer () {
-		super("andrius/asterisk:14.x");
+		super("andrius/asterisk:glibc-18.x");
 		this.addFileSystemBind("src/test/resources/extensions.conf", "/etc/asterisk/extensions.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/http.conf", "/etc/asterisk/http.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/ari.conf", "/etc/asterisk/ari.conf", BindMode.READ_ONLY);
@@ -57,6 +57,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
 	@Override
 	public void stop() {
+		logger().warn("Stopping Asterisk!");
 		if (Objects.nonNull(arity))
 			arity.disconnect();
 	}
