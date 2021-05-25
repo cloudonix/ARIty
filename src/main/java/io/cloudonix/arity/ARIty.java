@@ -139,7 +139,7 @@ public class ARIty implements AriCallback<Message> {
 
 		try {
 			ari = ARI.build(this.url = uri, appName, login, pass, version);
-			logger.info("Ari created");
+			logger.info("Ari created {}", url);
 			logger.info("Ari version: " + ari.getVersion());
 			if (openWebSocket) {
 				ari.events().eventWebsocket(appName).setSubscribeAll(true).execute(this);
