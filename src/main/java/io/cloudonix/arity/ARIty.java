@@ -469,7 +469,8 @@ public class ARIty implements AriCallback<Message> {
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */
 	public void disconnect() {
-		ari.cleanup();
+		if (ari.isWsConnected());
+			ari.cleanup();
 	}
 
 	/**
