@@ -59,7 +59,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 	@Override
 	public void stop() {
 		logger().warn("Stopping Asterisk!");
-		if (Objects.nonNull(arity))
+		if (arity != null)
 			arity.disconnect();
 	}
 
