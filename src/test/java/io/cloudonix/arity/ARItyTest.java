@@ -57,7 +57,7 @@ public class ARItyTest {
 		arity.getActiveChannels().get();
 	}
 
-	@Test(timeout = 15000)
+	@Test(timeout = 30000)
 	// error while running an application
 	public void testErrRun() throws Exception {
 		AtomicBoolean wasCalled = new AtomicBoolean(false);
