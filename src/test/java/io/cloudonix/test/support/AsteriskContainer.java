@@ -35,23 +35,26 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
 	@Override
 	public void start() {
+		logger().info("Starting Asterisk");
 		Object monitor = new Object();
-		super.start();
-		followOutput(output->{
-			String line = output.getUtf8String().replaceAll("\n$", "");
-			if (testDebug)
-				logger().info(line);
-			else
-				logger().debug(line);
-			if (line.contains("Asterisk Ready"))
-				synchronized (monitor) {
-					monitor.notify();
-				}
-		});
 		synchronized (monitor) {
+			super.start();
+			followOutput(output->{
+				String line = output.getUtf8String().replaceAll("\n$", "");
+				if (testDebug)
+					logger().info(line);
+				else
+					logger().debug(line);
+				if (line.contains("Asterisk Ready"))
+					synchronized (monitor) {
+						monitor.notify();
+					}
+			});
 			try {
 				monitor.wait();
+				logger().info("Asterisk Ready");
 			} catch (InterruptedException e) {
+				logger().error("Monitoring for asterisk ready failed", e);
 			}
 		}
 	}
