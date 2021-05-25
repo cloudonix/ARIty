@@ -77,22 +77,32 @@ public class ARItyTest {
 			throw new RuntimeException("some error, this is on purpose for the test");
 		});
 		logger.info("Registered app, calling");
-		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "127.0.0.1" ,"1234").get();
-		logger.info("call done");
-		arity.disconnect();
-		assertTrue(wasCalled.get());
-		assertEquals(603, status);
+		try {
+			int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
+			logger.info("call done");
+			arity.disconnect();
+			assertTrue(wasCalled.get());
+			assertEquals(603, status);
+		} catch (Throwable err) {
+			logger.error("Error in test", err);
+			throw err;
+		}
 	}
 
 	@Test(timeout = 30000)
 	//application is not registered
 	public void testNotRegisteredApp() throws Exception {
+		try {
 		logger.info("Starting testNotRegisteredApp");
 		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 		assertEquals(603, status);
 		logger.info("Ended testNotRegisteredApp {}", status);
+		} catch (Throwable err) {
+			logger.error("Error in test", err);
+			throw err;
+		}
 	}
 
 }
