@@ -138,7 +138,7 @@
 						</property>
 						<property>
 							<name>org.slf4j.simpleLogger.defaultLogLevel</name>
-							<value>debug</value>
+							<value>info</value>
 						</property>
 					</systemProperties>
 				</configuration>
