@@ -22,6 +22,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
 	public AsteriskContainer () {
 		super("andrius/asterisk:glibc-18.x");
+		this.addFileSystemBind("src/test/resources/modules.conf", "/etc/asterisk/modules.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/extensions.conf", "/etc/asterisk/extensions.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/http.conf", "/etc/asterisk/http.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/ari.conf", "/etc/asterisk/ari.conf", BindMode.READ_ONLY);
