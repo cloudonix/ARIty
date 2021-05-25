@@ -44,7 +44,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 				if (testDebug)
 					logger().info(line);
 				else
-					logger().debug(line);
+					logger().trace(line);
 				if (line.contains("Asterisk Ready"))
 					synchronized (monitor) {
 						monitor.notify();

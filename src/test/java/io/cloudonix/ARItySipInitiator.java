@@ -59,7 +59,7 @@ public class ARItySipInitiator {
 				if (needreport && testDebug) {
 					logger().info(line);
 				} else {
-					logger().debug(line);
+					logger().trace(line);
 				}
 				Matcher m = statusCatcher.matcher(line);
 				if (m.find())
