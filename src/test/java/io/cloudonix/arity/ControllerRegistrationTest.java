@@ -43,12 +43,8 @@ public class ControllerRegistrationTest {
 	volatile static int runCount = 0;
 
 	@BeforeClass
-	public static void preloadImages() {
-		try {
-			ARItySipInitiator.call("test", "test", "test").get();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	static public void setup() throws InterruptedException {
+		ARItySipInitiator.ensureBaseImage();
 	}
 
 	@Test(timeout = 15000)

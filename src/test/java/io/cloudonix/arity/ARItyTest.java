@@ -44,8 +44,8 @@ public class ARItyTest {
 	public AsteriskContainer asterisk = new AsteriskContainer();
 	
 	@BeforeClass
-	static public void setup() {
-		ARItySipInitiator.class.getName(); // force class to init
+	static public void setup() throws InterruptedException {
+		ARItySipInitiator.ensureBaseImage();
 	}
 
 	private final static Logger logger = LoggerFactory.getLogger(ARItyTest.class);

@@ -10,14 +10,17 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+
+import com.github.dockerjava.api.DockerClient;
 
 import webphone.webphone;
 
 public class ARItySipInitiator {
 
+	private static final String WEBPHONE_BASE_IMAGE = "openjdk:11-jre";
 	static Future<String> webphoneImage = buildWebPhone();
 
 	public static class XVFBContainer extends GenericContainer<XVFBContainer> {
@@ -100,6 +103,13 @@ public class ARItySipInitiator {
 		}
 	}
 	
+	
+	
+	public static void ensureBaseImage() throws InterruptedException {
+		DockerClient dockerClient = DockerClientFactory.instance().client();
+		dockerClient.pullImageCmd(WEBPHONE_BASE_IMAGE).start().awaitCompletion();
+	}
+	
 	private static Future<String> buildWebPhone() {
 		return new ImageFromDockerfile("webphone", false)
 		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.4/jvoip-8.4.jar"))
@@ -108,7 +118,7 @@ public class ARItySipInitiator {
 				"	username=usertest password=123 \\\n" +
 				"	autocall=true loglevel=5 register=0 hasgui=false logtocnosole=true \\\n" +
 				"	events=3 canlogtofile=false iscommandline=true")
-		.withDockerfileFromBuilder(b -> b.from("openjdk:11-jre")
+		.withDockerfileFromBuilder(b -> b.from(WEBPHONE_BASE_IMAGE)
 				.run("apt update && apt install -q -y x11-utils")
 				.add("jvoip.jar", "/app/jvoip.jar")
 				.add("jvoip.sh", "/app/jvoip.sh")
