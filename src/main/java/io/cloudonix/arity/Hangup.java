@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * The class represents the Hang up operation (hangs up a call)

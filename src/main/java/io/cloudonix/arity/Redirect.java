@@ -1,5 +1,7 @@
 package io.cloudonix.arity;
 
+import static java.util.concurrent.CompletableFuture.failedFuture;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -7,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.errors.RedirectException;
-import io.cloudonix.lib.Futures;
 
 /**
  * Channel redirection operation
@@ -28,7 +29,7 @@ public class Redirect extends Operation {
 	public CompletableFuture<Redirect> run() {
 		if(Objects.isNull(endpoint)) {
 			logger.warn("The endpoint to redirect the channel to is not given! abort redirect");
-			return Futures.failedFuture(new RedirectException("Endpoint can not be null!"));
+			return failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		logger.info("Now redirecting... channel id: "+getChannelId()+" , to: "+endpoint);
 		return this.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint).execute(cb))

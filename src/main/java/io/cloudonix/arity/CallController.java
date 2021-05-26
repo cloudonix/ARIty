@@ -14,7 +14,8 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.models.AsteriskChannel;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * The main implementation for ARIty based program logic - applications should subclass the {@link CallController}
@@ -339,92 +340,11 @@ public abstract class CallController {
 	}
 
 	/**
-	 * get the channel of the call
-	 *
-	 * @return
+	 * Get the channel object for the current caller channel
+	 * @return channel that is currently running the stasis application
 	 */
-	public Channel getChannel() {
-		return callState.getChannel();
-	}
-
-	/**
-	 * the method return the extension from the dialplan
-	 *
-	 * @return
-	 */
-	public String getExtension() {
-		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
-				? String.valueOf(getChannel().getDialplan().getExten())
-				: null;
-	}
-
-	/**
-	 * return account code of the channel (information about the channel)
-	 *
-	 * @return
-	 */
-	public String getAccountCode() {
-		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getAccountcode()) : null;
-	}
-
-	/**
-	 * get the caller (whom is calling)
-	 *
-	 * @return
-	 */
-	public String getCallerIdNumber() {
-		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getCaller())
-				? callState.getChannel().getCaller().getNumber()
-				: null;
-	}
-
-	/**
-	 * get the name of the channel (for example: SIP/myapp-000001)
-	 *
-	 * @return
-	 */
-	public String getChannelName() {
-		return Objects.nonNull(getChannel()) ? getChannel().getName() : null;
-	}
-
-	/**
-	 * return channel state
-	 *
-	 * @return
-	 */
-	public String getChannelState() {
-		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getState()) : null;
-	}
-
-	/**
-	 * get channel creation time
-	 *
-	 * @return
-	 */
-	public String getChannelCreationTime() {
-		return Objects.nonNull(getChannel()) ? String.valueOf(getChannel().getCreationtime()) : null;
-
-	}
-
-	/**
-	 * return dialplan context (for example: ari-context)
-	 *
-	 * @return
-	 */
-	public String getDialplanContext() {
-		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
-				? getChannel().getDialplan().getContext()
-				: null;
-	}
-
-	/**
-	 * Retrieve the current priority of the extension that call this stasis application
-	 * @return priority number
-	 */
-	public long getPriority() {
-		return Objects.nonNull(getChannel()) && Objects.nonNull(getChannel().getDialplan())
-				? getChannel().getDialplan().getPriority()
-				: null;
+	public AsteriskChannel getChannel() {
+		return new AsteriskChannel(getARIty(), callState.getChannel());
 	}
 
 	/**

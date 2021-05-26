@@ -57,6 +57,7 @@ public class ARIty implements AriCallback<Message> {
 	private Lazy<Bridges> bridges = new Lazy<>(() -> new Bridges(this));
 	private ExecutorService threadpool = Executors.newCachedThreadPool();
 	boolean autoBindBridges = false;
+	private String url;
 
 	/**
 	 * Create and connect ARIty to Asterisk
@@ -137,8 +138,8 @@ public class ARIty implements AriCallback<Message> {
 			uri += "/";
 
 		try {
-			ari = ARI.build(uri, appName, login, pass, version);
-			logger.info("Ari created");
+			ari = ARI.build(this.url = uri, appName, login, pass, version);
+			logger.info("Ari created {}", url);
 			logger.info("Ari version: " + ari.getVersion());
 			if (openWebSocket) {
 				ari.events().eventWebsocket(appName).setSubscribeAll(true).execute(this);
@@ -207,8 +208,7 @@ public class ARIty implements AriCallback<Message> {
 	 * The method register the voice application (the supplier that has a
 	 * CallController, meaning the application)
 	 *
-	 * @param controllorSupplier the supplier that has the CallController (the voice
-	 *                           application)
+	 * @param controllorSupplier the supplier that has the CallController (the voice application)
 	 */
 	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
 		if (Objects.isNull(controllorSupplier))
@@ -217,9 +217,12 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * The method register the voice application and execute it
+	 * Register a closure as the call application.
+	 * 
+	 * ARIty will call the provided function when a call is received and provide it a
+	 * call controller for the incoming call.
 	 *
-	 * @param cc
+	 * @param cc call controller handler to receive the call
 	 */
 	public void registerVoiceApp(Consumer<CallController> cc) {
 		callSupplier = () -> {
@@ -229,7 +232,11 @@ public class ARIty implements AriCallback<Message> {
 				public CompletableFuture<Void> run() {
 					return CompletableFuture.runAsync(() -> {
 						cc.accept(this);
-					}, threadpool);
+					}, threadpool).exceptionally(err -> {
+						logger.error("Application " + cc + " failed with an error:", err);
+						hangup().run();
+						return null;
+					});
 				}
 			};
 		};
@@ -468,7 +475,8 @@ public class ARIty implements AriCallback<Message> {
 	 * disconnect from the websocket (user's choice if to call it or not)
 	 */
 	public void disconnect() {
-		ari.cleanup();
+		if (ari.isWsConnected());
+			ari.cleanup();
 	}
 
 	/**
@@ -482,36 +490,18 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	/**
-	 * Get the url that we are connected to
-	 *
-	 * @return
+	 * Retrieve the URL that ARIty is connected to.
+	 * @return the Asterisk ARI URL
 	 */
 	public String getConnetion() {
-		return ari.getUrl();
+		return url;
 	}
 
 	/**
-	 * get call supplier
-	 *
-	 * @return
-	 */
-	public Supplier<CallController> getCallSupplier() {
-		return callSupplier;
-	}
-
-	/**
-	 * set call supplier
-	 *
-	 * @param callSupplier
-	 */
-	public void setCallSupplier(Supplier<CallController> callSupplier) {
-		this.callSupplier = callSupplier;
-	}
-
-	/**
-	 * get ARI instance
-	 *
-	 * @return
+	 * Retrieve the ari4java instance that ARIty uses
+	 * @deprecated Please do not use this method as it isn't guaranteed that ari4java will continue
+	 * to be the underlying infrastructure in the future
+	 * @return ari4java instance
 	 */
 	public ARI getAri() {
 		return ari;

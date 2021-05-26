@@ -21,7 +21,8 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 	private boolean testDebug = System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true");
 
 	public AsteriskContainer () {
-		super("andrius/asterisk:14.x");
+		super("andrius/asterisk:glibc-18.x");
+		this.addFileSystemBind("src/test/resources/modules.conf", "/etc/asterisk/modules.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/extensions.conf", "/etc/asterisk/extensions.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/http.conf", "/etc/asterisk/http.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/ari.conf", "/etc/asterisk/ari.conf", BindMode.READ_ONLY);
@@ -34,30 +35,34 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
 	@Override
 	public void start() {
+		logger().info("Starting Asterisk");
 		Object monitor = new Object();
-		super.start();
-		followOutput(output->{
-			String line = output.getUtf8String().replaceAll("\n$", "");
-			if (testDebug)
-				logger().info(line);
-			else
-				logger().debug(line);
-			if (line.contains("Asterisk Ready"))
-				synchronized (monitor) {
-					monitor.notify();
-				}
-		});
 		synchronized (monitor) {
+			super.start();
+			followOutput(output->{
+				String line = output.getUtf8String().replaceAll("\n$", "");
+				if (testDebug)
+					logger().info(line);
+				else
+					logger().trace(line);
+				if (line.contains("Asterisk Ready"))
+					synchronized (monitor) {
+						monitor.notify();
+					}
+			});
 			try {
 				monitor.wait();
+				logger().info("Asterisk Ready");
 			} catch (InterruptedException e) {
+				logger().error("Monitoring for asterisk ready failed", e);
 			}
 		}
 	}
 
 	@Override
 	public void stop() {
-		if (Objects.nonNull(arity))
+		logger().warn("Stopping Asterisk!");
+		if (arity != null)
 			arity.disconnect();
 	}
 

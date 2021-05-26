@@ -15,7 +15,7 @@ import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 public class AsteriskBridge {
 

@@ -11,10 +11,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
+import io.cloudonix.arity.models.AsteriskChannel;
 
 /**
  * The class represents a Play operation (plays a playback and cancels the
@@ -49,7 +49,7 @@ public class Play extends CancelableOperations {
 	}
 
 	private void initLanguage(CallController callController) {
-		Channel chan = callController.getChannel();
+		AsteriskChannel chan = callController.getChannel();
 		if (Objects.nonNull(chan) && Objects.nonNull(chan.getLanguage())) {
 			this.language = chan.getLanguage();
 			return;

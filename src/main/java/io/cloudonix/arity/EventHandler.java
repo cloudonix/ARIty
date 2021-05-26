@@ -1,12 +1,12 @@
 package io.cloudonix.arity;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Message;
-import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Consumer;
 
 /**
  * An event listener that is registered to accept and dispatch events for a specific message type, optionally on a specific channel.

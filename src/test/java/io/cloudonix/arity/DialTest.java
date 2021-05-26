@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.cloudonix.test.support.AsteriskContainer;
@@ -35,6 +36,7 @@ public class DialTest {
 	}
 
 	@Test
+	@Ignore
 	public void testRun() {
 
 	}

@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.lib.Futures;
+import io.cloudonix.arity.helpers.Futures;
 
 /**
  * Class that execute muting/unmuting a channel
