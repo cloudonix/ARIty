@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.models.Channel;
@@ -28,5 +29,22 @@ public class Channels {
 		return Operation.<Void>retry(cb -> arity.getAri().channels().hangup(channelId)
 					.setReason(reason != null ? reason.toString() : null).execute(cb));
 	}
+
+	/* External Media Channels */
+	
+	public CompletableFuture<Void> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
+		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
+		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
+				.setChannelId(uuid).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
+				.thenAccept(v -> {});
+	}
+
+	public CompletableFuture<Void> externalMediaRTP(String uuid, InetSocketAddress serverAddr) {
+		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
+		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
+				.setChannelId(uuid).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
+				.thenAccept(v -> {});
+	}
+
 
 }

@@ -1,11 +1,7 @@
 package io.cloudonix.arity.models;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
 import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -139,33 +135,6 @@ public class AsteriskChannel {
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
-	/* External Media */
-	
-	public CompletableFuture<Void> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
-		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
-		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
-				.setChannelId(getId()).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
-				.thenAccept(v -> {});
-	}
-
-	public CompletableFuture<DatagramChannel> externalMediaRTP() {
-		return externalMediaRTP("");
-	}
-	
-	public CompletableFuture<DatagramChannel> externalMediaRTP(String host) {
-		InetSocketAddress addr = new InetSocketAddress(host, 0);
-		String uuid = UUID.randomUUID().toString();
-		try (DatagramChannel socket = DatagramChannel.open().bind(addr)) {
-			addr = ((InetSocketAddress)socket.getLocalAddress());
-			String sockaddr = addr.getAddress().getHostAddress() + ":" + addr.getPort(); 
-			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
-					.setChannelId(getId()).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
-					.thenApply(v -> socket);
-		} catch (IOException e) {
-			return CompletableFuture.failedFuture(e);
-		}
-	}
-
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Channel not in Stasis application": return new io.cloudonix.arity.errors.ChannelInInvalidState(ariError);
