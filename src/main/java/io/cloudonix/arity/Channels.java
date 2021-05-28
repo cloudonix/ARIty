@@ -32,18 +32,20 @@ public class Channels {
 
 	/* External Media Channels */
 	
-	public CompletableFuture<Void> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
+	public CompletableFuture<AsteriskChannel> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
 		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
+		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(uuid);
 		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(uuid).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
-				.thenAccept(v -> {});
+				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs.getChannel()));
 	}
 
-	public CompletableFuture<Void> externalMediaRTP(String uuid, InetSocketAddress serverAddr) {
+	public CompletableFuture<AsteriskChannel> externalMediaRTP(String uuid, InetSocketAddress serverAddr) {
 		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
+		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(uuid);
 		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(uuid).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
-				.thenAccept(v -> {});
+				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs.getChannel()));
 	}
 
 
