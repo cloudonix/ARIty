@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -36,6 +38,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.helpers.Lazy;
+import io.cloudonix.arity.helpers.Timers;
 
 /**
  * The class represents the creation of ARI and websocket service that handles
@@ -469,6 +472,37 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public void registerApplicationStartHandler(String id, Consumer<CallState> eventHandler) {
 		stasisStartListeners.put(id, eventHandler);
+	}
+	
+	/**
+	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
+	 * The promise returned from this method is not guaranteed to resolve. If you think it is possible then channel
+	 * will not enter stasis, you may want to use the {@link #registerApplicationStartHandler(String, Duration)} method
+	 * instead, to get a timeout exception if the channel did not enter stasis after a set time.
+	 * @param id channel ID to wait for
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state
+	 */
+	public CompletableFuture<CallState> registerApplicationStartHandler(String id) {
+		CompletableFuture<CallState> promise = new CompletableFuture<>();
+		registerApplicationStartHandler(id, promise::complete);
+		return promise;
+	}
+	
+	/**
+	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
+	 * @param id channel ID to wait for
+	 * @param timeout amount of time to wait for the channel to enter stasis, after which the promise will be rejected
+	 * with a {@link TimeoutException}
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state, or rejected
+	 * with a {@link TimeoutException}
+	 */
+	public CompletableFuture<CallState> registerApplicationStartHandler(String id, Duration timeout) {
+		CompletableFuture<CallState> promise = registerApplicationStartHandler(id);
+		Timers.schedule(
+				() -> promise.completeExceptionally(
+						new TimeoutException("Channel " + id + " did not enter stasis before timeout expired")),
+				timeout.toMillis());
+		return promise;
 	}
 
 	/**

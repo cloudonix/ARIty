@@ -282,10 +282,7 @@ public class Dial extends CancelableOperations {
 	 */
 	public CompletableFuture<Dial> run() {
 		logger.debug("Running Dial");
-		getArity().registerApplicationStartHandler(endpointChannelId, cs -> {
-			dialledCallState.set(cs);
-			active();
-		});
+		getArity().registerApplicationStartHandler(endpointChannelId).thenAccept(dialledCallState::set).thenRun(this::active);
 		if (Objects.nonNull(getChannelId()))
 			callerHangupListener = getArity().listenForOneTimeEvent(ChannelHangupRequest.class, getChannelId(), this::handleHangupCaller);
 		getArity().listenForOneTimeEvent(ChannelHangupRequest.class, endpointChannelId, this::handleHangupCallee);
