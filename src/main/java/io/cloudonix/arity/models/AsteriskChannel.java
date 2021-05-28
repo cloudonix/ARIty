@@ -2,6 +2,7 @@ package io.cloudonix.arity.models;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -9,6 +10,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
 
 public class AsteriskChannel {
@@ -140,6 +142,23 @@ public class AsteriskChannel {
 		case "Channel not in Stasis application": return new io.cloudonix.arity.errors.ChannelInInvalidState(ariError);
 		}
 		return null;
+	}
+	
+	public interface Snoop {
+		public enum Spy { none, both, out, in };
+		public enum Whisper { none, both, out, in }
+	}
+
+	/**
+	 * Create a snoop channel for this channel, capturing its StasisStart event and returning the active snoop channel.
+	 * @return A promise that will resolve to the snoop channel when it has entered stasis 
+	 */
+	public CompletableFuture<AsteriskChannel> snoop(Snoop.Spy spy, Snoop.Whisper whisper) {
+		String snoopId = UUID.randomUUID().toString();
+		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(snoopId);
+		return Operation.<Channel>retry(cb -> api.snoopChannel(channel.getId(), arity.getAppName())
+				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb))
+				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, c))); // ignore new call state for now
 	}
 
 }
