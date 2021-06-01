@@ -5,6 +5,8 @@ import java.util.concurrent.CompletableFuture;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.models.AsteriskChannel.HangupReasons;
 
@@ -31,7 +33,7 @@ public class Channels {
 
 	public CompletableFuture<Void> hangup(String channelId, HangupReasons reason) {
 		return Operation.<Void>retry(cb -> api.hangup(channelId)
-					.setReason(reason != null ? reason.toString() : null).execute(cb));
+					.setReason(reason != null ? reason.toString() : null).execute(cb), Channels::mapChannelExceptions);
 	}
 
 	/* External Media Channels */
@@ -52,5 +54,11 @@ public class Channels {
 				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs.getChannel()));
 	}
 
-
+	private static Exception mapChannelExceptions(Throwable ariException) {
+		if (ariException instanceof RestException)
+			switch (((RestException)ariException).getCode()) {
+			case 404: return new ChannelNotFoundException(ariException);
+			}
+		return null;
+	}
 }
