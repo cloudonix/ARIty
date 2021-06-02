@@ -278,8 +278,9 @@ public class CallState {
 		return new GetChannelVar(channelId, arity, name).run()
 			.thenApply(GetChannelVar::getValue)
 			.thenApply(val -> { // cache the variable value locally for next time
-				if (Objects.nonNull(val))
+				if (val != null)
 					variables.put(name, val); // the map can't store nulls
+				log.debug("Read channel variable {}: {}", name, val);
 				return val;
 			});
 	}
