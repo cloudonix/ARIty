@@ -49,7 +49,7 @@ import io.cloudonix.arity.helpers.Timers;
  */
 public class ARIty implements AriCallback<Message> {
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
-	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<>();
+	private ConcurrentHashMap<String,Queue<EventHandler<?>>> channelEventHandlers = new ConcurrentHashMap<>();
 	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
 	private ARI ari;
 	private String appName;
@@ -310,14 +310,11 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	private void handleChannelEvents(Message event, String channelId) {
-		for (Iterator<EventHandler<?>> itr = eventHandlers.iterator(); itr.hasNext(); ) {
-			EventHandler<?> currEntry = itr.next();
-			if (!Objects.equals(currEntry.getChannelId(), channelId))
-				continue;
-			currEntry.accept(event);
-		}
-		if (event instanceof StasisEnd) // clear event handlers for this channel
-			eventHandlers.removeIf(e -> e.getChannelId().equals(((StasisEnd)event).getChannel().getId()));
+		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).forEach(h -> {
+			h.accept(event);
+		});
+		if (event instanceof StasisEnd) // clear event handlers for this channel on stasis end
+			channelEventHandlers.remove(channelId);
 	}
 
 	private void handleStasisStart(Message event) {
@@ -411,7 +408,7 @@ public class ARIty implements AriCallback<Message> {
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
 		logger.debug("Registering for {} events on channel {}", type.getSimpleName(), channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type, this);
-		eventHandlers.add(se);
+		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).add(se);
 		return se;
 	}
 	
@@ -433,7 +430,8 @@ public class ARIty implements AriCallback<Message> {
 	 * @param handler the event handler to be removed
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
-		if(eventHandlers.remove(handler))
+		if (channelEventHandlers.computeIfAbsent(handler.getChannelId(), 
+				id -> new ConcurrentLinkedQueue<>()).remove(handler))
 			logger.debug("{} was removed", handler);
 	}
 
