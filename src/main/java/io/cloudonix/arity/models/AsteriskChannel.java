@@ -36,6 +36,7 @@ public class AsteriskChannel {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	public AsteriskChannel(ARIty arity, Channel channel) {
 		this.arity = arity;
 		this.channel = channel;
@@ -157,8 +158,18 @@ public class AsteriskChannel {
 		String snoopId = UUID.randomUUID().toString();
 		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(snoopId);
 		return Operation.<Channel>retry(cb -> api.snoopChannel(channel.getId(), arity.getAppName())
-				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb))
+				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), this::mapExceptions)
 				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, c))); // ignore new call state for now
+	}
+
+	public CompletableFuture<AsteriskChannel> startSilence() {
+		return Operation.<Void>retry(cb -> api.startSilence(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> stopSilence() {
+		return Operation.<Void>retry(cb -> api.stopSilence(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
 	}
 
 }
