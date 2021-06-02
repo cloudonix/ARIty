@@ -172,4 +172,9 @@ public class AsteriskChannel {
 				.thenApply(v -> this);
 	}
 
+	public CompletableFuture<AsteriskChannel> answer() {
+		return Operation.<Void>retry(cb -> api.answer(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
 }
