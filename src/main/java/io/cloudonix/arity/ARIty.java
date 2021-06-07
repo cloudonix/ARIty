@@ -430,6 +430,10 @@ public class ARIty implements AriCallback<Message> {
 	 * @param handler the event handler to be removed
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
+		if (handler.getChannelId() == null) { // it is a raw event handler
+			rawEventHandlers.remove(handler);
+			return;
+		}
 		if (channelEventHandlers.computeIfAbsent(handler.getChannelId(), 
 				id -> new ConcurrentLinkedQueue<>()).remove(handler))
 			logger.debug("{} was removed", handler);
