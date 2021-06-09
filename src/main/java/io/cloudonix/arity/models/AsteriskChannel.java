@@ -177,4 +177,8 @@ public class AsteriskChannel {
 				.thenApply(v -> this);
 	}
 
+	public CompletableFuture<Void> delete() {
+		return Operation.<Void>retry(cb -> api.hangup(channel.getId()).execute(cb));
+	}
+
 }
