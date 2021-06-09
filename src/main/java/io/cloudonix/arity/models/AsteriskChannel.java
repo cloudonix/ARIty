@@ -42,13 +42,30 @@ public class AsteriskChannel {
 		this.channel = channel;
 		this.api = arity.getAri().channels();
 	}
-
+	
+	/**
+	 * Hangup the channel with a "normal" reason
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
 	public CompletableFuture<AsteriskChannel> hangup() {
 		return hangup(HangupReasons.NORMAL);
 	}
 
-	private CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
-		return arity.channels().hangup(channel.getId(), reason).thenApply(v -> this);
+	/**
+	 * Hangup the channel
+	 * @param reason reason to set as the hangup reason
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
+	public CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
+		return Operation.<Void>retry(cb -> api.hangup(channel.getId()).setReason(reason.reason).execute(cb), this::mapExceptions).thenApply(v -> this);
+	}
+	
+	/**
+	 * Alias to {@link #hangup()}
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
+	public CompletableFuture<AsteriskChannel> delete() {
+		return hangup(HangupReasons.NORMAL);
 	}
 
 	public String getId() {
@@ -175,10 +192,6 @@ public class AsteriskChannel {
 	public CompletableFuture<AsteriskChannel> answer() {
 		return Operation.<Void>retry(cb -> api.answer(channel.getId()).execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
-	}
-
-	public CompletableFuture<Void> delete() {
-		return Operation.<Void>retry(cb -> api.hangup(channel.getId()).execute(cb));
 	}
 
 }
