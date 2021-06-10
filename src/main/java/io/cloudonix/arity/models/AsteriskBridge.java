@@ -23,6 +23,7 @@ public class AsteriskBridge {
 	private Bridge bridge;
 	private ActionBridges api;
 
+	@SuppressWarnings("deprecation")
 	public AsteriskBridge(ARIty arity, Bridge bridge) {
 		this.arity = arity;
 		this.bridge = bridge;
@@ -123,6 +124,14 @@ public class AsteriskBridge {
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
 		}
 		return null;
+	}
+
+	public String getId() {
+		return bridge.getId();
+	}
+	
+	public String getName() {
+		return bridge.getName();
 	}
 
 }
