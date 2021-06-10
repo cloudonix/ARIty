@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
+import io.cloudonix.arity.models.AsteriskBridge;
 import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.helpers.Futures;
 
@@ -96,7 +97,7 @@ public abstract class CallController {
 	public CompletableFuture<Void> bindToBridge() {
 		if (isBoundToBridge())
 			return CompletableFuture.completedFuture(null);
-		return new Bridge(getARIty()).create("arity-bind-" + getChannelId()).thenCompose(bridge -> {
+		return getARIty().bridges().create("arity-bind-" + getChannelId()).thenCompose(bridge -> {
 			callState.put(ARITY_BOUND_BRIDGE, bridge);
 			return bridge.addChannel(getChannelId(), true);
 		});
@@ -115,8 +116,8 @@ public abstract class CallController {
 	 * Retrieve the bridge this call is bound to.
 	 * @return a {@link Bridge} instance if the call is bound to a bridge, <code>null</code> otherwise
 	 */
-	public Bridge getBoundBridge() {
-		return callState.<Bridge>get(ARITY_BOUND_BRIDGE);
+	public AsteriskBridge getBoundBridge() {
+		return callState.<AsteriskBridge>get(ARITY_BOUND_BRIDGE);
 	}
 
 	/**

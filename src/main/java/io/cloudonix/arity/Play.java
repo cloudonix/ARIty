@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
+import io.cloudonix.arity.models.AsteriskBridge;
 import io.cloudonix.arity.models.AsteriskChannel;
 
 /**
@@ -34,7 +35,7 @@ public class Play extends CancelableOperations {
 	private AtomicReference<Playback> playback = new AtomicReference<>();
 	private volatile String currentPlaybackId;
 
-	private Bridge playBridge;
+	private AsteriskBridge playBridge;
 
 	/**
 	 * Play the specified content using the specified scheme (default "sound")
@@ -60,7 +61,7 @@ public class Play extends CancelableOperations {
 			logger.debug("Using default language: {}", language);
 	}
 	
-	public Play withBridge(Bridge bridge) {
+	public Play withBridge(AsteriskBridge bridge) {
 		this.playBridge = bridge;
 		return this;
 	}
