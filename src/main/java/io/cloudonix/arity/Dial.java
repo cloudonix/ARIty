@@ -27,6 +27,7 @@ import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
+import io.cloudonix.arity.models.AsteriskBridge;
 
 /**
  * A channel dial operation.
@@ -112,7 +113,7 @@ public class Dial extends CancelableOperations {
 	private String extension = null;
 	private String context = null;
 	private Long priority = null;
-	private Bridge earlyBridge;
+	private AsteriskBridge earlyBridge;
 	private AtomicReference<CallState> dialledCallState = new AtomicReference<>();
 	private boolean shouldAttachToCallingChannel = false;
 	private volatile EventHandler<ChannelHangupRequest> callerHangupListener;
@@ -271,7 +272,7 @@ public class Dial extends CancelableOperations {
 	 * @param bridge already created bridge to connect the outgoing channel to
 	 * @return itself for fluent calls
 	 */
-	public Dial withBridge(Bridge bridge) {
+	public Dial withBridge(AsteriskBridge bridge) {
 		this.earlyBridge = bridge;
 		return this;
 	}
