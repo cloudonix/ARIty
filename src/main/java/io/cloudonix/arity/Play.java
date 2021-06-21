@@ -124,8 +124,10 @@ public class Play extends CancelableOperations {
 	}
 
 	private CompletableFuture<Playback> executePlayOperation(String path) {
-		if (this.playBridge != null)
+		if (this.playBridge != null) {
+			logger.info(currentPlaybackId + "|Playing to bridge {}", playBridge.getId());
 			return this.retryOperation(h -> bridges().play(this.playBridge.getId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h));
+		}
 		return this.retryOperation(h -> channels().play(getChannelId(), path).setLang(language).setPlaybackId(currentPlaybackId).execute(h));
 	}
 

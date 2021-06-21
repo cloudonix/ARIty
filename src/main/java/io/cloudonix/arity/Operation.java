@@ -76,14 +76,16 @@ public abstract class Operation {
 	 * @param op a Lambda that takes a one-off {@link AriCallback} instance and uses it to run an ARI operation
 	 * @return a promise for the completion of the ARI operation
 	 */
-	private static <V> CompletableFuture<V> toFuture(AriOperation<V> op) {
+	private <V> CompletableFuture<V> toFuture(AriOperation<V> op) {
+		var ex = arity.threadpool;
 		StackTraceElement[] caller = getCallingStack();
 		CompletableFuture<V> cf = new CompletableFuture<V>();
 		AriCallback<V> ariCallback = new AriCallback<V>() {
 
 			@Override
 			public void onSuccess(V result) {
-				CompletableFuture.runAsync(() -> cf.complete(result));
+				System.out.println("Got async success");
+				CompletableFuture.runAsync(() -> { System.out.println("Sending async success"); cf.complete(result); });
 			}
 
 			@Override
@@ -147,7 +149,7 @@ public abstract class Operation {
 	 * @param op the ARI operation to execute
 	 * @return result of the operation, if successful, or a failure if the operation failed all retries
 	 */
-	public static <V> CompletableFuture<V> retry(AriOperation<V> op) {
+	public <V> CompletableFuture<V> retry(AriOperation<V> op) {
 		return retryOperationImpl(op, RETRIES, v -> null);
 	}
 
@@ -161,7 +163,7 @@ public abstract class Operation {
 	 *   be propagated as the failure.
 	 * @return result of the operation, if successful, or a failure if the operation failed all retries
 	 */
-	public static <V> CompletableFuture<V> retry(AriOperation<V> op, Function<Throwable, Exception> exceptionMapper) {
+	public <V> CompletableFuture<V> retry(AriOperation<V> op, Function<Throwable, Exception> exceptionMapper) {
 		return retryOperationImpl(op, RETRIES, exceptionMapper);
 	}
 
@@ -176,7 +178,7 @@ public abstract class Operation {
 	 * @return result of the operation, if successful, or a failure if the operation failed all retries, or
 	 *   the provided exception mapper determined the exception to be fatal before retrying
 	 */
-	private static <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
+	private <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
 			Function<Throwable, Exception> exceptionMapper) {
 		StackTraceElement[] caller = getCallingStack();
 		return toFuture(op).handle((v,t) -> {

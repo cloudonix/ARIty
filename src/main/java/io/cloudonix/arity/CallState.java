@@ -38,7 +38,7 @@ import io.cloudonix.arity.helpers.Futures;
  * @author naamag
  * @author odeda
  */
-public class CallState {
+public abstract class CallState {
 
 	public static enum States {
 		Down("Down", true),
@@ -74,10 +74,8 @@ public class CallState {
 	private static Logger log = LoggerFactory.getLogger(CallState.class);
 	private Marker logmarker;
 
-	private ARI ari;
 	private String channelId;
 	private ARIty arity;
-	private Channel channel;
 	private String channelTechnology;
 	private States lastState = States.Unknown;
 	private volatile boolean isActive = true;
@@ -88,19 +86,13 @@ public class CallState {
 	private ConcurrentHashMap<States, Queue<Runnable>> stateListeners = new ConcurrentHashMap<>();
 	private ConcurrentLinkedQueue<EventHandler<?>> eventListeners = new ConcurrentLinkedQueue<>();
 
-	public CallState(StasisStart callStasisStart, ARIty arity) {
-		this(callStasisStart.getChannel(), arity);
-	}
-
 	@SuppressWarnings("deprecation")
-	public CallState(Channel chan, ARIty arity) {
-		this.ari = arity.getAri();
+	public CallState(String channelId, String channelName, String channelState, ARIty arity) {
 		this.arity = arity;
-		this.channel = chan;
-		this.channelId = channel.getId();
+		this.channelId = channelId;
 		logmarker = MarkerFactory.getDetachedMarker(channelId);
-		this.channelTechnology = channel.getName().split("/")[0];
-		lastState = States.find(channel.getState());
+		this.channelTechnology = channelName.split("/")[0];
+		lastState = States.find(channelState);
 		wasAnswered = lastState == States.Up;
 		registerEventHandler(ChannelVarset.class, varset -> {
 			log.info(logmarker, "Variable set: " + varset.getVariable() + " => " + varset.getValue());
@@ -132,20 +124,12 @@ public class CallState {
 	/* Useless c'tor, used just so we can fake call controllers not connected to actual ARI service, for testing other things */
 	CallState() {}
 
-	public ARI getAri() {
-		return ari;
-	}
-
 	public String getChannelId() {
 		return channelId;
 	}
 
 	public ARIty getArity() {
 		return arity;
-	}
-
-	public Channel getChannel() {
-		return channel;
 	}
 
 	public States getStatus() {
