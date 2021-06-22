@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -36,6 +38,7 @@ import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.helpers.Lazy;
+import io.cloudonix.arity.helpers.Timers;
 
 /**
  * The class represents the creation of ARI and websocket service that handles
@@ -46,7 +49,7 @@ import io.cloudonix.arity.helpers.Lazy;
  */
 public class ARIty implements AriCallback<Message> {
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
-	private Queue<EventHandler<?>> eventHandlers = new ConcurrentLinkedQueue<>();
+	private ConcurrentHashMap<String,Queue<EventHandler<?>>> channelEventHandlers = new ConcurrentHashMap<>();
 	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
 	private ARI ari;
 	private String appName;
@@ -307,14 +310,11 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	private void handleChannelEvents(Message event, String channelId) {
-		for (Iterator<EventHandler<?>> itr = eventHandlers.iterator(); itr.hasNext(); ) {
-			EventHandler<?> currEntry = itr.next();
-			if (!Objects.equals(currEntry.getChannelId(), channelId))
-				continue;
-			currEntry.accept(event);
-		}
-		if (event instanceof StasisEnd) // clear event handlers for this channel
-			eventHandlers.removeIf(e -> e.getChannelId().equals(((StasisEnd)event).getChannel().getId()));
+		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).forEach(h -> {
+			h.accept(event);
+		});
+		if (event instanceof StasisEnd) // clear event handlers for this channel on stasis end
+			channelEventHandlers.remove(channelId);
 	}
 
 	private void handleStasisStart(Message event) {
@@ -408,7 +408,7 @@ public class ARIty implements AriCallback<Message> {
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
 		logger.debug("Registering for {} events on channel {}", type.getSimpleName(), channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type, this);
-		eventHandlers.add(se);
+		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).add(se);
 		return se;
 	}
 	
@@ -430,7 +430,12 @@ public class ARIty implements AriCallback<Message> {
 	 * @param handler the event handler to be removed
 	 */
 	public <T extends Message> void removeEventHandler(EventHandler<T>handler) {
-		if(eventHandlers.remove(handler))
+		if (handler.getChannelId() == null) { // it is a raw event handler
+			rawEventHandlers.remove(handler);
+			return;
+		}
+		if (channelEventHandlers.computeIfAbsent(handler.getChannelId(), 
+				id -> new ConcurrentLinkedQueue<>()).remove(handler))
 			logger.debug("{} was removed", handler);
 	}
 
@@ -469,6 +474,37 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public void registerApplicationStartHandler(String id, Consumer<CallState> eventHandler) {
 		stasisStartListeners.put(id, eventHandler);
+	}
+	
+	/**
+	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
+	 * The promise returned from this method is not guaranteed to resolve. If you think it is possible then channel
+	 * will not enter stasis, you may want to use the {@link #registerApplicationStartHandler(String, Duration)} method
+	 * instead, to get a timeout exception if the channel did not enter stasis after a set time.
+	 * @param id channel ID to wait for
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state
+	 */
+	public CompletableFuture<CallState> registerApplicationStartHandler(String id) {
+		CompletableFuture<CallState> promise = new CompletableFuture<>();
+		registerApplicationStartHandler(id, promise::complete);
+		return promise;
+	}
+	
+	/**
+	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
+	 * @param id channel ID to wait for
+	 * @param timeout amount of time to wait for the channel to enter stasis, after which the promise will be rejected
+	 * with a {@link TimeoutException}
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state, or rejected
+	 * with a {@link TimeoutException}
+	 */
+	public CompletableFuture<CallState> registerApplicationStartHandler(String id, Duration timeout) {
+		CompletableFuture<CallState> promise = registerApplicationStartHandler(id);
+		Timers.schedule(
+				() -> promise.completeExceptionally(
+						new TimeoutException("Channel " + id + " did not enter stasis before timeout expired")),
+				timeout.toMillis());
+		return promise;
 	}
 
 	/**

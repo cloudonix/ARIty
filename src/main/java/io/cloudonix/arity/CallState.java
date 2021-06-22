@@ -92,6 +92,7 @@ public class CallState {
 		this(callStasisStart.getChannel(), arity);
 	}
 
+	@SuppressWarnings("deprecation")
 	public CallState(Channel chan, ARIty arity) {
 		this.ari = arity.getAri();
 		this.arity = arity;
@@ -220,6 +221,9 @@ public class CallState {
 	public Set<Entry<String, String>> allVariables() {
 		return Collections.unmodifiableSet(variables.entrySet());
 	}
+	
+	@SuppressWarnings("serial")
+	private class VariableNotFound extends Exception {}
 
 	class GetChannelVar extends Operation {
 		private String name;
@@ -232,10 +236,12 @@ public class CallState {
 
 		@Override
 		public CompletableFuture<GetChannelVar> run() {
-			return this.<Variable>retryOperation(cb -> channels().getChannelVar(getChannelId(), name).execute(cb))
+			return Operation.<Variable>retry(cb -> channels().getChannelVar(getChannelId(), name).execute(cb), this::mapExceptions)
 					.handle((var,e) -> {
-						if (Objects.nonNull(e))
-							log.info(logmarker, "getVar: " + e);
+						if (e instanceof VariableNotFound)
+							log.info(logmarker, "readVariable({}): not found", name);
+						else if (e != null)
+							log.info(logmarker, "readVariable({}): unexpected error", e, name);
 						else
 							value = var.getValue();
 						return this;
@@ -246,10 +252,10 @@ public class CallState {
 			return value;
 		}
 
-		@Override
-		protected Exception tryIdentifyError(Throwable ariError) {
+		private Exception mapExceptions(Throwable ariError) {
 			switch (ariError.getMessage()) {
 			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
+			case "Provided variable was not found": return new VariableNotFound();
 			default:
 			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
 			}
@@ -272,8 +278,9 @@ public class CallState {
 		return new GetChannelVar(channelId, arity, name).run()
 			.thenApply(GetChannelVar::getValue)
 			.thenApply(val -> { // cache the variable value locally for next time
-				if (Objects.nonNull(val))
+				if (val != null)
 					variables.put(name, val); // the map can't store nulls
+				log.debug("Read channel variable {}: {}", name, val);
 				return val;
 			});
 	}

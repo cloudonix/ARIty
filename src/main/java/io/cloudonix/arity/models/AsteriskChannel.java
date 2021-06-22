@@ -1,8 +1,5 @@
 package io.cloudonix.arity.models;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
@@ -13,6 +10,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
 
 public class AsteriskChannel {
@@ -38,18 +36,36 @@ public class AsteriskChannel {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	public AsteriskChannel(ARIty arity, Channel channel) {
 		this.arity = arity;
 		this.channel = channel;
 		this.api = arity.getAri().channels();
 	}
-
+	
+	/**
+	 * Hangup the channel with a "normal" reason
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
 	public CompletableFuture<AsteriskChannel> hangup() {
 		return hangup(HangupReasons.NORMAL);
 	}
 
-	private CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
-		return arity.channels().hangup(channel.getId(), reason).thenApply(v -> this);
+	/**
+	 * Hangup the channel
+	 * @param reason reason to set as the hangup reason
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
+	public CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
+		return Operation.<Void>retry(cb -> api.hangup(channel.getId()).setReason(reason.reason).execute(cb), this::mapExceptions).thenApply(v -> this);
+	}
+	
+	/**
+	 * Alias to {@link #hangup()}
+	 * @return a promise that resolve to itself or rejects if the API encountered errors
+	 */
+	public CompletableFuture<AsteriskChannel> delete() {
+		return hangup(HangupReasons.NORMAL);
 	}
 
 	public String getId() {
@@ -139,38 +155,43 @@ public class AsteriskChannel {
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
-	/* External Media */
-	
-	public CompletableFuture<Void> externalMediaAudioSocket(String uuid, InetSocketAddress serverAddr) {
-		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
-		return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
-				.setChannelId(getId()).setData(uuid).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
-				.thenAccept(v -> {});
-	}
-
-	public CompletableFuture<DatagramChannel> externalMediaRTP() {
-		return externalMediaRTP("");
-	}
-	
-	public CompletableFuture<DatagramChannel> externalMediaRTP(String host) {
-		InetSocketAddress addr = new InetSocketAddress(host, 0);
-		String uuid = UUID.randomUUID().toString();
-		try (DatagramChannel socket = DatagramChannel.open().bind(addr)) {
-			addr = ((InetSocketAddress)socket.getLocalAddress());
-			String sockaddr = addr.getAddress().getHostAddress() + ":" + addr.getPort(); 
-			return Operation.<Channel>retry(cb -> arity.getAri().channels().externalMedia(arity.getAppName(), sockaddr, "slin")
-					.setChannelId(getId()).setData(uuid).setEncapsulation("rtp").setTransport("udp").execute(cb))
-					.thenApply(v -> socket);
-		} catch (IOException e) {
-			return CompletableFuture.failedFuture(e);
-		}
-	}
-
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Channel not in Stasis application": return new io.cloudonix.arity.errors.ChannelInInvalidState(ariError);
 		}
 		return null;
+	}
+	
+	public interface Snoop {
+		public enum Spy { none, both, out, in };
+		public enum Whisper { none, both, out, in }
+	}
+
+	/**
+	 * Create a snoop channel for this channel, capturing its StasisStart event and returning the active snoop channel.
+	 * @return A promise that will resolve to the snoop channel when it has entered stasis 
+	 */
+	public CompletableFuture<AsteriskChannel> snoop(Snoop.Spy spy, Snoop.Whisper whisper) {
+		String snoopId = UUID.randomUUID().toString();
+		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(snoopId);
+		return Operation.<Channel>retry(cb -> api.snoopChannel(channel.getId(), arity.getAppName())
+				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), this::mapExceptions)
+				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, c))); // ignore new call state for now
+	}
+
+	public CompletableFuture<AsteriskChannel> startSilence() {
+		return Operation.<Void>retry(cb -> api.startSilence(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> stopSilence() {
+		return Operation.<Void>retry(cb -> api.stopSilence(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> answer() {
+		return Operation.<Void>retry(cb -> api.answer(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
 	}
 
 }

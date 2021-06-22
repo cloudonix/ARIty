@@ -3,6 +3,8 @@ package io.cloudonix.arity;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,6 +72,8 @@ public abstract class Operation {
 
 	public abstract CompletableFuture<? extends Operation> run();
 
+	private static ExecutorService opDispatch = Executors.newCachedThreadPool();
+	
 	/**
 	 * Convert an ari4java async operation (with onSuccess/onFailure callback) to a Java 8 {@link CompletableFuture}
 	 *
@@ -83,12 +87,12 @@ public abstract class Operation {
 
 			@Override
 			public void onSuccess(V result) {
-				CompletableFuture.runAsync(() -> cf.complete(result));
+				CompletableFuture.runAsync(() -> cf.complete(result), opDispatch);
 			}
 
 			@Override
 			public void onFailure(RestException e) {
-				CompletableFuture.runAsync(() -> cf.completeExceptionally(rewrapError("ARI operation failed: " + e, caller, e)));
+				CompletableFuture.runAsync(() -> cf.completeExceptionally(rewrapError("ARI operation failed: " + e, caller, e)), opDispatch);
 			}
 		};
 

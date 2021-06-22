@@ -1,5 +1,6 @@
 package io.cloudonix.arity.models;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -23,6 +24,7 @@ public class AsteriskBridge {
 	private Bridge bridge;
 	private ActionBridges api;
 
+	@SuppressWarnings("deprecation")
 	public AsteriskBridge(ARIty arity, Bridge bridge) {
 		this.arity = arity;
 		this.bridge = bridge;
@@ -123,6 +125,27 @@ public class AsteriskBridge {
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
 		}
 		return null;
+	}
+
+	public String getId() {
+		return bridge.getId();
+	}
+	
+	public String getName() {
+		return bridge.getName();
+	}
+
+	public CompletableFuture<Integer> getChannelCount() {
+		return reload().thenApply(v -> bridge.getChannels().size());
+	}
+	
+	public CompletableFuture<List<String>> getChannels() {
+		return reload().thenApply(v -> bridge.getChannels());
+	}
+	
+	private CompletableFuture<AsteriskBridge> reload() {
+		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
+				.thenApply(b -> { bridge = b; return this; });
 	}
 
 }
