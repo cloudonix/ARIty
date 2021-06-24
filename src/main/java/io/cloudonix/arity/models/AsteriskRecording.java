@@ -40,7 +40,7 @@ public class AsteriskRecording {
 
 	public static class Builder {
 		private String filename = UUID.randomUUID().toString();
-		private String format = "slin";
+		private String format = "sln";
 		private Boolean playBeep;
 		private Integer maxDuration;
 		private Integer maxSilence;
