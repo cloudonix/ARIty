@@ -147,5 +147,10 @@ public class AsteriskBridge {
 		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
 				.thenApply(b -> { bridge = b; return this; });
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
+	}
 
 }
