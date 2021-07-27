@@ -7,6 +7,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +84,14 @@ public class Play extends CancelableOperations {
 	 * @return
 	 */
 	public CompletableFuture<Play> run() {
-		String fullPath = uriScheme +":"+ playFileName;
+		String fullPath = Stream.of(playFileName.split(",")).map(f -> {
+			if (f.matches("^https?://.*")) // HTTP URL
+				return "sound:" + f; // play as sound
+			if (f.contains(":")) // URI with scheme
+				return f; // play as is
+			// otherwise, prefix with our set scheme
+			return uriScheme + ":" + f;
+		}).collect(Collectors.joining(","));
 		logger.debug("Play::run ({})", fullPath);
 		return startPlay(fullPath)
 				.thenCompose(v -> {
