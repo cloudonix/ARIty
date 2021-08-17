@@ -23,21 +23,27 @@ import io.cloudonix.arity.RecordingData;
 
 public class AsteriskRecording {
 	
-	private ARIty arity;
 	private LiveRecording rec;
 	private ActionRecordings api;
 	private RecordingData storedRecording;
 	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
 	private volatile boolean wasCancelled = false, wasStopped = false;
 	private EventHandler<RecordingFinished> waitHandler;
+	private CompletableFuture<Void> recordingCompletion;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
-		this.arity = arity;
 		this.rec = rec;
 		this.api = arity.getAri().recordings();
 		this.storedRecording = new RecordingData(arity, rec.getName());
 		storedRecording.setLiveRecording(rec);
 		log.debug("recording {}", rec.getName());
+		waitHandler = arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
+			if (!e.getRecording().getName().equals(rec.getName())) return;
+			se.unregister();
+			storedRecording.setLiveRecording(this.rec = e.getRecording());
+			log.debug("Recording finished: {}", this);
+			recordingCompletion.complete(null);
+		});
 	}
 
 	public static class Builder {
@@ -175,15 +181,7 @@ public class AsteriskRecording {
 	}
 	
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
-		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
-		waitHandler = arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
-			if (!e.getRecording().getName().equals(rec.getName())) return;
-			se.unregister();
-			storedRecording.setLiveRecording(rec = e.getRecording());
-			log.debug("Recording finished: {}", this);
-			waitForDone.complete(this);
-		});
-		return waitForDone;
+		return recordingCompletion.thenApply(v -> this);
 	}
 	
 	public CompletableFuture<AsteriskRecording> cancel() {
@@ -206,16 +204,11 @@ public class AsteriskRecording {
 	}
 	
 	public CompletableFuture<AsteriskRecording> stop(boolean waitUntilEnd) {
-		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
-		if (waitUntilEnd)
-			waitUntilEnd().thenAccept(waitForDone::complete);
-		else {
-			waitForDone.complete(this);
+		if (!waitUntilEnd)
 			waitHandler.unregister();
-		}
 		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
 				.thenRun(() -> wasStopped = true)
-				.thenCompose(v -> waitForDone);
+				.thenCompose(v -> waitUntilEnd ? waitUntilEnd() : CompletableFuture.completedFuture(this));
 	}
 
 	public RecordingData getRecording() {
