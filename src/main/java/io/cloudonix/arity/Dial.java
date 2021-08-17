@@ -273,7 +273,7 @@ public class Dial extends CancelableOperations {
 	 * @return itself for fluent calls
 	 */
 	public Dial withBridge(AsteriskBridge bridge) {
-		this.earlyBridge = bridge;
+		this.earlyBridge = Objects.requireNonNull(bridge, "Early dial bridge must not be null! If you don't need an early bridge, don't call this method.");
 		return this;
 	}
 
@@ -290,7 +290,7 @@ public class Dial extends CancelableOperations {
 		channelStateChangedSe = getArity().addEventHandler(ChannelStateChange.class, endpointChannelId, this::handleChannelStateChanged);
 		getArity().addEventHandler(ch.loway.oss.ari4java.generated.models.Dial.class, endpointChannelId, this::handleDialEvent);
 
-		if (Objects.nonNull(earlyBridge))
+		if (earlyBridge != null)
 			return runEarlyBridingWorkflow();
 
 		return this.<Channel>retryOperation(cb -> genOriginateChannelOperation().execute(cb))

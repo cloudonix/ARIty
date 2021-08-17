@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.StoredRecording;
 
@@ -15,6 +18,8 @@ import ch.loway.oss.ari4java.generated.models.StoredRecording;
  * @author odeda
  */
 public class RecordingData {
+	
+	private static final Logger log = LoggerFactory.getLogger(RecordingData.class);
 	
 	private String recordingName;
 	private LiveRecording recording;
@@ -38,8 +43,10 @@ public class RecordingData {
 			if (recording.getDuration() > 0)
 				return;
 		} catch (UnsupportedOperationException e) {
+			log.error("Error getting live recording duration", e);
 			return; // don't try to update duration if its not supported
 		} catch (NullPointerException e) { // could be caused if server didn't send duration, calc here anyawy
+			log.warn("Server provided no duration value for live recording");
 		}
 		// update duration if it wasn't sent correctly
 		recording.setDuration((int) Duration.between(startingTime,  Instant.now()).getSeconds());
@@ -81,7 +88,8 @@ public class RecordingData {
 			return hasRecording() ? recording.getDuration().intValue() : 
 				(int)Duration.between(startingTime,  Instant.now()).getSeconds();
 		} catch (NullPointerException /* duration not set */ | UnsupportedOperationException /* wrong version */ e) {
-			return 0;
+			log.error("Error resolving recording duration", e);
+			return -1;
 		}
 	}
 }
