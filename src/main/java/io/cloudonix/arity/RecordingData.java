@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +76,15 @@ public class RecordingData {
 				.thenApply(s -> stored = s);
 	}
 
+	AtomicReference<byte[]> recordingCache = new AtomicReference<>();
 	public CompletableFuture<byte[]> getStoredRecordingData() {
-		return Operation.retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb));
+		if (recordingCache.get() != null)
+			return CompletableFuture.completedFuture(recordingCache.get());
+		return Operation.<byte[]>retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb))
+				.whenComplete((data, t) -> {
+					if (data != null && data.length > 0)
+						recordingCache.compareAndExchange(null, data);
+				});
 	}
 	
 	public CompletableFuture<Void> deleteRecording() {
