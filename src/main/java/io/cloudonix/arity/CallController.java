@@ -214,7 +214,10 @@ public abstract class CallController {
 	 * @return Dial operation to be configured further and run
 	 */
 	public Dial dial(String callerId, String destination) {
-		return new Dial(this, callerId, destination).withBridge(getBoundBridge());
+		Dial dial = new Dial(this, callerId, destination);
+		if (getBoundBridge() != null)
+			dial.withBridge(getBoundBridge());
+		return dial;
 	}
 
 	/**
