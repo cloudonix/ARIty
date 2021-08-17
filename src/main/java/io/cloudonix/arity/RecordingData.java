@@ -81,7 +81,7 @@ public class RecordingData {
 			return hasRecording() ? recording.getDuration().intValue() : 
 				(int)Duration.between(startingTime,  Instant.now()).getSeconds();
 		} catch (NullPointerException /* duration not set */ | UnsupportedOperationException /* wrong version */ e) {
-			return 0;
+			return -1;
 		}
 	}
 }
