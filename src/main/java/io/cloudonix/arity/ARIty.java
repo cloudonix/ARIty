@@ -301,7 +301,8 @@ public class ARIty implements AriCallback<Message> {
 		}
 
 		String channelId = getEventChannelId(event);
-		logger.debug("Received event " + event.getClass().getSimpleName() + " on channel " + channelId);
+		logger.debug("Received event {} {}", event.getClass().getSimpleName(), channelId == null ? "" : (
+				"on channel " + channelId));
 		if (channelId != null)
 			handleChannelEvents(event, channelId);
 		// dispatch global event handlers
