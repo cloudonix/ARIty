@@ -22,13 +22,14 @@ import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.RecordingData;
 
 public class AsteriskRecording {
-
+	
 	private ARIty arity;
 	private LiveRecording rec;
 	private ActionRecordings api;
 	private RecordingData storedRecording;
 	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
 	private volatile boolean wasCancelled = false, wasStopped = false;
+	private EventHandler<RecordingFinished> waitHandler;
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.arity = arity;
@@ -36,6 +37,7 @@ public class AsteriskRecording {
 		this.api = arity.getAri().recordings();
 		this.storedRecording = new RecordingData(arity, rec.getName());
 		storedRecording.setLiveRecording(rec);
+		log.debug("recording {}", rec.getName());
 	}
 
 	public static class Builder {
@@ -174,7 +176,7 @@ public class AsteriskRecording {
 	
 	public CompletableFuture<AsteriskRecording> waitUntilEnd() {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
-		arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
+		waitHandler = arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
 			storedRecording.setLiveRecording(rec = e.getRecording());
@@ -207,8 +209,10 @@ public class AsteriskRecording {
 		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
 		if (waitUntilEnd)
 			waitUntilEnd().thenAccept(waitForDone::complete);
-		else
+		else {
 			waitForDone.complete(this);
+			waitHandler.unregister();
+		}
 		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
 				.thenRun(() -> wasStopped = true)
 				.thenCompose(v -> waitForDone);
