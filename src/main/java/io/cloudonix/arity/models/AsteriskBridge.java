@@ -32,7 +32,7 @@ public class AsteriskBridge {
 	}
 	
 	public CompletableFuture<Void> destroy() {
-		return Operation.retry(cb -> api.destroy(bridge.getId()).execute(cb));
+		return Operation.retry(cb -> api.destroy(bridge.getId()).execute(cb), this::mapExceptions);
 	}
 	
 	/* Channel Management */
