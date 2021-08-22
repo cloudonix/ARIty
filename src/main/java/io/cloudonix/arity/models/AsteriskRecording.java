@@ -29,7 +29,7 @@ public class AsteriskRecording {
 	private static Logger log = LoggerFactory.getLogger(AsteriskRecording.class);
 	private volatile boolean wasCancelled = false, wasStopped = false;
 	private EventHandler<RecordingFinished> waitHandler;
-	private CompletableFuture<Void> recordingCompletion;
+	private CompletableFuture<Void> recordingCompletion = new CompletableFuture<>();
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.rec = rec;
