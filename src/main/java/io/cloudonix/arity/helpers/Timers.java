@@ -14,7 +14,7 @@ public class Timers {
 			public void run() {
 				action.run();
 			}
-		}, null);
+		}, delay);
 	}
 
 
