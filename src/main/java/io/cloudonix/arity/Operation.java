@@ -6,6 +6,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -183,20 +184,40 @@ public abstract class Operation {
 	private static <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
 			Function<Throwable, Exception> exceptionMapper) {
 		StackTraceElement[] caller = getCallingStack();
+		return retryOperationImpl(op, triesLeft, exceptionMapper, caller);
+	}
+	
+	private static <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
+			Function<Throwable, Exception> exceptionMapper, StackTraceElement[] caller) {
+		Supplier<CompletableFuture<V>> retrier = () -> Futures.delay(RETRY_TIME).apply(null)
+				.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper, caller));
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t))
 				return CompletableFuture.completedFuture(v);
+			RestException restCause = findRestException(t);
+			if (restCause.getCode() >= 500) {// Asterisk error - no need to check mapping, we should immediately try again
+				LoggerFactory.getLogger(Operation.class).warn("ARI {}, retrying: {}", restCause, restCause.getResponse());
+				return retrier.get();
+			}
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0)
 				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
 			if (t.getMessage().toLowerCase().contains("timeout"))
-				return Futures.delay(RETRY_TIME).apply(null)
-						.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper));
+				return retrier.get();
 			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);
 		})
 		.thenCompose(x -> x);
+	}
+	
+	private static RestException findRestException(Throwable t) {
+		while (t != null) {
+			if (t instanceof RestException)
+				return (RestException) t;
+			t = t.getCause();
+		}
+		return null;
 	}
 
 	protected ActionChannels channels() {
