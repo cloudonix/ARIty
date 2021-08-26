@@ -36,8 +36,8 @@ public abstract class Operation {
 		void accept(AriCallback<T> t) throws RestException;
 	}
 
-	private static final long RETRY_TIME = 1000;
-	private static final int RETRIES = 5;
+	private static final long RETRY_TIME = 100;
+	private static final int RETRIES = 3;
 	private String channelId;
 	private ARIty arity;
 
