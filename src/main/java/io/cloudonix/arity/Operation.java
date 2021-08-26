@@ -194,16 +194,16 @@ public abstract class Operation {
 		return toFuture(op).handle((v,t) -> {
 			if (Objects.isNull(t))
 				return CompletableFuture.completedFuture(v);
-			RestException restCause = findRestException(t);
-			if (restCause.getCode() >= 500) {// Asterisk error - no need to check mapping, we should immediately try again
-				LoggerFactory.getLogger(Operation.class).warn("ARI {}, retrying: {}", restCause, restCause.getResponse());
-				return retrier.get();
-			}
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
 			if (Objects.nonNull(recognizedFailure))
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0)
 				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
+			RestException restCause = findRestException(t);
+			if (restCause.getCode() >= 500) {// Asterisk error - no need to check mapping, we should immediately try again
+				LoggerFactory.getLogger(Operation.class).warn("ARI {}, retrying: {}", restCause, restCause.getResponse());
+				return retrier.get();
+			}
 			if (t.getMessage().toLowerCase().contains("timeout"))
 				return retrier.get();
 			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);

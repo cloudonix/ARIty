@@ -254,6 +254,7 @@ public class CallState {
 
 		private Exception mapExceptions(Throwable ariError) {
 			switch (ariError.getMessage()) {
+			case "Unable to read provided function": // SIP_HEADER() might cause this to be returned when the channel is down or header is not found
 			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
 			case "Provided variable was not found": return new VariableNotFound();
 			default:
