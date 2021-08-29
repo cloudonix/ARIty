@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.models.AsteriskBridge;
 import io.cloudonix.arity.models.AsteriskChannel;
 
@@ -127,6 +128,8 @@ public class Play extends CancelableOperations {
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
+			if (e instanceof ChannelNotFoundException)
+				throw new CompletionException(e);
 			logger.warn("Failed in playing playback", e);
 			throw new CompletionException(new PlaybackException(path, e));
 		});

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
 import ch.loway.oss.ari4java.generated.models.Bridge;
@@ -13,6 +15,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
+import io.cloudonix.arity.Bridges.BridgeType;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
@@ -35,7 +38,37 @@ public class AsteriskBridge {
 		return Operation.retry(cb -> api.destroy(bridge.getId()).execute(cb), this::mapExceptions);
 	}
 	
+	/* getters */
+	
+	public String getId() {
+		return bridge.getId();
+	}
+	
+	public String getName() {
+		return bridge.getName();
+	}
+	
+	private CompletableFuture<AsteriskBridge> reload() {
+		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
+				.thenApply(b -> { bridge = b; return this; });
+	}
+	
+	public CompletableFuture<AsteriskBridge> update(BridgeType... types) {
+		var bridgeTypes = BridgeType.merge(types, BridgeType.mixing); // make sure that types includes either "mixing" or "holding"
+		var bridgeType = Stream.of(bridgeTypes).map(Object::toString).collect(Collectors.joining(","));
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.create_or_update_with_id(bridge.getId())
+				.setType(bridgeType).execute(cb)).thenApply(b -> this);
+	}
+	
 	/* Channel Management */
+	
+	public CompletableFuture<Integer> getChannelCount() {
+		return reload().thenApply(v -> bridge.getChannels().size());
+	}
+	
+	public CompletableFuture<List<String>> getChannels() {
+		return reload().thenApply(v -> bridge.getChannels());
+	}
 	
 	public CompletableFuture<Void> addChannel(AsteriskChannel channel) {
 		return addChannel(channel.getId());
@@ -100,7 +133,6 @@ public class AsteriskBridge {
 				}))
 				.thenCompose(v -> waitForRemoved);
 	}
-
 	
 	/* Recording */
 	
@@ -117,6 +149,13 @@ public class AsteriskBridge {
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
+	/* helpers */
+	
+	@Override
+	public String toString() {
+		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
+	}
+	
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(ariError);
@@ -126,31 +165,4 @@ public class AsteriskBridge {
 		}
 		return null;
 	}
-
-	public String getId() {
-		return bridge.getId();
-	}
-	
-	public String getName() {
-		return bridge.getName();
-	}
-
-	public CompletableFuture<Integer> getChannelCount() {
-		return reload().thenApply(v -> bridge.getChannels().size());
-	}
-	
-	public CompletableFuture<List<String>> getChannels() {
-		return reload().thenApply(v -> bridge.getChannels());
-	}
-	
-	private CompletableFuture<AsteriskBridge> reload() {
-		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
-				.thenApply(b -> { bridge = b; return this; });
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
-	}
-
 }
