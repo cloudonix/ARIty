@@ -35,7 +35,30 @@ public class AsteriskBridge {
 		return Operation.retry(cb -> api.destroy(bridge.getId()).execute(cb), this::mapExceptions);
 	}
 	
+	/* getters */
+	
+	public String getId() {
+		return bridge.getId();
+	}
+	
+	public String getName() {
+		return bridge.getName();
+	}
+	
+	private CompletableFuture<AsteriskBridge> reload() {
+		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
+				.thenApply(b -> { bridge = b; return this; });
+	}
+	
 	/* Channel Management */
+	
+	public CompletableFuture<Integer> getChannelCount() {
+		return reload().thenApply(v -> bridge.getChannels().size());
+	}
+	
+	public CompletableFuture<List<String>> getChannels() {
+		return reload().thenApply(v -> bridge.getChannels());
+	}
 	
 	public CompletableFuture<Void> addChannel(AsteriskChannel channel) {
 		return addChannel(channel.getId());
@@ -100,7 +123,6 @@ public class AsteriskBridge {
 				}))
 				.thenCompose(v -> waitForRemoved);
 	}
-
 	
 	/* Recording */
 	
@@ -117,6 +139,13 @@ public class AsteriskBridge {
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
+	/* helpers */
+	
+	@Override
+	public String toString() {
+		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
+	}
+	
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(ariError);
@@ -126,31 +155,4 @@ public class AsteriskBridge {
 		}
 		return null;
 	}
-
-	public String getId() {
-		return bridge.getId();
-	}
-	
-	public String getName() {
-		return bridge.getName();
-	}
-
-	public CompletableFuture<Integer> getChannelCount() {
-		return reload().thenApply(v -> bridge.getChannels().size());
-	}
-	
-	public CompletableFuture<List<String>> getChannels() {
-		return reload().thenApply(v -> bridge.getChannels());
-	}
-	
-	private CompletableFuture<AsteriskBridge> reload() {
-		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
-				.thenApply(b -> { bridge = b; return this; });
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
-	}
-
 }

@@ -60,7 +60,7 @@ public class Bridges {
 		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb))
 				.thenApply(this::get);
 	}
-
+	
 	public AsteriskBridge get(ch.loway.oss.ari4java.generated.models.Bridge bridge) {
 		return new AsteriskBridge(arity, bridge);
 	}
