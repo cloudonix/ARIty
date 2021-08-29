@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +38,11 @@ public class Bridges {
 	public Bridges(ARIty arity) {
 		this.arity = arity;
 		this.api = arity.getAri().bridges();
+	}
+	
+	public CompletableFuture<List<AsteriskBridge>> list() {
+		return Operation.<List<ch.loway.oss.ari4java.generated.models.Bridge>>retry(cb -> api.list().execute(cb))
+				.thenApply(l -> l.stream().map(b -> new AsteriskBridge(arity, b)).collect(Collectors.toList()));
 	}
 
 	public CompletableFuture<AsteriskBridge> create(BridgeType... types) {
