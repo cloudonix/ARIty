@@ -60,6 +60,10 @@ public class AsteriskBridge {
 				.setType(bridgeType).execute(cb)).thenApply(b -> this);
 	}
 	
+	public CompletableFuture<Boolean> isActive() {
+		return reload().thenApply(v -> true).exceptionally(Futures.on(BridgeNotFoundException.class, e -> false));
+	}
+	
 	/* Channel Management */
 	
 	public CompletableFuture<Integer> getChannelCount() {
