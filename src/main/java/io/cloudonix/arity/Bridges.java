@@ -2,6 +2,7 @@ package io.cloudonix.arity;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -9,6 +10,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
+import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
+import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
+import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 import io.cloudonix.arity.models.AsteriskBridge;
 
 public class Bridges {
@@ -35,6 +39,7 @@ public class Bridges {
 	private ARIty arity;
 	private ActionBridges api;
 
+	@SuppressWarnings("deprecation")
 	public Bridges(ARIty arity) {
 		this.arity = arity;
 		this.api = arity.getAri().bridges();
@@ -62,17 +67,32 @@ public class Bridges {
 				.thenApply(b -> new AsteriskBridge(arity, b));
 	}
 	
+	/**
+	 * Get an existing bridge
+	 * @param bridgeId ID of bridge to get
+	 * @return a promise that will resolve with an existing instance of a bridge or reject if the bridge does not exist
+	 */
 	public CompletableFuture<AsteriskBridge> get(String bridgeId) {
-		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb))
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb), this::mapExceptions)
 				.thenApply(this::get);
 	}
 	
 	public AsteriskBridge get(ch.loway.oss.ari4java.generated.models.Bridge bridge) {
-		return new AsteriskBridge(arity, bridge);
+		return new AsteriskBridge(arity, Objects.requireNonNull(bridge));
 	}
 
 	public CompletableFuture<AsteriskBridge> get(Bridge bridge) {
 		return get(bridge.getId());
+	}
+
+	private Exception mapExceptions(Throwable ariError) {
+		switch (ariError.getMessage()) {
+		case "Bridge not found": return new BridgeNotFoundException(ariError);
+		case "Channel not found": return new ChannelNotInBridgeException(ariError);
+		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
+		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
+		}
+		return null;
 	}
 
 }

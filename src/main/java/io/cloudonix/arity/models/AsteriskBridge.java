@@ -25,23 +25,25 @@ public class AsteriskBridge {
 
 	private ARIty arity;
 	private Bridge bridge;
+	private String bridgeId;
 	private ActionBridges api;
 
 	@SuppressWarnings("deprecation")
 	public AsteriskBridge(ARIty arity, Bridge bridge) {
 		this.arity = arity;
 		this.bridge = bridge;
+		bridgeId = bridge.getId();
 		this.api = arity.getAri().bridges();
 	}
 	
 	public CompletableFuture<Void> destroy() {
-		return Operation.retry(cb -> api.destroy(bridge.getId()).execute(cb), this::mapExceptions);
+		return Operation.retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions);
 	}
 	
 	/* getters */
 	
 	public String getId() {
-		return bridge.getId();
+		return bridgeId;
 	}
 	
 	public String getName() {
@@ -49,14 +51,14 @@ public class AsteriskBridge {
 	}
 	
 	private CompletableFuture<AsteriskBridge> reload() {
-		return Operation.<Bridge>retry(cb -> api.get(bridge.getId()).execute(cb), this::mapExceptions)
+		return Operation.<Bridge>retry(cb -> api.get(bridgeId).execute(cb), this::mapExceptions)
 				.thenApply(b -> { bridge = b; return this; });
 	}
 	
 	public CompletableFuture<AsteriskBridge> update(BridgeType... types) {
 		var bridgeTypes = BridgeType.merge(types, BridgeType.mixing); // make sure that types includes either "mixing" or "holding"
 		var bridgeType = Stream.of(bridgeTypes).map(Object::toString).collect(Collectors.joining(","));
-		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.create_or_update_with_id(bridge.getId())
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.create_or_update_with_id(bridgeId)
 				.setType(bridgeType).execute(cb)).thenApply(b -> this);
 	}
 	
@@ -100,7 +102,7 @@ public class AsteriskBridge {
 			arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, e -> waitForAdded.complete(null));
 		else
 			waitForAdded.complete(null);
-		return Operation.<Void>retry(cb -> api.addChannel(bridge.getId(), channelId).setRole("member").execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.addChannel(bridgeId, channelId).setRole("member").execute(cb), this::mapExceptions)
 				.thenCompose(v -> waitForAdded);
 	}
 	
@@ -130,7 +132,7 @@ public class AsteriskBridge {
 			arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, e -> waitForRemoved.complete(null));
 		else
 			waitForRemoved.complete(null);
-		return Operation.<Void>retry(cb -> api.removeChannel(bridge.getId(), channelId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), this::mapExceptions)
 				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> {
 					waitForRemoved.complete(null);
 					return null;
@@ -149,7 +151,7 @@ public class AsteriskBridge {
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
-		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(bridge.getId(), null, null), arity).execute(cb), this::mapExceptions)
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(bridgeId, null, null), arity).execute(cb), this::mapExceptions)
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
@@ -157,7 +159,7 @@ public class AsteriskBridge {
 	
 	@Override
 	public String toString() {
-		return String.format("ARI/Bridges:%s(%s)", bridge.getId(), bridge.getName());
+		return String.format("ARI/Bridges:%s(%s)", bridgeId, bridge.getName());
 	}
 	
 	private Exception mapExceptions(Throwable ariError) {
