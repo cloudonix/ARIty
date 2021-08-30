@@ -58,7 +58,7 @@ public class AsteriskBridge {
 	public CompletableFuture<AsteriskBridge> update(BridgeType... types) {
 		var bridgeTypes = BridgeType.merge(types, BridgeType.mixing); // make sure that types includes either "mixing" or "holding"
 		var bridgeType = Stream.of(bridgeTypes).map(Object::toString).collect(Collectors.joining(","));
-		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.create_or_update_with_id(bridgeId)
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.createWithId(bridgeId)
 				.setType(bridgeType).execute(cb)).thenApply(b -> this);
 	}
 	
