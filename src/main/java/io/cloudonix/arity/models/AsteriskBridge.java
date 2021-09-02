@@ -165,6 +165,7 @@ public class AsteriskBridge {
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(ariError);
+		case "Bridge not in Stasis application": return new BridgeNotFoundException(ariError);
 		case "Channel not found": return new ChannelNotInBridgeException(ariError);
 		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
