@@ -43,7 +43,7 @@ public class Channels {
 	
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, 
 			LocalChannelOptions... options) {
-		var addr = String.format("Local/{S}@{S}", name, context);
+		var addr = String.format("Local/%1$s@%2$s", name, context);
 		if (options.length > 0)
 			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
 		return create(addr, channelId);
