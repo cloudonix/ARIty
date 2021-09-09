@@ -38,7 +38,7 @@ public class Channels {
 	}
 	
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
-		return createLocal(name, channelId, options);
+		return createLocal(name, "default", channelId, options);
 	}
 	
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, 
