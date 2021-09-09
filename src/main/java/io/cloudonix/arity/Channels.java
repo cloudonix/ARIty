@@ -2,6 +2,8 @@ package io.cloudonix.arity;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
@@ -19,6 +21,32 @@ public class Channels {
 	public Channels(ARIty arity) {
 		this.arity = arity;
 		this.api = arity.getAri().channels();
+	}
+	
+	public static enum LocalChannelOptions {
+		/** Prevent Asterisk from optimizing the local channel away */
+		NoRelease("n"),
+		/** Enable jitter buffer on the application side of the local channel */
+		AppJitterBuffer("j"),
+		/** Forward the MoH request to the destination native channel instead of playing to the local channel */
+		ForwardMusicOnHold("m");
+		
+		String flag;
+		private LocalChannelOptions(String flag) {
+			this.flag = flag;
+		}
+	}
+	
+	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
+		return createLocal(name, channelId, options);
+	}
+	
+	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, 
+			LocalChannelOptions... options) {
+		var addr = String.format("Local/{S}@{S}", name, context);
+		if (options.length > 0)
+			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
+		return create(addr, channelId);
 	}
 
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId) {
