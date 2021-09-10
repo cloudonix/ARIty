@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.net.InetSocketAddress;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,6 +38,10 @@ public class Channels {
 		}
 	}
 	
+	public CompletableFuture<AsteriskChannel> createLocal(String name, LocalChannelOptions... options) {
+		return createLocal(name, "default", UUID.randomUUID().toString(), options);
+	}
+	
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
 		return createLocal(name, "default", channelId, options);
 	}
@@ -46,13 +51,17 @@ public class Channels {
 		var addr = String.format("Local/%1$s@%2$s", name, context);
 		if (options.length > 0)
 			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
-		return create(addr, channelId);
+		return create(addr, channelId, UUID.randomUUID().toString());
 	}
 
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId) {
+		return create(endpoint, channelId, null);
+	}
+	
+	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId, String otherChannelId) {
 		return Operation.<Channel>retry(cb -> api.create(endpoint, arity.getAppName())
-				.setAppArgs("").setChannelId(channelId).execute(cb))
-				.thenApply(c -> new AsteriskChannel(arity, c));
+				.setAppArgs("").setChannelId(channelId).setOtherChannelId(otherChannelId).execute(cb))
+				.thenApply(c -> new AsteriskChannel(arity, c, otherChannelId));
 	}
 
 	public CompletableFuture<Void> hangup(String channelId) {
