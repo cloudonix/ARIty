@@ -45,13 +45,18 @@ public class Channels {
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
 		return createLocal(name, "default", channelId, options);
 	}
-	
+
 	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, 
+			LocalChannelOptions... options) {
+		return createLocal(name, context, channelId, UUID.randomUUID().toString(), options);
+	}
+	
+	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, String otherChannelId,
 			LocalChannelOptions... options) {
 		var addr = String.format("Local/%1$s@%2$s", name, context);
 		if (options.length > 0)
 			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
-		return create(addr, channelId, UUID.randomUUID().toString());
+		return create(addr, channelId, otherChannelId);
 	}
 
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId) {
