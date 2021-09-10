@@ -18,6 +18,7 @@ public class AsteriskChannel {
 	private ARIty arity;
 	private Channel channel;
 	private ActionChannels api;
+	private String localOtherId;
 
 	public enum HangupReasons {
 		NORMAL("normal"),
@@ -36,10 +37,15 @@ public class AsteriskChannel {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	public AsteriskChannel(ARIty arity, Channel channel) {
+		this(arity, channel, null);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public AsteriskChannel(ARIty arity, Channel channel, String localOtherId) {
 		this.arity = arity;
 		this.channel = channel;
+		this.localOtherId = localOtherId;
 		this.api = arity.getAri().channels();
 	}
 	
@@ -70,6 +76,19 @@ public class AsteriskChannel {
 
 	public String getId() {
 		return channel.getId();
+	}
+	
+	/**
+	 * For a local channel, return the channel ID for "the other side" of the local channel
+	 * @return The channel ID for the other side of a local channel, if the channel is a Local channel where an "other channe"
+	 *   ID was specified, null otherwise;
+	 */
+	public String getOtherId() {
+		return localOtherId;
+	}
+	
+	public boolean isLocal() {
+		return channel.getName().startsWith("Local/");
 	}
 
 	/**
