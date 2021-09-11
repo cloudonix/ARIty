@@ -38,22 +38,61 @@ public class Channels {
 		}
 	}
 	
-	public CompletableFuture<AsteriskChannel> createLocal(String name, LocalChannelOptions... options) {
-		return createLocal(name, "default", UUID.randomUUID().toString(), options);
+	/**
+	 * Create a local channel with the specified options.
+	 * The local channel will be created with random UUIDs for the channel IDs and will be registered to the current
+	 * application. The endpoint for the new channel will be set to "<code>Local/<ARIty application name>@default</code>"
+	 * @param options a set of local channel options
+	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
+	 */
+	public CompletableFuture<AsteriskChannel> createLocal(LocalChannelOptions... options) {
+		return createLocal(arity.getAppName(), "default", UUID.randomUUID().toString(), options);
 	}
 	
-	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
-		return createLocal(name, "default", channelId, options);
+	/**
+	 * Create a local channel with the specified ID and options.
+	 * The local channel will be created with the specified channel ID for the first channel and a random UUID for the
+	 * "other channel" id and will be registered to the current application.
+	 * The endpoint for the new channel will be set to "<code>Local/<ARIty application name>@default</code>"
+	 * @param channelId channel ID for the first channel - the one that will be put directly into stasis 
+	 * @param options a set of local channel options
+	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
+	 */
+	public CompletableFuture<AsteriskChannel> createLocal(String channelId, LocalChannelOptions... options) {
+		return createLocal(arity.getAppName(), "default", channelId, options);
 	}
 
-	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, 
+	/**
+	 * Create a local channel with the specified ID and options, connecting to the specified dial plan extension and context.
+	 * The local channel will be created with the specified channel ID for the first channel and a random UUID for the
+	 * "other channel" id and will be registered to the current application.
+	 * The endpoint for the new channel will be set according to the specified extenstion and context
+	 * @param extension dial plan extension for the new local channel set
+	 * @param context dial plan context for the new local channel set
+	 * @param channelId channel ID for the first channel - the one that will be put directly into stasis 
+	 * @param options a set of local channel options
+	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
+	 */
+	public CompletableFuture<AsteriskChannel> createLocal(String extension, String context, String channelId, 
 			LocalChannelOptions... options) {
-		return createLocal(name, context, channelId, UUID.randomUUID().toString(), options);
+		return createLocal(extension, context, channelId, UUID.randomUUID().toString(), options);
 	}
 	
-	public CompletableFuture<AsteriskChannel> createLocal(String name, String context, String channelId, String otherChannelId,
+	/**
+	 * Create a local channel with the specified IDs and options, connecting to the specified dial plan extension and context.
+	 * The local channel will be created with the specified channel IDs for both the first channel (that will be put into stasis)
+	 * and the "other channel", and will be registered to the current application.
+	 * The endpoint for the new channel will be set according to the specified extenstion and context
+	 * @param extension dial plan extension for the new local channel set
+	 * @param context dial plan context for the new local channel set
+	 * @param channelId channel ID for the first channel - the one that will be put directly into stasis
+	 * @param otherChannelId channel ID for the other channel, that will not go into stasis 
+	 * @param options a set of local channel options
+	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
+	 */
+	public CompletableFuture<AsteriskChannel> createLocal(String extension, String context, String channelId, String otherChannelId,
 			LocalChannelOptions... options) {
-		var addr = String.format("Local/%1$s@%2$s", name, context);
+		var addr = String.format("Local/%1$s@%2$s", extension, context);
 		if (options.length > 0)
 			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
 		return create(addr, channelId, otherChannelId);
@@ -64,8 +103,14 @@ public class Channels {
 	}
 	
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId, String otherChannelId) {
-		return Operation.<Channel>retry(cb -> api.create(endpoint, arity.getAppName())
-				.setAppArgs("").setChannelId(channelId).setOtherChannelId(otherChannelId).execute(cb))
+		return Operation.<Channel>retry(cb -> {
+			var req = api.create(endpoint, arity.getAppName()).setAppArgs("").setChannelId(channelId);
+			if (otherChannelId != null) {
+				req.setOtherChannelId(otherChannelId);
+				req.setOriginator(otherChannelId);
+			}
+			req.execute(cb);
+		})
 				.thenApply(c -> new AsteriskChannel(arity, c, otherChannelId));
 	}
 
