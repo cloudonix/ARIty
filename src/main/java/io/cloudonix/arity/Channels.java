@@ -3,7 +3,6 @@ package io.cloudonix.arity;
 import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
@@ -59,7 +58,7 @@ public class Channels {
 	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
 	 */
 	public CompletableFuture<AsteriskChannel> createLocal(String channelId, LocalChannelOptions... options) {
-		return createLocal(arity.getAppName(), "default", channelId, options);
+		return createLocal(arity.getAppName(), channelId, options);
 	}
 
 	/**
@@ -73,9 +72,8 @@ public class Channels {
 	 * @param options a set of local channel options
 	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
 	 */
-	public CompletableFuture<AsteriskChannel> createLocal(String extension, String context, String channelId, 
-			LocalChannelOptions... options) {
-		return createLocal(extension, context, channelId, UUID.randomUUID().toString(), options);
+	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, LocalChannelOptions... options) {
+		return createLocal(name, channelId, UUID.randomUUID().toString(), options);
 	}
 	
 	/**
@@ -90,12 +88,13 @@ public class Channels {
 	 * @param options a set of local channel options
 	 * @return a promise that will resolve with a new {@link AsteriskChannel} object that represents the new channel
 	 */
-	public CompletableFuture<AsteriskChannel> createLocal(String extension, String context, String channelId, String otherChannelId,
-			LocalChannelOptions... options) {
-		var addr = String.format("Local/%1$s@%2$s", extension, context);
-		if (options.length > 0)
-			addr += "/" + Stream.of(options).map(o -> o.flag).collect(Collectors.joining());
-		return create(addr, channelId, otherChannelId);
+	public CompletableFuture<AsteriskChannel> createLocal(String name, String channelId, String otherChannelId, LocalChannelOptions... options) {
+		var addr = new StringBuffer("Local/").append(name);
+		if (options.length > 0) {
+			addr.append('/');
+			Stream.of(options).map(o -> o.flag).forEach(f -> addr.append(f));
+		}
+		return create(addr.toString(), channelId, otherChannelId);
 	}
 
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId) {
