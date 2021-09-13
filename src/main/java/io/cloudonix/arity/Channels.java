@@ -111,6 +111,14 @@ public class Channels {
 				.thenApply(c -> new AsteriskChannel(arity, c, otherChannelId));
 	}
 
+	public CompletableFuture<Void> answer(String channelId) {
+		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), Channels::mapChannelExceptions);
+	}
+
+	public CompletableFuture<Void> dial(String channelId, String caller, int timeout) {
+		return Operation.<Void>retry(cb -> api.dial(channelId).setCaller(caller).setTimeout(timeout).execute(cb), Channels::mapChannelExceptions);
+	}
+
 	public CompletableFuture<Void> hangup(String channelId) {
 		return hangup(channelId, null);
 	}
