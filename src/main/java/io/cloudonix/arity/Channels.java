@@ -104,10 +104,8 @@ public class Channels {
 	public CompletableFuture<AsteriskChannel> create(String endpoint, String channelId, String otherChannelId) {
 		return Operation.<Channel>retry(cb -> {
 			var req = api.create(endpoint, arity.getAppName()).setAppArgs("").setChannelId(channelId);
-			if (otherChannelId != null) {
+			if (otherChannelId != null)
 				req.setOtherChannelId(otherChannelId);
-				req.setOriginator(otherChannelId);
-			}
 			req.execute(cb);
 		})
 				.thenApply(c -> new AsteriskChannel(arity, c, otherChannelId));
