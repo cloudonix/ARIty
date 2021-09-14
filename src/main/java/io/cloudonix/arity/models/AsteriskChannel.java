@@ -8,17 +8,20 @@ import java.util.function.Consumer;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
+import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
+import io.cloudonix.arity.CallState.States;
 
 public class AsteriskChannel {
 
 	private ARIty arity;
-	private Channel channel;
+	private CallState callState;
 	private ActionChannels api;
 	private String localOtherId;
+	private String channelId;
 
 	public enum HangupReasons {
 		NORMAL("normal"),
@@ -37,16 +40,17 @@ public class AsteriskChannel {
 		}
 	}
 
-	public AsteriskChannel(ARIty arity, Channel channel) {
-		this(arity, channel, null);
+	public AsteriskChannel(ARIty arity, CallState callState) {
+		this(arity, callState, null);
 	}
 	
 	@SuppressWarnings("deprecation")
-	public AsteriskChannel(ARIty arity, Channel channel, String localOtherId) {
+	public AsteriskChannel(ARIty arity, CallState callState, String localOtherId) {
 		this.arity = arity;
-		this.channel = channel;
+		this.callState = callState;
 		this.localOtherId = localOtherId;
 		this.api = arity.getAri().channels();
+		this.channelId = callState.getChannelId();
 	}
 	
 	/**
@@ -63,7 +67,7 @@ public class AsteriskChannel {
 	 * @return a promise that resolve to itself or rejects if the API encountered errors
 	 */
 	public CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
-		return Operation.<Void>retry(cb -> api.hangup(channel.getId()).setReason(reason.reason).execute(cb), this::mapExceptions).thenApply(v -> this);
+		return Operation.<Void>retry(cb -> api.hangup(channelId).setReason(reason.reason).execute(cb), this::mapExceptions).thenApply(v -> this);
 	}
 	
 	/**
@@ -75,7 +79,7 @@ public class AsteriskChannel {
 	}
 
 	public String getId() {
-		return channel.getId();
+		return channelId;
 	}
 	
 	/**
@@ -88,7 +92,7 @@ public class AsteriskChannel {
 	}
 	
 	public boolean isLocal() {
-		return channel.getName().startsWith("Local/");
+		return getChannelName().startsWith("Local/");
 	}
 
 	/**
@@ -96,7 +100,7 @@ public class AsteriskChannel {
 	 * @return the current dialplan extension or null if no dial plan is found
 	 */
 	public String getExtension() {
-		return (channel != null && channel.getDialplan() != null) ? channel.getDialplan().getExten() : null;
+		return (callState.getChannel().getDialplan() != null) ? callState.getChannel().getDialplan().getExten() : null;
 	}
 	
 	/**
@@ -104,7 +108,7 @@ public class AsteriskChannel {
 	 * @return channel account code or null if no channel is found
 	 */
 	public String getAccountCode() {
-		return channel != null ? channel.getAccountcode() : null;
+		return callState.getChannel().getAccountcode();
 	}
 	
 	/**
@@ -112,7 +116,7 @@ public class AsteriskChannel {
 	 * @return the caller id number or null if no channel is found
 	 */
 	public String getCallerIdNumber() {
-		return channel != null && channel.getCaller() != null ? channel.getCaller().getNumber() : null;
+		return callState.getChannel().getCaller() != null ? callState.getChannel().getCaller().getNumber() : null;
 	}
 
 	/**
@@ -120,7 +124,7 @@ public class AsteriskChannel {
 	 * @return the name of the channel or null if no channel is found
 	 */
 	public String getChannelName() {
-		return channel != null ? channel.getName() : null;
+		return callState.getChannel().getName();
 	}
 
 	/**
@@ -128,7 +132,7 @@ public class AsteriskChannel {
 	 * @return The channel state or null if no channel is found
 	 */
 	public String getChannelState() {
-		return channel != null ? channel.getState() : null;
+		return callState.getChannel().getState();
 	}
 
 	/**
@@ -136,7 +140,7 @@ public class AsteriskChannel {
 	 * @return the channel creation time or null if no channel is found
 	 */
 	public Date getChannelCreationTime() {
-		return channel != null ? channel.getCreationtime() : null;
+		return callState.getChannel().getCreationtime();
 	}
 
 	/**
@@ -144,7 +148,7 @@ public class AsteriskChannel {
 	 * @return contet name or null if no channel is found
 	 */
 	public String getDialplanContext() {
-		return channel != null && channel.getDialplan() != null ? channel.getDialplan().getContext() : null;
+		return callState.getChannel().getDialplan() != null ? callState.getChannel().getDialplan().getContext() : null;
 	}
 
 	/**
@@ -152,11 +156,39 @@ public class AsteriskChannel {
 	 * @return priority number
 	 */
 	public long getPriority() {
-		return channel != null && channel.getDialplan() != null ? channel.getDialplan().getPriority() : 0;
+		return callState.getChannel().getDialplan() != null ? callState.getChannel().getDialplan().getPriority() : 0;
 	}
 	
 	public String getLanguage() {
-		return channel != null ? channel.getLanguage() : null;
+		return callState.getChannel().getLanguage();
+	}
+	
+	/* State Listeners */
+	
+	public void onStateChange(Consumer<States> eventHandler) {
+		callState.registerEventHandler(ChannelStateChange.class,
+				stateChange -> eventHandler.accept(States.find(stateChange.getChannel().getState())));
+	}
+	
+	public void onRinging(Runnable action) {
+		onStateChange(st -> {
+			if (st == States.Ringing || st == States.Ring)
+				action.run();
+		});
+	}
+
+	public void onConnect(Runnable action) {
+		onStateChange(st -> {
+			if (st == States.Up)
+				action.run();
+		});
+	}
+
+	public void onHangup(Runnable action) {
+		onStateChange(st -> {
+			if (st == States.Hangup)
+				action.run();
+		});
 	}
 
 	/* Recording */
@@ -193,44 +225,44 @@ public class AsteriskChannel {
 	public CompletableFuture<AsteriskChannel> snoop(Snoop.Spy spy, Snoop.Whisper whisper) {
 		String snoopId = UUID.randomUUID().toString();
 		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(snoopId);
-		return Operation.<Channel>retry(cb -> api.snoopChannel(channel.getId(), arity.getAppName())
+		return Operation.<Channel>retry(cb -> api.snoopChannel(channelId, arity.getAppName())
 				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), this::mapExceptions)
-				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, c))); // ignore new call state for now
+				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, cs))); // ignore new call state for now
 	}
 
 	public CompletableFuture<AsteriskChannel> startSilence() {
-		return Operation.<Void>retry(cb -> api.startSilence(channel.getId()).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> stopSilence() {
-		return Operation.<Void>retry(cb -> api.stopSilence(channel.getId()).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> answer() {
-		return Operation.<Void>retry(cb -> api.answer(channel.getId()).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial() {
-		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller) {
-		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller)
 				.execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller, int timeout) {
-		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller).setTimeout(timeout)
 				.execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
-
+	
 }

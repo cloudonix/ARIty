@@ -133,7 +133,7 @@ public class Channels {
 				req.setOtherChannelId(otherChannelId);
 			req.execute(cb);
 		})
-				.thenApply(c -> new AsteriskChannel(arity, c, otherChannelId));
+				.thenApply(c -> new AsteriskChannel(arity, new CallState(c, arity), otherChannelId));
 	}
 
 	/**
@@ -209,7 +209,7 @@ public class Channels {
 		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
 		return Operation.<Channel>retry(cb -> api.externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(channelId).setData(channelId).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
-				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs.getChannel()));
+				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
 	}
 
 	/**
@@ -223,7 +223,7 @@ public class Channels {
 		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
 		return Operation.<Channel>retry(cb -> api.externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(channelId).setData(channelId).setEncapsulation("rtp").setTransport("udp").execute(cb))
-				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs.getChannel()));
+				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
 	}
 
 	private static Exception mapChannelExceptions(Throwable ariException) {
