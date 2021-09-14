@@ -13,6 +13,8 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
+import io.cloudonix.arity.errors.ChannelInInvalidState;
+import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.CallState.States;
 
 public class AsteriskChannel {
@@ -208,7 +210,8 @@ public class AsteriskChannel {
 	
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
-		case "Channel not in Stasis application": return new io.cloudonix.arity.errors.ChannelInInvalidState(ariError);
+		case "Channel not in Stasis application": return new ChannelInInvalidState(ariError);
+		case "Channel not found": return new ChannelNotFoundException(ariError);
 		}
 		return null;
 	}
