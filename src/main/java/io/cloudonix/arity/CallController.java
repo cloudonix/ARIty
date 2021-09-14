@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
@@ -441,7 +440,7 @@ public abstract class CallController {
 	 * otherwise
 	 */
 	public CompletableFuture<Boolean> isCallActive() {
-		return Operation.<Channel>retry(cb -> callState.getAri().channels().get(getChannelId()).execute(cb))
+		return callState.getArity().channels().get(getChannelId())
 				.thenApply(result -> {
 					logger.info(logmarker, "Call with id: " + result.getId() + " is still active");
 					return true;

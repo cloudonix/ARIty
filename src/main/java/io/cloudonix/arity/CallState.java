@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
@@ -74,7 +73,6 @@ public class CallState {
 	private static Logger log = LoggerFactory.getLogger(CallState.class);
 	private Marker logmarker;
 
-	private ARI ari;
 	private String channelId;
 	private ARIty arity;
 	private Channel channel;
@@ -92,9 +90,7 @@ public class CallState {
 		this(callStasisStart.getChannel(), arity);
 	}
 
-	@SuppressWarnings("deprecation")
 	public CallState(Channel chan, ARIty arity) {
-		this.ari = arity.getAri();
 		this.arity = arity;
 		this.channel = chan;
 		this.channelId = channel.getId();
@@ -131,10 +127,6 @@ public class CallState {
 
 	/* Useless c'tor, used just so we can fake call controllers not connected to actual ARI service, for testing other things */
 	CallState() {}
-
-	public ARI getAri() {
-		return ari;
-	}
 
 	public String getChannelId() {
 		return channelId;
