@@ -56,12 +56,12 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	public void accept(Message m) {
 		if (!registered || !clazz.isInstance(m))
 			return;
-		logger.debug("Triggering " + this);
+		logger.debug("Triggering {}", this);
 		arity.dispatchTask(() -> {
 			try {
 				handler.accept(clazz.cast(m), this);
 			} catch (Throwable t) {
-				logger.error("Error handle event {} by {}", t, clazz, handler);
+				logger.error("Error handle event {} by {}", clazz, handler, t);
 			}
 		});
 	}
