@@ -173,24 +173,16 @@ public class AsteriskChannel {
 	}
 	
 	public void onRinging(Runnable action) {
-		onStateChange(st -> {
-			if (st == States.Ringing || st == States.Ring)
-				action.run();
-		});
+		callState.registerStateHandler(States.Ring, action);
+		callState.registerStateHandler(States.Ringing, action);
 	}
 
 	public void onConnect(Runnable action) {
-		onStateChange(st -> {
-			if (st == States.Up)
-				action.run();
-		});
+		callState.registerStateHandler(States.Up, action);
 	}
 
 	public void onHangup(Runnable action) {
-		onStateChange(st -> {
-			if (st == States.Hangup)
-				action.run();
-		});
+		callState.registerStateHandler(States.Hangup, action);
 	}
 
 	/* Recording */
