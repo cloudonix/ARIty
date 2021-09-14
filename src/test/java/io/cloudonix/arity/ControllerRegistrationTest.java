@@ -92,9 +92,13 @@ public class ControllerRegistrationTest {
 
 	@Test(timeout = 12000)
 	public void testErrAbstractClass() throws Exception {
-		asterisk.getARIty().registerVoiceApp(BrokenApp.class);
-		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
-		assertEquals(603, status);
+		try {
+			asterisk.getARIty().registerVoiceApp(BrokenApp.class);
+			int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
+			assertEquals(603, status);
+		} catch (NoSuchMethodException e) {
+			logger.info("Successfully failed to register a broken class");
+		}
 	}
 
 }
