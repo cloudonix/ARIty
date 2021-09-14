@@ -480,7 +480,7 @@ public class ARIty implements AriCallback<Message> {
 		// see if an application waits for this channel
 		Consumer<CallState> channelHandler = stasisStartListeners.remove(channel.getId());
 		if (channelHandler != null) {
-			logger.debug("Stasis started for {} (id: {]), handling using {}", channel.getId(), event.getAsterisk_id(), channelHandler);
+			logger.debug("Stasis started for {} (id: {}), handling using {}", channel.getId(), event.getAsterisk_id(), channelHandler);
 			threadpool.execute(() -> channelHandler.accept(callState));
 			return;
 		}
