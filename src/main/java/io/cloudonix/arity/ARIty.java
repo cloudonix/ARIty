@@ -490,6 +490,7 @@ public class ARIty implements AriCallback<Message> {
 	}
 	
 	public void initAndRun(CallController controller, CallState callState) {
+		logger.debug("Initializing and running call controller {}", controller);
 		try {
 			Objects.requireNonNull(controller, "Missing call controller to handle the call").init(callState);
 			(autoBindBridges ? controller.bindToBridge() : CompletableFuture.completedFuture(null))
