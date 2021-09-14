@@ -348,7 +348,7 @@ public abstract class CallController {
 	 * @return channel that is currently running the stasis application
 	 */
 	public AsteriskChannel getChannel() {
-		return new AsteriskChannel(getARIty(), callState.getChannel());
+		return new AsteriskChannel(getARIty(), callState);
 	}
 
 	/**
