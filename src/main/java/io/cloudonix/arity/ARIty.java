@@ -53,7 +53,7 @@ public class ARIty implements AriCallback<Message> {
 	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
 	private ARI ari;
 	private String appName;
-	private Supplier<CallController> callSupplier = this::hangupDefault;
+	private Consumer<CallState> defaultCallHandler = this::hangupDefault;
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
@@ -169,7 +169,7 @@ public class ARIty implements AriCallback<Message> {
 	 * Sets the default behavior for call controllers' bridge binding (see @link {@link CallController#bindToBridge()}
 	 * @param shouldAutoBind set to <code>true</code> to have all call controller automatically bind to a bridge on init
 	 * (as needed). The default currently is not to auto-bind
-	 * @return itself for fluend calls
+	 * @return itself for fluent calls
 	 */
 	public ARIty setAutoBindBridges(boolean shouldAutoBind) {
 		this.autoBindBridges = shouldAutoBind;
@@ -183,83 +183,232 @@ public class ARIty implements AriCallback<Message> {
 	void dispatchTask(Runnable task) {
 		CompletableFuture.runAsync(task, threadpool);
 	}
-
-	/**
-	 * The method register a new application to be executed according to the class
-	 * of the voice application
-	 *
-	 * @param class instance of the class that contains the voice application
-	 *        (extends from callController)
-	 */
-	public void registerVoiceApp(Class<? extends CallController> controllerClass) {
-		callSupplier = new Supplier<CallController>() {
-
-			@Override
-			public CallController get() {
-				try {
-					return controllerClass.getConstructor().newInstance();
-				} catch (Throwable e) {
-					logger.error("Failed to instantiate call controller from no-args c'tor of " + controllerClass
-							+ ": ",e);
-					return hangupDefault();
-				}
-			}
-		};
+	
+	private void getControllerAndRunCall(CallState newcall, Supplier<CallController> controllerSupplier) {
+		try {
+			initAndRun(controllerSupplier.get(), newcall);
+		} catch (Throwable t) {
+			logger.error("Failed to create new call controller to handle {}", newcall, t);
+			channels().hangup(newcall.getChannelId());
+		}
 	}
 
 	/**
-	 * The method register the voice application (the supplier that has a
-	 * CallController, meaning the application)
-	 *
-	 * @param controllorSupplier the supplier that has the CallController (the voice application)
-	 */
-	public void registerVoiceApp(Supplier<CallController> controllorSupplier) {
-		if (Objects.isNull(controllorSupplier))
-			return;
-		callSupplier = controllorSupplier;
-	}
-
-	/**
-	 * Register a closure as the call application.
+	 * Register to receive all new stasis calls using a Call Controller supplier.
 	 * 
-	 * ARIty will call the provided function when a call is received and provide it a
-	 * call controller for the incoming call.
+	 * ARIty will call your supplier to generate a new {@link CallController} implementation for
+	 * each new stasis call, after which it will call {@link CallController#init()} to initialize the
+	 * call controller state and then the {@link CallController#run()} method to hand control over
+	 * to your application.
 	 *
-	 * @param cc call controller handler to receive the call
+	 * @param controllerSupplier a supplier that can generate ready to use {@link CallController} implementations
 	 */
-	public void registerVoiceApp(Consumer<CallController> cc) {
-		callSupplier = () -> {
-			return new CallController() {
+	public void registerVoiceApp(Supplier<CallController> controllerSupplier) {
+		Objects.requireNonNull(controllerSupplier, "controllerSupplied is required");
+		defaultCallHandler = cs -> getControllerAndRunCall(cs, controllerSupplier);
+	}
 
+	/**
+	 * Register to receive all new stasis calls using the specified Call Controller implementation.
+	 * 
+	 * ARIty will use the default constructor on the specified class to create an instance
+	 * for each new stasis call, calling {@link CallController#init()} to initialize the
+	 * call controller state and then the {@link CallController#run()} method to hand control over
+	 * to your application.
+	 *
+	 * @param controllerClass a controller class implementation that will handle default stasis calls
+	 * @throws NoSuchMethodException if the provided class does not have a default constructor
+	 */
+	public void registerVoiceApp(Class<? extends CallController> controllerClass) throws NoSuchMethodException {
+		var ctor = controllerClass.getConstructor();
+		registerVoiceApp(() -> {
+			try {
+				return ctor.newInstance();
+			} catch (Throwable e) {
+				throw new RuntimeException("Failed to instantiate call controller "+controllerClass+" with default constructor", e);
+			}
+		});
+	}
+
+	/**
+	 * Register to receive all new stasis calls as bare {@link CallController} instances.
+	 * 
+	 * ARIty will create a standard {@link CallController} instance for each new stasis call and
+	 * pass it to the provided consumer to handle the call.
+	 *
+	 * @param callHandler a method that can accept a call controller instance.
+	 */
+	public void registerVoiceApp(Consumer<CallController> callHandler) {
+		registerVoiceApp(() -> {
+			return new CallController() {
 				@Override
 				public CompletableFuture<Void> run() {
 					return CompletableFuture.runAsync(() -> {
-						cc.accept(this);
+						callHandler.accept(this);
 					}, threadpool).exceptionally(err -> {
-						logger.error("Application " + cc + " failed with an error:", err);
+						logger.error("Application " + callHandler + " failed with an error:", err);
 						hangup().run();
 						return null;
 					});
 				}
 			};
-		};
+		});
 	}
 
 	/**
-	 * The method hangs up the call if we can't create an instance of the class that
-	 * contains the voice application
+	 * Register to receive a specific stasis calls using a Call Controller supplier.
+	 * 
+	 * ARIty will call your supplier to generate a new {@link CallController} implementation for
+	 * each new stasis call, after which it will call {@link CallController#init()} to initialize the
+	 * call controller state and then the {@link CallController#run()} method to hand control over
+	 * to your application.
 	 *
-	 * @param e
-	 * @return
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @param controllerSupplier a supplier that can generate ready to use {@link CallController} implementations
 	 */
-	protected CallController hangupDefault() {
-		return new CallController() {
-			public CompletableFuture<Void> run() {
-				return hangup().run().thenAccept(hangup -> {
-					logger.error("Your Application is not registered!");
-				});
+	public void registerVoiceApp(String channelId, Supplier<CallController> controllerSupplier) {
+		waitForNewCallState(channelId).thenAccept(cs -> getControllerAndRunCall(cs, controllerSupplier));
+	}
+
+	/**
+	 * Register to receive a specific stasis call using the specified Call Controller implementation.
+	 * 
+	 * ARIty will use the default constructor on the specified class to create an instance
+	 * to handler the new stasis call, when it starts, calling {@link CallController#init()} to initialize the
+	 * call controller state and then the {@link CallController#run()} method to hand control over
+	 * to your application.
+	 *
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @param controllerClass a controller class implementation that will handle default stasis calls
+	 * @throws NoSuchMethodException if the provided class does not have a default constructor
+	 */
+	public void registerVoiceApp(String channelId, Class<? extends CallController> controllerClass) throws NoSuchMethodException {
+		var ctor = controllerClass.getConstructor();
+		registerVoiceApp(channelId, () -> {
+			try {
+				return ctor.newInstance();
+			} catch (Throwable e) {
+				throw new RuntimeException("Failed to instantiate call controller "+controllerClass+" with default constructor", e);
 			}
-		};
+		});
+	}
+
+	/**
+	 * Register to receive a specific stasis call as bare {@link CallController} instance.
+	 * 
+	 * ARIty will create a standard {@link CallController} instance for each new stasis call and
+	 * pass it to the provided consumer to handle the call.
+	 *
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @param callHandler a method that can accept a call controller instance.
+	 */
+	public void registerVoiceApp(String channelId, Consumer<CallController> callHandler) {
+		registerVoiceApp(channelId, () -> {
+			return new CallController() {
+				@Override
+				public CompletableFuture<Void> run() {
+					return CompletableFuture.runAsync(() -> {
+						callHandler.accept(this);
+					}, threadpool).exceptionally(err -> {
+						logger.error("Application " + callHandler + " failed with an error:", err);
+						hangup().run();
+						return null;
+					});
+				}
+			};
+		});
+	}
+	
+	/**
+	 * Register to receive a specific stasis call as the raw call state, skipping initialization of a call controller.
+	 * 
+	 * When the application captures a new call in this way, ARIty will not perform any setup or cleanup of
+	 * the captured channel, so auto-binding ({@link #setAutoBindBridges(boolean)}) and hanging up in case of errors is
+	 * left for the application to implement.
+	 * 
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state
+	 */
+	public CompletableFuture<CallState> waitForNewCallState(String channelId) {
+		return waitForNewCallState(channelId, null);
+	}
+	
+	/**
+	 * Register to receive a specific stasis call as the raw call state, skipping initialization of a call controller.
+	 * 
+	 * When the application captures a new call in this way, ARIty will not perform any setup or cleanup of
+	 * the captured channel, so auto-binding ({@link #setAutoBindBridges(boolean)}) and hanging up in case of errors is
+	 * left for the application to implement.
+	 * 
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @param timeout amount of time to wait for the channel to enter stasis, after which the promise will be rejected
+	 *   with a {@link TimeoutException}
+	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state,
+	 *   or reject with a {@link TimeoutException}
+	 */
+	public CompletableFuture<CallState> waitForNewCallState(String channelId, Duration timeout) {
+		CompletableFuture<CallState> promise = new CompletableFuture<>();
+		stasisStartListeners.put(channelId, promise::complete);
+		if (timeout != null)
+			Timers.schedule(() -> {
+				if (stasisStartListeners.remove(channelId) != null)
+					promise.completeExceptionally(new TimeoutException("Channel " + channelId + 
+							" did not enter stasis before timeout expired"));
+			}, timeout.toMillis());
+		return promise;
+	}
+
+	/**
+	 * Register to receive a specific stasis call as a default call controller implementation.
+	 * 
+	 * When the application captures a new call in this way, ARIty will not perform any setup or cleanup of
+	 * the captured channel, so auto-binding ({@link #setAutoBindBridges(boolean)}) and hanging up in case of errors is
+	 * left for the application to implement.
+	 * 
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @return a promise that will resolve when the channel enters stasis, with a default {@link CallController}
+	 */
+	public CompletableFuture<CallController> waitForNewCall(String channelId) {
+		return waitForNewCall(channelId, null);
+	}
+
+	/**
+	 * Register to receive a specific stasis call as a default call controller implementation with no {@link CallController#run()}
+	 * implementation, and that has not been run.
+	 * 
+	 * Calling {@link CallController#run()} on the received controller will return a rejected promise.
+	 * 
+	 * When the application captures a new call in this way, ARIty will not perform any setup or cleanup of
+	 * the captured channel, so auto-binding ({@link #setAutoBindBridges(boolean)}) and hanging up in case of errors is
+	 * left for the application to implement.
+	 * 
+	 * @param channelId the channel id of a known (or expected) channel for which Stasis has not started yet
+	 * @param timeout amount of time to wait for the channel to enter stasis, after which the promise will be rejected
+	 *   with a {@link TimeoutException}
+	 * @return a promise that will resolve when the channel enters stasis, with a default {@link CallController}
+	 */
+	public CompletableFuture<CallController> waitForNewCall(String channelId, Duration timeout) {
+		return waitForNewCallState(channelId, timeout).thenApply(cs -> {
+			var cc = new CallController() {
+				@Override
+				public CompletableFuture<Void> run() {
+					return CompletableFuture.failedFuture(new UnsupportedOperationException());
+				}
+			};
+			cc.init(cs);
+			return cc;
+		});
+	}
+
+	/**
+	 * Internal implementation for hanging up the call immediately. This is the default
+	 * handler for new stasis call if no call handler is registered, or the default
+	 * call handler failed to start
+	 * @param newCall the new call state
+	 */
+	protected void hangupDefault(CallState newCall) {
+		logger.error("No application is registered to handle the call!");
+		channels().hangup(newCall.getChannelId());
 	}
 
 	/**
@@ -320,7 +469,8 @@ public class ARIty implements AriCallback<Message> {
 
 	private void handleStasisStart(Message event) {
 		StasisStart ss = (StasisStart) event;
-		if ("h".equals(ss.getChannel().getDialplan().getExten())) {
+		var channel = ss.getChannel();
+		if ("h".equals(channel.getDialplan().getExten())) {
 			logger.debug("Ignoring Stasis Start with 'h' extension, listen on channel hangup event if you want to handle hangups");
 			return;
 		}
@@ -328,20 +478,24 @@ public class ARIty implements AriCallback<Message> {
 		CallState callState = new CallState(ss, this);
 
 		// see if an application waits for this channel
-		Consumer<CallState> channelHandler = stasisStartListeners.remove(ss.getChannel().getId());
-		if (Objects.nonNull(channelHandler)) {
-			logger.debug("Sending stasis start for " + ss.getChannel().getId() + " to event handler " + channelHandler);
-			channelHandler.accept(callState);
+		Consumer<CallState> channelHandler = stasisStartListeners.remove(channel.getId());
+		if (channelHandler != null) {
+			logger.debug("Stasis started for {} (id: {]), handling using {}", channel.getId(), event.getAsterisk_id(), channelHandler);
+			threadpool.execute(() -> channelHandler.accept(callState));
 			return;
 		}
 
-		logger.debug("Stasis started with asterisk id: " + event.getAsterisk_id() + " and channel id is: " + ss.getChannel().getId());
+		logger.debug("Stasis started for {} (id: {}), running default handler", ss.getChannel().getId(), event.getAsterisk_id());
+		defaultCallHandler.accept(callState);
+	}
+	
+	public void initAndRun(CallController controller, CallState callState) {
 		try {
-			CallController cc = Objects.requireNonNull(callSupplier.get(),
-					"User call controller supplier failed to provide a CallController to handle the call");
-			cc.init(callState);
-			(autoBindBridges ? cc.bindToBridge() : CompletableFuture.completedFuture(null)).thenComposeAsync(v -> cc.run(), threadpool).whenComplete((v,t) -> {
-				if (Objects.nonNull(t)) {
+			Objects.requireNonNull(controller, "Missing call controller to handle the call").init(callState);
+			(autoBindBridges ? controller.bindToBridge() : CompletableFuture.completedFuture(null))
+			.thenComposeAsync(v -> controller.run(), threadpool)
+			.whenComplete((v,t) -> {
+				if (t != null) {
 					logger.error("Completation error while running the application ",t);
 					channels().hangup(callState.getChannelId());
 				}
@@ -349,6 +503,7 @@ public class ARIty implements AriCallback<Message> {
 		} catch (Throwable t) { // a lot of user code is running here, so lets make sure they don't crash us
 			logger.error("Unexpected error due to user code failure: ",t);
 			channels().hangup(callState.getChannelId());
+			throw t;
 		}
 	}
 
@@ -463,49 +618,6 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public String getAppName() {
 		return appName;
-	}
-
-	/**
-	 * Allow an ARIty application to take control of a known channel, before it enters ARI.
-	 *
-	 * This is useful with the ARIty application creates managed channels by itself
-	 * @param id Known channel ID to wait for
-	 * @param eventHandler handle that will receive the {@link CallState} object for the channel
-	 * when it enters ARI
-	 */
-	public void registerApplicationStartHandler(String id, Consumer<CallState> eventHandler) {
-		stasisStartListeners.put(id, eventHandler);
-	}
-	
-	/**
-	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
-	 * The promise returned from this method is not guaranteed to resolve. If you think it is possible then channel
-	 * will not enter stasis, you may want to use the {@link #registerApplicationStartHandler(String, Duration)} method
-	 * instead, to get a timeout exception if the channel did not enter stasis after a set time.
-	 * @param id channel ID to wait for
-	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state
-	 */
-	public CompletableFuture<CallState> registerApplicationStartHandler(String id) {
-		CompletableFuture<CallState> promise = new CompletableFuture<>();
-		registerApplicationStartHandler(id, promise::complete);
-		return promise;
-	}
-	
-	/**
-	 * Convenience method for callers that want to wait for the channel to get into ARI stasis.
-	 * @param id channel ID to wait for
-	 * @param timeout amount of time to wait for the channel to enter stasis, after which the promise will be rejected
-	 * with a {@link TimeoutException}
-	 * @return a promise that will resolve when the channel enters stasis, with the new ARIty call state, or rejected
-	 * with a {@link TimeoutException}
-	 */
-	public CompletableFuture<CallState> registerApplicationStartHandler(String id, Duration timeout) {
-		CompletableFuture<CallState> promise = registerApplicationStartHandler(id);
-		Timers.schedule(
-				() -> promise.completeExceptionally(
-						new TimeoutException("Channel " + id + " did not enter stasis before timeout expired")),
-				timeout.toMillis());
-		return promise;
 	}
 
 	/**

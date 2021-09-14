@@ -192,7 +192,7 @@ public class AsteriskChannel {
 	 */
 	public CompletableFuture<AsteriskChannel> snoop(Snoop.Spy spy, Snoop.Whisper whisper) {
 		String snoopId = UUID.randomUUID().toString();
-		CompletableFuture<CallState> waitForStart = arity.registerApplicationStartHandler(snoopId);
+		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(snoopId);
 		return Operation.<Channel>retry(cb -> api.snoopChannel(channel.getId(), arity.getAppName())
 				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), this::mapExceptions)
 				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, c))); // ignore new call state for now
@@ -210,6 +210,26 @@ public class AsteriskChannel {
 
 	public CompletableFuture<AsteriskChannel> answer() {
 		return Operation.<Void>retry(cb -> api.answer(channel.getId()).execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> dial() {
+		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+				.execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> dial(String caller) {
+		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+				.setCaller(caller)
+				.execute(cb), this::mapExceptions)
+				.thenApply(v -> this);
+	}
+
+	public CompletableFuture<AsteriskChannel> dial(String caller, int timeout) {
+		return Operation.<Void>retry(cb -> api.dial(channel.getId())
+				.setCaller(caller).setTimeout(timeout)
+				.execute(cb), this::mapExceptions)
 				.thenApply(v -> this);
 	}
 
