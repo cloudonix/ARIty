@@ -135,6 +135,16 @@ public class Channels {
 		})
 				.thenApply(c -> new AsteriskChannel(arity, new CallState(c, arity), otherChannelId));
 	}
+	
+	/**
+	 * Retrieve an existing channel
+	 * @param channelId id of the channel to load
+	 * @return a promise that will resolve with an instance of {@link AsteriskChannel} or reject if the channel cannot be loaded
+	 */
+	public CompletableFuture<AsteriskChannel> get(String channelId) {
+		return Operation.<Channel>retry(cb -> api.get(channelId).execute(cb), Channels::mapChannelExceptions)
+				.thenApply(c -> new AsteriskChannel(arity, new CallState(c, arity)));
+	}
 
 	/**
 	 * Answer the specified channel.
@@ -233,4 +243,5 @@ public class Channels {
 			}
 		return null;
 	}
+
 }
