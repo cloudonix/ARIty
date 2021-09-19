@@ -96,7 +96,7 @@ public class Play extends CancelableOperations {
 		logger.debug("Play::run ({})", fullPath);
 		return startPlay(fullPath)
 				.thenCompose(v -> {
-					logger.info(currentPlaybackId+"|startPlay finished (" + fullPath + ")");
+					logger.info("{}|startPlay finished ({})", currentPlaybackId, fullPath);
 					if (cancelled() || timesToPlay.decrementAndGet() <= 0)
 						return CompletableFuture.completedFuture(this);
 					return run();
@@ -115,7 +115,7 @@ public class Play extends CancelableOperations {
 			if (!Objects.equals(finishId, currentPlaybackId))
 				return;
 			currentPlaybackId = null;
-			logger.info(finishId + "|Finished playback: {}", finished.getPlayback().getState());
+			logger.info("{}|Finished playback: {}", finishId, finished.getPlayback().getState());
 			playback.set(null);
 			playbackFinished.complete(this);
 			se.unregister();
@@ -124,7 +124,7 @@ public class Play extends CancelableOperations {
 		return executePlayOperation(path)
 		.thenCompose(playback -> {
 			this.playback.set(playback); // store ongoing playback for cancelling
-			logger.info(currentPlaybackId + "|Playback started! Playing: " + playFileName + " and playback id is: " + playback.getId());
+			logger.info("{}|Playback started! Playing: {} and playback id is: {}", currentPlaybackId, playFileName, playback.getId());
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
@@ -166,9 +166,9 @@ public class Play extends CancelableOperations {
 		cancelled.set(true);
 		if (currentPlaybackId == null)
 			return CompletableFuture.completedFuture(null); // no need to cancel, before startPlay is called again, cancelled() will be checked
-		logger.info(currentPlaybackId + "|Trying to cancel a playback");
+		logger.info("{}|Trying to cancel a playback", currentPlaybackId);
 		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
-				.thenAccept(pb -> logger.info(currentPlaybackId + "|Playback canceled"));
+				.thenAccept(pb -> logger.info("{}|Playback canceled", currentPlaybackId));
 	}
 	
 	public boolean cancelled() {
