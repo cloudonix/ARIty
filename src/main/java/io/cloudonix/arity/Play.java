@@ -128,6 +128,8 @@ public class Play extends CancelableOperations {
 			return playbackFinished;
 		})
 		.exceptionally(e -> {
+			while (e instanceof RuntimeException && e.getCause() != null)
+				e = e.getCause();
 			if (e instanceof ChannelNotFoundException)
 				throw new CompletionException(e);
 			logger.warn("Failed in playing playback", e);
