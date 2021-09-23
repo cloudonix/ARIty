@@ -5,8 +5,10 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.helpers.Futures;
+import io.cloudonix.arity.models.AsteriskChannel;
 
 /**
  * Class that execute muting/unmuting a channel
@@ -15,20 +17,24 @@ import io.cloudonix.arity.helpers.Futures;
  *
  */
 public class Mute extends CancelableOperations {
+	
+	public static final AsteriskChannel.Mute BOTH = AsteriskChannel.Mute.BOTH;
+	public static final AsteriskChannel.Mute IN = AsteriskChannel.Mute.IN;
+	public static final AsteriskChannel.Mute OUT = AsteriskChannel.Mute.OUT;
+	public static final AsteriskChannel.Mute NO = AsteriskChannel.Mute.NO;
 
 	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
 	private String channelId;
-	private String direction;
+	private AsteriskChannel.Mute direction;
 
-	public Mute(CallController callController, String channelId, String direction) {
+	public Mute(CallController callController, AsteriskChannel.Mute direction) {
 		super(callController.getChannelId(), callController.getARIty());
-		this.channelId = channelId;
 		this.direction = direction;
 	}
 
 	@Override
 	public CompletableFuture<Mute> run() {
-		return this.<Void>retryOperation(cb -> channels().mute(channelId).setDirection(direction).execute(cb))
+		return this.<Void>retryOperation(cb -> executeMute(cb))
 				.thenAccept(v -> {
 					logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
 				})
@@ -39,9 +45,17 @@ public class Mute extends CancelableOperations {
 				.thenApply(v -> this);
 	}
 
+	private void executeMute(AriCallback<Void> cb) throws RestException {
+		if (direction == NO) {
+			channels().unmute(channelId).setDirection(BOTH.toString()).execute(cb);
+			return;
+		}
+		channels().mute(channelId).setDirection(direction.toString()).execute(cb);
+	}
+
 	@Override
 	public CompletableFuture<Void> cancel() {
-		return this.<Void>retryOperation(cb -> channels().unmute(channelId).setDirection(direction).execute(cb))
+		return this.<Void>retryOperation(cb -> channels().unmute(channelId).setDirection(BOTH.toString()).execute(cb))
 				.thenAccept(res -> {
 					logger.info("Unmute channel " + channelId + " with audio direction " + direction);
 				})

@@ -42,6 +42,20 @@ public class AsteriskChannel {
 		}
 	}
 
+	public enum Mute {
+		NO(""), IN("in"), OUT("out"), BOTH("both");
+
+		private String direction;
+
+		Mute(String direction) {
+			this.direction = direction;
+		}
+		
+		public String toString() {
+			return direction;
+		}
+	}
+	
 	public AsteriskChannel(ARIty arity, CallState callState) {
 		this(arity, callState, null);
 	}
