@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
 import io.cloudonix.arity.helpers.Futures;
+import io.cloudonix.arity.models.AsteriskChannel.Mute;
 
 /**
  * The class handles and saves all needed information for a conference call
@@ -95,7 +96,7 @@ public class Conference {
 	 * @param mute should the new channel be muted
 	 * @return A promise that will resolve when the channel has been added and announced
 	 */
-	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute) {
+	public CompletableFuture<Conference> addChannelToConf(boolean beep, Mute mute) {
 		return addChannelToConf(beep, mute, true);
 	}
 	
@@ -105,7 +106,7 @@ public class Conference {
 	 * @param mute should the new channel be muted
 	 * @return A promise that will resolve when the channel has been added and announced
 	 */
-	public CompletableFuture<Conference> addChannelToConf(boolean beep, boolean mute, boolean joinLeavePrompts) {
+	public CompletableFuture<Conference> addChannelToConf(boolean beep, Mute mute, boolean joinLeavePrompts) {
 		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
 		if (callController.getCallState().wasAnswered()) {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
@@ -121,8 +122,7 @@ public class Conference {
 				}).thenCompose(beepRes -> {
 					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
 							e -> channelLeftConference(e, joinLeavePrompts));
-					return mute ? callController.mute(callController.getChannelId(), "out").run()
-							: CompletableFuture.completedFuture(null);
+					return callController.mute(mute).run();
 				})
 				.thenCompose(muteRes -> annouceUser(joinLeavePrompts ? UserAnnounce.joined : UserAnnounce.quiet))
 				.exceptionally(Futures.on(Exception.class, t -> {

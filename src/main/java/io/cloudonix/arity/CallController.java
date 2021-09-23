@@ -418,8 +418,8 @@ public abstract class CallController {
 	 * @param direction audio direction of the mute. Allowed values: both, in, out
 	 * @return
 	 */
-	public Mute mute(String channelId, String direction) {
-		return new Mute(this, channelId, direction);
+	public Mute mute(AsteriskChannel.Mute direction) {
+		return new Mute(this, direction);
 	}
 
 	/**
