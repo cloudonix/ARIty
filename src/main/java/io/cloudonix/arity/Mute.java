@@ -24,7 +24,6 @@ public class Mute extends CancelableOperations {
 	public static final AsteriskChannel.Mute NO = AsteriskChannel.Mute.NO;
 
 	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
-	private String channelId;
 	private AsteriskChannel.Mute direction;
 
 	public Mute(CallController callController, AsteriskChannel.Mute direction) {
@@ -36,10 +35,10 @@ public class Mute extends CancelableOperations {
 	public CompletableFuture<Mute> run() {
 		return this.<Void>retryOperation(cb -> executeMute(cb))
 				.thenAccept(v -> {
-					logger.info("Muted channel with id: " + channelId + " and muted audio in dirction: " + direction);
+					logger.info("Muted channel with id: {} and muted audio in dirction: {}", getChannelId(), direction);
 				})
 				.exceptionally(Futures.on(RestException.class,  e -> {
-					logger.warn("Failed to mute channel with id: " + channelId + " and direction: " + direction);
+					logger.warn("Failed to mute channel with id: {} and direction: {}", getChannelId(), direction);
 					throw e;
 				}))
 				.thenApply(v -> this);
@@ -47,20 +46,20 @@ public class Mute extends CancelableOperations {
 
 	private void executeMute(AriCallback<Void> cb) throws RestException {
 		if (direction == NO) {
-			channels().unmute(channelId).setDirection(BOTH.toString()).execute(cb);
+			channels().unmute(getChannelId()).setDirection(BOTH.toString()).execute(cb);
 			return;
 		}
-		channels().mute(channelId).setDirection(direction.toString()).execute(cb);
+		channels().mute(getChannelId()).setDirection(direction.toString()).execute(cb);
 	}
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		return this.<Void>retryOperation(cb -> channels().unmute(channelId).setDirection(BOTH.toString()).execute(cb))
+		return this.<Void>retryOperation(cb -> channels().unmute(getChannelId()).setDirection(BOTH.toString()).execute(cb))
 				.thenAccept(res -> {
-					logger.info("Unmute channel " + channelId + " with audio direction " + direction);
+					logger.info("Unmute channel {} with audio direction {}", getChannelId(), direction);
 				})
 				.exceptionally(Futures.on(RestException.class,  e -> {
-					logger.warn("Failed to unmute channel with id: " + channelId + " and direction: " + direction);
+					logger.warn("Failed to unmute channel with id: {} and direction: {}", getChannelId(), direction);
 					throw e;
 				}));
 	}
