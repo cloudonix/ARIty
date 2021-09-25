@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.10.7</version>
+	<version>0.10.8</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -139,6 +139,10 @@
 						<property>
 							<name>org.slf4j.simpleLogger.defaultLogLevel</name>
 							<value>info</value>
+						</property>
+						<property>
+							<name>org.slf4j.simpleLogger.log.com.github.dockerjava.api.command.BuildImageResultCallback</name>
+							<value>debug</value>
 						</property>
 					</systemProperties>
 				</configuration>
