@@ -1,6 +1,5 @@
 package io.cloudonix.arity;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
@@ -192,10 +191,10 @@ public abstract class Operation {
 		Supplier<CompletableFuture<V>> retrier = () -> Futures.delay(RETRY_TIME).apply(null)
 				.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper, caller));
 		return toFuture(op).handle((v,t) -> {
-			if (Objects.isNull(t))
+			if (t == null)
 				return CompletableFuture.completedFuture(v);
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
-			if (Objects.nonNull(recognizedFailure))
+			if (recognizedFailure != null)
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
 			if (triesLeft <= 0)
 				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
@@ -221,25 +220,25 @@ public abstract class Operation {
 	}
 
 	protected ActionChannels channels() {
-		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+		if (arity == null || arity.getAri() == null)
 				throw new InvalidCallStateException();
 		return arity.getAri().channels();
 	}
 
 	protected ActionBridges bridges() {
-		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+		if (arity == null || arity.getAri() == null)
 				throw new InvalidCallStateException();
 		return arity.getAri().bridges();
 	}
 
 	protected ActionPlaybacks playbacks() {
-		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+		if (arity == null || arity.getAri() == null)
 				throw new InvalidCallStateException();
 		return arity.getAri().playbacks();
 	}
 
 	protected ActionRecordings recordings() {
-		if (Objects.isNull(arity) || Objects.isNull(arity.getAri()))
+		if (arity == null || arity.getAri() == null)
 				throw new InvalidCallStateException();
 		return arity.getAri().recordings();
 	}
@@ -259,19 +258,20 @@ public abstract class Operation {
 	 * @return an exception, if the operation should not be retried
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
-		if (Objects.isNull(ariError.getMessage()))
+		if (ariError.getMessage() == null)
 			LoggerFactory.getLogger(getClass()).error("ARI error with no message???", ariError);
-		switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
-		case "Channel not found": return new ChannelNotFoundException(ariError);
-		case "Channel in invalid state": return new ChannelInInvalidState(ariError);
-		}
+		else
+			switch (ariError.getMessage()) {
+			case "Channel not found": return new ChannelNotFoundException(ariError);
+			case "Channel in invalid state": return new ChannelInInvalidState(ariError);
+			}
 		return null;
 	}
 
 	protected static Throwable unwrapCompletionError(Throwable error) {
 		while (error instanceof CompletionException) {
 			Throwable cause = error.getCause();
-			if (Objects.isNull(cause))
+			if (cause == null)
 				return error;
 			error = cause;
 		}
