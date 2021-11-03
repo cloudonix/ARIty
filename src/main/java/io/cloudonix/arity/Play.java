@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.errors.PlaybackException;
+import io.cloudonix.arity.errors.PlaybackNotFound;
 import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
+import io.cloudonix.arity.helpers.Futures;
 import io.cloudonix.arity.models.AsteriskBridge;
 import io.cloudonix.arity.models.AsteriskChannel;
 
@@ -169,8 +171,12 @@ public class Play extends CancelableOperations {
 		if (currentPlaybackId == null)
 			return CompletableFuture.completedFuture(null); // no need to cancel, before startPlay is called again, cancelled() will be checked
 		logger.info("{}|Trying to cancel a playback", currentPlaybackId);
-		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
-				.thenAccept(pb -> logger.info("{}|Playback canceled", currentPlaybackId));
+		return Operation.<Void>retry(cb -> playbacks().stop(currentPlaybackId).execute(cb), this::mapExceptions)
+				.thenAccept(pb -> logger.info("{}|Playback canceled", currentPlaybackId))
+				.exceptionally(Futures.on(PlaybackNotFound.class, e -> {
+					logger.warn("Playback {} was not found during cancel - ignoring", currentPlaybackId);
+					return null;
+				}));
 	}
 	
 	public boolean cancelled() {
@@ -223,6 +229,15 @@ public class Play extends CancelableOperations {
 	public Play setLanguage(String channelLanguage) {
 		this.language = channelLanguage;
 		return this;
+	}
+	
+	private Exception mapExceptions(Throwable ariError) {
+		for (var e = tryIdentifyError(ariError); e != null;)
+			return e;
+		switch (ariError.getMessage()) {
+		case "Playback not found": return new PlaybackNotFound(ariError);
+		}
+		return null;
 	}
 
 }
