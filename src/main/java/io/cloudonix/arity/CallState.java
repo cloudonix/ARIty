@@ -361,6 +361,8 @@ public class CallState {
 	public CompletableFuture<Void> waitForHangup() {
 		CompletableFuture<Void>future = new CompletableFuture<Void>();
 		registerStateHandler(States.Hangup, ()->future.complete(null));
+		if (getStatus() == States.Hangup)
+			future.complete(null);
 		return future;
 	}
 
