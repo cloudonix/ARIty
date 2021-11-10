@@ -318,11 +318,11 @@ public class Dial extends CancelableOperations {
 		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
-				.whenComplete((v,t) -> logger.debug("Early bridging adding channel " + channel.getId() + " to bridge " + earlyBridge.getId()))
+				.whenComplete((v,t) -> logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
-				.whenComplete((v,t) -> logger.debug("Early bridging created channel " + channel.getId() + " setting variables and headers"))
+				.whenComplete((v,t) -> logger.debug("Early bridging created channel {} setting variables and headers", channel.getId()))
 				.thenCompose(v -> dialledCallState.get().setVariables(vars))
-				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on " + endpointChannelId))
+				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on {}", endpointChannelId))
 				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
 					dialStartTime = Instant.now();
@@ -719,4 +719,13 @@ public class Dial extends CancelableOperations {
 		return CompletableFuture.completedFuture(null);
 	}
 
+	@Override
+	protected Exception tryIdentifyError(Throwable ariError) {
+		var res = super.tryIdentifyError(ariError);
+		if (res == null && ariError.getMessage() != null)
+			switch (ariError.getMessage()) {
+			case "Callee not found": return new ChannelNotFoundException(ariError);
+			}
+		return res;
+	}
 }
