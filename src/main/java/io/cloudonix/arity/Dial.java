@@ -362,9 +362,9 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleDialEvent(ch.loway.oss.ari4java.generated.models.Dial dial, EventHandler<ch.loway.oss.ari4java.generated.models.Dial>se) {
-		logger.debug("Dial event detected on channel " + getChannelId() + ": " + dial.getDialstring() + " " + dial.getDialstatus());
+		logger.debug("Dial event detected on channel {}: {} {}", getChannelId(), dial.getDialstring(), dial.getDialstatus());
 		if (dialStatus == Status.CANCEL) {
-			logger.info("Dial was canceled for channel id: " + dial.getPeer().getId());
+			logger.info("Dial was canceled for channel id: {}", dial.getPeer().getId());
 			cancelled();
 			se.unregister();
 			return;
@@ -374,10 +374,10 @@ public class Dial extends CancelableOperations {
 			if (!status.isEmpty()) // ignore empty status which can happen in response to originate (and means unknown)
 				dialStatus = Status.valueOf(status);
 		} catch (IllegalArgumentException e) {
-			logger.error("Unknown dial status " + dial.getDialstatus() + ", ignoring for now");
+			logger.error("Unknown dial status {}, ignoring for now", dial.getDialstatus());
 			dialStatus = Status.UNKNOWN;
 		}
-		logger.info("Dial status of channel with id: " + dial.getPeer().getId() + " is: " + dialStatus);
+		logger.info("Dial status of channel with id: {} is: {}", dial.getPeer().getId(), dialStatus);
 		switch (dialStatus) {
 		case ANSWER:
 			logger.info("Channel with id: " + dial.getPeer().getId() + " answered the call");
@@ -392,7 +392,8 @@ public class Dial extends CancelableOperations {
 		case DONTCALL:
 		case INVALIDARGS:
 		case TORTURE:
-			logger.info("The callee with channel id: "+ dial.getPeer().getId()+" can not answer the call, hanging up the call");
+			logger.info("The callee with channel id: {} can not answer the call due to '{}', hanging up the call",
+					dial.getPeer().getId(), dialStatus);
 			this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb));
 			failed();
 			se.unregister();
