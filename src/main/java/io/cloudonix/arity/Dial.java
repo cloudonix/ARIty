@@ -603,7 +603,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	public Dial whenDisconnected(Runnable func) {
-		channelStateCancelled.add(func);
+		channelStateDisconnected.add(func);
 		return this;
 	}
 
