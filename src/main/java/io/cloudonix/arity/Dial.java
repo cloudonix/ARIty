@@ -309,8 +309,6 @@ public class Dial extends CancelableOperations {
 			variables.putIfAbsent("CALLERID(num)", callerId);
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
-		Hashtable<String,String> vars = new Hashtable<>(variables);
-		vars.putAll(formatSIPHeaders());
 		CompletableFuture<Void> activated = new CompletableFuture<>();
 		whenActive(() -> activated.complete(null));
 		
@@ -321,7 +319,7 @@ public class Dial extends CancelableOperations {
 				.whenComplete((v,t) -> logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
 				.whenComplete((v,t) -> logger.debug("Early bridging created channel {} setting variables and headers", channel.getId()))
-				.thenCompose(v -> dialledCallState.get().setVariables(vars))
+				.thenCompose(v -> dialledCallState.get().setVariables(formatVariables()))
 				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on {}", endpointChannelId))
 				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
@@ -342,9 +340,7 @@ public class Dial extends CancelableOperations {
 				.setChannelId(endpointChannelId);
 		if (shouldAttachToCallingChannel)
 			op.setOriginator(getChannelId());
-		Map<String, String> vars = new Hashtable<>(variables);
-		vars.putAll(formatSIPHeaders());
-		return op.setCallerId(callerId).setTimeout(timeout).setVariables(vars).setOtherChannelId(otherChannelId);
+		return op.setCallerId(callerId).setTimeout(timeout).setVariables(formatVariables()).setOtherChannelId(otherChannelId);
 	}
 
 	private ChannelsCreatePostRequest genCreateChannelOperation() throws RestException {
@@ -353,6 +349,12 @@ public class Dial extends CancelableOperations {
 		if (shouldAttachToCallingChannel)
 			op.setOriginator(getChannelId());
 		return op;
+	}
+	
+	private Map<String, String> formatVariables() {
+		Map<String, String> vars = new Hashtable<>(variables);
+		vars.putAll(formatSIPHeaders());
+		return vars;
 	}
 
 	/**
