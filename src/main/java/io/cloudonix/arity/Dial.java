@@ -305,7 +305,7 @@ public class Dial extends CancelableOperations {
 	}
 
 	private CompletableFuture<Dial> runEarlyBridingWorkflow() {
-		if (Objects.nonNull(callerId)) {
+		if (callerId == null) {
 			variables.putIfAbsent("CALLERID(num)", callerId);
 			variables.putIfAbsent("CALLERID(name)", callerId);
 		}
@@ -316,9 +316,10 @@ public class Dial extends CancelableOperations {
 		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
-				.thenCompose(v -> dialledCallState.get().setVariables(formatVariables())) // set variables again as CALLERID doesn't take during create?
+				.thenCompose(v -> dialledCallState.get().setVariables(formatCallerIdVariables())) // set variables again as CALLERID is sometimes ignored
 				.whenComplete((v,t) -> logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
+				.thenCompose(v -> dialledCallState.get().setVariables(formatCallerIdVariables())) // and again, just to be on the safe side
 				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on {}", endpointChannelId))
 				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
@@ -353,6 +354,13 @@ public class Dial extends CancelableOperations {
 	private Map<String, String> formatVariables() {
 		Map<String, String> vars = new Hashtable<>(variables);
 		vars.putAll(formatSIPHeaders());
+		return vars;
+	}
+
+	private Map<String, String> formatCallerIdVariables() {
+		Map<String, String> vars = new Hashtable<>();
+		vars.put("CALLERID(num)", variables.get("CALLERID(num)"));
+		vars.put("CALLERID(name)", variables.get("CALLERID(name)"));
 		return vars;
 	}
 
