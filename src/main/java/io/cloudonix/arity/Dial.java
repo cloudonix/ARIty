@@ -316,10 +316,9 @@ public class Dial extends CancelableOperations {
 		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
+				.thenCompose(v -> dialledCallState.get().setVariables(formatVariables())) // set variables again as CALLERID doesn't take during create?
 				.whenComplete((v,t) -> logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge))
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
-//				.whenComplete((v,t) -> logger.debug("Early bridging created channel {} setting variables and headers", channel.getId()))
-//				.thenCompose(v -> dialledCallState.get().setVariables(formatVariables()))
 				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on {}", endpointChannelId))
 				.thenCompose(v -> this.<Void>retryOperation(h -> channels().dial(endpointChannelId).setTimeout(timeout).execute(h)))
 				.thenRun(() -> {
