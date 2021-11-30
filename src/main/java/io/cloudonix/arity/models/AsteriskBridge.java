@@ -2,6 +2,7 @@ package io.cloudonix.arity.models;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -13,6 +14,8 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
+import ch.loway.oss.ari4java.generated.models.Playback;
+import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.Bridges.BridgeType;
@@ -147,14 +150,58 @@ public class AsteriskBridge {
 	}
 
 	public CompletableFuture<AsteriskRecording> record(boolean playBeep, int maxDuration, int maxSilence, String terminateOnDTMF) {
-		return record(b -> b.withPlayBeep(playBeep).withMaxDuration(maxDuration).withMaxSilence(maxSilence).withTerminateOn(Objects.requireNonNull(terminateOnDTMF)));
+		return record(b -> b.withPlayBeep(playBeep).withMaxDuration(maxDuration).withMaxSilence(maxSilence)
+				.withTerminateOn(Objects.requireNonNull(terminateOnDTMF)));
+	}
+
+	public CompletableFuture<AsteriskRecording> record(boolean playBeep, int maxDuration, int maxSilence, String terminateOnDTMF, String ifExists) {
+		return record(b -> b.withPlayBeep(playBeep).withMaxDuration(maxDuration).withMaxSilence(maxSilence)
+				.withTerminateOn(Objects.requireNonNull(terminateOnDTMF)).withIfExists(ifExists));
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
 		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(bridgeId, null, null), arity).execute(cb), this::mapExceptions)
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
+
+	/**
+	 * Start to play music on hold to the bridge
+	 * @param musicOnHoldClass the MoH class to tell Asterisk to use
+	 * @return a promise that will resolve when the music on hold starts or reject if there is an unrecoverable error
+	 */
+	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
+		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), this::mapExceptions);
+	}
+
+	/**
+	 * Stops playing music on hold to the bridge
+	 * @return a promise that will resolve when the music on hold stops or reject if there is an unrecoverable error
+	 */
+	public CompletableFuture<Void> stopMusicOnHold() {
+		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), this::mapExceptions);
+	}
 	
+	/**
+	 * Play media to the bridge
+	 * @param fileToPlay name of the file to be played
+	 * @return a promise that will resolve when the media finishes playing or reject if there is an unrecoverable error
+	 */
+	public CompletableFuture<Playback> playMedia(String fileToPlay) {
+		String playbackId = UUID.randomUUID().toString();
+		return Operation.<Playback>retry(
+				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), this::mapExceptions)
+				.thenCompose(result -> {
+					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
+					arity.addEventHandler(PlaybackFinished.class, bridgeId, (pbf, se) -> {
+						if (!(pbf.getPlayback().getId().equals(playbackId)))
+							return;
+						future.complete(pbf.getPlayback());
+						se.unregister();
+					});
+					return future;
+				});
+	}
+
 	/* helpers */
 	
 	@Override
