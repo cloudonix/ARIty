@@ -53,6 +53,7 @@ public class AsteriskRecording {
 		private Integer maxDuration;
 		private Integer maxSilence;
 		private String dtmf;
+		private String ifExists;
 		private AtomicReference<Consumer<AsteriskRecording>> startHandler = new AtomicReference<>();
 		
 		private Builder() {}
@@ -86,6 +87,11 @@ public class AsteriskRecording {
 			this.dtmf = dtmf;
 			return this;
 		}
+		
+		public Builder withIfExists(String ifExists) {
+			this.ifExists = ifExists;
+			return this;
+		}
 
 		BridgesRecordPostRequest build(BridgesRecordPostRequest req, ARIty arity) {
 			req.setFormat(format);
@@ -98,6 +104,8 @@ public class AsteriskRecording {
 				req.setMaxSilenceSeconds(maxSilence);
 			if (dtmf != null && !dtmf.isEmpty())
 				req.setTerminateOn(dtmf);
+			if (ifExists != null && !ifExists.isEmpty())
+				req.setIfExists(ifExists);
 			if (startHandler != null)
 				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
@@ -114,6 +122,8 @@ public class AsteriskRecording {
 				req.setMaxSilenceSeconds(maxSilence);
 			if (dtmf != null)
 				req.setTerminateOn(dtmf);
+			if (ifExists != null && !ifExists.isEmpty())
+				req.setIfExists(ifExists);
 			if (startHandler != null)
 				arity.addGeneralEventHandler(RecordingStarted.class, recordingStartedHandler(arity));
 			return req;
