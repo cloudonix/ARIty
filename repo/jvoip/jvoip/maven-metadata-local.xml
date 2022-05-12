@@ -3,11 +3,12 @@
   <groupId>jvoip</groupId>
   <artifactId>jvoip</artifactId>
   <versioning>
-    <release>8.4</release>
+    <release>8.6</release>
     <versions>
       <version>1.0.0</version>
       <version>8.4</version>
+      <version>8.6</version>
     </versions>
-    <lastUpdated>20210925074249</lastUpdated>
+    <lastUpdated>20220512141112</lastUpdated>
   </versioning>
 </metadata>
