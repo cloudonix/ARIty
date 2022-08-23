@@ -9,11 +9,11 @@ variables:
 cache:
   paths:
     - .m2/
-  
-stages: 
+
+stages:
   - setup
   - test
-  - package 
+  - package
   - s3
 
 offline-deps:
@@ -22,41 +22,43 @@ offline-deps:
   script:
     - '[ "$(($RANDOM%10))" == 0 ] && mvn -B -U dependency:go-offline || mvn -B dependency:go-offline'
 
-test: 
+test:
   stage: test
   script:
     - mvn -B test || true
-  artifacts: 
-    paths: 
+  artifacts:
+    expire_in: 1 week
+    paths:
       - target
   image: maven:3-jdk-11
 
-package: 
+package:
   stage: package
   script:
     - mvn -B -DskipTests package
     - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
     - cp target/arity-*-fat.jar target/staging/io/cloudonix/arity/*/
-  artifacts: 
-    paths: 
+  artifacts:
+    expire_in: 1 week
+    paths:
       - target
   image: maven:3-jdk-11
-  
+
 s3:
   stage: s3
-  script: 
+  script:
     - pip install awscli
     - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/releases
   image: python:3.6.6-stretch
-  only: 
+  only:
     - master
- 
+
 s3-snapshots:
   stage: s3
   image:
     name: mesosphere/aws-cli
     entrypoint: [""]
-  script: 
+  script:
     - aws s3 sync --storage-class REDUCED_REDUNDANCY --acl public-read ./target/staging/ s3://cloudonix-dist/maven2/snapshots
-  only: 
+  only:
     - develop
