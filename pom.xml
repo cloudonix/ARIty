@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.11.2</version>
+	<version>0.11.3-SNAPSHOT</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -17,7 +17,7 @@
 			Local repo that hosts the demo JVoip library for unit-testing, as there is no maven repository for it.
 			To crete it, get a copy of the JVoip demo from https://www.mizu-voip.com/Software/SIPSDK/JavaSIPSDK.aspx, then run:
 			unzip JVoIP.zip JVoIP/JVoIP.jar
-			mvn install:install-file -DlocalRepositoryPath=repo -DcreateChecksum=true -Dpackaging=jar -Dfile=JVoIP/JVoIP.jar -DgroupId=jvoip -DartifactId=jvoip -Dversion=8.4
+			mvn install:install-file -DlocalRepositoryPath=repo -DcreateChecksum=true -Dpackaging=jar -Dfile=JVoIP/JVoIP.jar -DgroupId=jvoip -DartifactId=jvoip -Dversion=8.6
 			-->
 		</repository>
 
@@ -105,7 +105,7 @@
 		<dependency>
 			<groupId>jvoip</groupId>
 			<artifactId>jvoip</artifactId>
-			<version>8.4</version>
+			<version>8.6</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
