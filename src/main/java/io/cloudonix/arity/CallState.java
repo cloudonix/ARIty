@@ -111,8 +111,6 @@ public class CallState {
 			isActive = false;
 			lastState = States.Hangup;
 			fireStateChangeListeners();
-			// need also to unregister from channel events
-			eventListeners.forEach(EventHandler::unregister);
 		});
 		registerEventHandler(StasisEnd.class, end -> {
 			log.info(logmarker, "Stasis application ended");
