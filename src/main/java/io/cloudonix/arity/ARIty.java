@@ -3,6 +3,7 @@ package io.cloudonix.arity;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -460,10 +461,12 @@ public class ARIty implements AriCallback<Message> {
 	}
 
 	private void handleChannelEvents(Message event, String channelId) {
-		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).forEach(h -> {
-			h.accept(event);
-		});
-		if (event instanceof StasisEnd) // clear event handlers for this channel on stasis end
+		// fire events in reverse addition order: newer listeners get to handle the event first.
+		// The event "bubbles" from deeper elements to upper elements 
+		new ArrayDeque<>(channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()))
+		.descendingIterator().forEachRemaining(h -> h.accept(event));
+		// clear event handlers for this channel on stasis end
+		if (event instanceof StasisEnd)
 			channelEventHandlers.remove(channelId);
 	}
 
