@@ -449,7 +449,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleHangupCallee(ChannelHangupRequest hangup) {
-		logger.info("The called endpoint hanged up the call");
+		logger.info("The called endpoint [{}] hanged up the call", endpointChannelId);
 		channelStateChangedSe.unregister();
 		disconnected();
 	}
