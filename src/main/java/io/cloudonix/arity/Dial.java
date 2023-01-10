@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -103,9 +104,9 @@ public class Dial extends CancelableOperations {
 	private volatile boolean wasRinging = false,
 			wasConnected = false,
 			wasCancelled = false,
-			wasDisconnected = false,
 			wasFailed = false,
 			wasActive = false;
+	private AtomicBoolean wasDisconnected = new AtomicBoolean(false);
 	private EventHandler<ChannelStateChange> channelStateChangedSe;
 	private Channel channel;
 	// for local channels, which by default we don't do
@@ -449,7 +450,7 @@ public class Dial extends CancelableOperations {
 	 * @return
 	 */
 	private void handleHangupCallee(ChannelHangupRequest hangup) {
-		logger.info("The called endpoint hanged up the call");
+		logger.info("The called endpoint [{}] hanged up the call", endpointChannelId);
 		channelStateChangedSe.unregister();
 		disconnected();
 	}
@@ -617,9 +618,10 @@ public class Dial extends CancelableOperations {
 	}
 
 	private void disconnected() {
-		if (wasDisconnected)
+		if (wasDisconnected.compareAndExchange(false, true) != false) {
+			logger.warn("Calle [{}] disconnected twice?", endpointChannelId);
 			return;
-		wasDisconnected = true;
+		}
 		computeDurationsAtEndOfCall();
 		try {
 			channelStateDisconnected.forEach(Runnable::run);
