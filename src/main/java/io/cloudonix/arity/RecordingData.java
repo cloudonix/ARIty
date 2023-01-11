@@ -100,4 +100,10 @@ public class RecordingData {
 			return -1;
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("RecordingData:%1$s:%2$s:%3$s", recordingName, startingTime,
+				stored != null ? "stored" : (recording != null ? "live" : "pending")); 
+	}
 }
