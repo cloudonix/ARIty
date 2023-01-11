@@ -36,8 +36,9 @@ public class AsteriskRecording {
 		this.api = arity.getAri().recordings();
 		this.storedRecording = new RecordingData(arity, rec.getName());
 		storedRecording.setLiveRecording(rec);
-		log.debug("recording {}", rec.getName());
+		log.debug("recording {}", storedRecording);
 		waitHandler = arity.addGeneralEventHandler(RecordingFinished.class, (e,se) -> {
+			log.debug("Checking finished against {}", e.getRecording().getName());
 			if (!e.getRecording().getName().equals(rec.getName())) return;
 			se.unregister();
 			storedRecording.setLiveRecording(this.rec = e.getRecording());
