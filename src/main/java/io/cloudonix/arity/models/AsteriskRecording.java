@@ -215,11 +215,14 @@ public class AsteriskRecording {
 	}
 	
 	public CompletableFuture<AsteriskRecording> stop(boolean waitUntilEnd) {
-		if (!waitUntilEnd)
-			waitHandler.unregister();
+		wasStopped = true;
+		CompletableFuture<AsteriskRecording> waitForDone = new CompletableFuture<>();
+		if (waitUntilEnd)
+			waitUntilEnd().thenAccept(waitForDone::complete);
+		else
+			waitForDone.complete(this);
 		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
-				.thenRun(() -> wasStopped = true)
-				.thenCompose(v -> waitUntilEnd ? waitUntilEnd() : CompletableFuture.completedFuture(this));
+				.thenCompose(v -> waitForDone);
 	}
 
 	public RecordingData getRecording() {
