@@ -132,8 +132,6 @@ public class Conference {
 
 	/**
 	 * Start recording the conference
-	 * Call {@link #setRecordName(String)} to set the name of the recording, otherwise the name will be
-	 * a random UUID.
 	 * @return a promise that will be resolved when the recording starts
 	 */
 	public CompletableFuture<Void> recordConference() {
@@ -238,15 +236,6 @@ public class Conference {
 	 */
 	public String getRecordName() {
 		return recordName;
-	}
-
-	/**
-	 * set recording name of the conference
-	 *
-	 * @return
-	 */
-	public void setRecordName(String recordName) {
-		this.recordName = recordName;
 	}
 
 	/**
