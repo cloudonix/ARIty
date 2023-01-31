@@ -113,7 +113,7 @@ public class CallState {
 			fireStateChangeListeners();
 		});
 		registerEventHandler(StasisEnd.class, end -> {
-			log.info(logmarker, "Stasis application ended");
+			log.info(logmarker, "Stasis application {} ended", end.getChannel());
 			isActive = false;
 			if (!lastState.isTerminal()) { // simulate hangup, if needed, on stasis end
 				lastState = States.Hangup;

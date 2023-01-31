@@ -54,9 +54,13 @@ public class Hangup extends Operation {
 
 	/**
 	 * set the reason for why the call is hanged up. Allowed values: normal, busy,
-	 * congestion, no_answer
-	 *
-	 * @param reason
+	 * congestion, no_answer, timeout, rejected, unallocated, normal_unspecified,
+	 * number_incomplete, codec_mismatch, interworking, failure, answered_elsewhere
+	 * 
+	 * See here https://wiki.asterisk.org/wiki/display/AST/Hangup+Cause+Mappings for a list of
+	 * mapping between reason code and SIP status code
+	 * 
+	 * @param reason one of the above specified values
 	 */
 	public void setReason(String reason) {
 		this.reason = reason;
