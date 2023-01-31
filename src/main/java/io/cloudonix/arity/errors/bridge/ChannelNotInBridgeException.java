@@ -5,8 +5,14 @@ import io.cloudonix.arity.errors.ARItyException;
 @SuppressWarnings("serial")
 public class ChannelNotInBridgeException extends ARItyException {
 
-	public ChannelNotInBridgeException(Throwable cause) {
-		super(cause);
+	private String bridgeId;
+
+	public ChannelNotInBridgeException(String bridgeId, Throwable cause) {
+		super(cause.getMessage() + " (bridge:" + bridgeId + ")", cause);
+		this.bridgeId = bridgeId;
 	}
 
+	public String getBridgeId() {
+		return bridgeId;
+	}
 }

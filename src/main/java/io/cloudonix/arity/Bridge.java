@@ -418,17 +418,17 @@ public class Bridge {
 
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
-		case "Bridge not found": return new BridgeNotFoundException(ariError);
+		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
 		case "Channel not found": return new ChannelNotFoundException(ariError);
-		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
-		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
+		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, ariError.getMessage());
+		case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, ariError);
 		}
 		return null;
 	}
 	
 	private Exception mapExceptionsForDestroyBridge(Throwable ariError) {
 		switch (ariError.getMessage()) {
-		case "Bridge not found": return new BridgeNotFoundException(ariError);
+		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
 		}
 		return null;
 	}
