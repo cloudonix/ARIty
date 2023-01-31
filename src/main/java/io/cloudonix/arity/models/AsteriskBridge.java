@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,7 +41,7 @@ public class AsteriskBridge {
 	}
 	
 	public CompletableFuture<Void> destroy() {
-		return Operation.retry(cb -> api.destroy(bridgeId).execute(cb), this::mapExceptions);
+		return Operation.retry(cb -> api.destroy(bridgeId).execute(cb), mapExceptions(bridgeId));
 	}
 	
 	/* getters */
@@ -54,7 +55,7 @@ public class AsteriskBridge {
 	}
 	
 	private CompletableFuture<AsteriskBridge> reload() {
-		return Operation.<Bridge>retry(cb -> api.get(bridgeId).execute(cb), this::mapExceptions)
+		return Operation.<Bridge>retry(cb -> api.get(bridgeId).execute(cb), mapExceptions(bridgeId))
 				.thenApply(b -> { bridge = b; return this; });
 	}
 	
@@ -105,7 +106,7 @@ public class AsteriskBridge {
 			arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, e -> waitForAdded.complete(null));
 		else
 			waitForAdded.complete(null);
-		return Operation.<Void>retry(cb -> api.addChannel(bridgeId, channelId).setRole("member").execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.addChannel(bridgeId, channelId).setRole("member").execute(cb), mapExceptions(bridgeId))
 				.thenCompose(v -> waitForAdded);
 	}
 	
@@ -135,7 +136,7 @@ public class AsteriskBridge {
 			arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, e -> waitForRemoved.complete(null));
 		else
 			waitForRemoved.complete(null);
-		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), mapExceptions(bridgeId))
 				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> {
 					waitForRemoved.complete(null);
 					return null;
@@ -160,7 +161,8 @@ public class AsteriskBridge {
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
-		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(bridgeId, null, null), arity).execute(cb), this::mapExceptions)
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(
+				api.record(bridgeId, null, null), arity).execute(cb), mapExceptions(bridgeId))
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 
@@ -170,7 +172,7 @@ public class AsteriskBridge {
 	 * @return a promise that will resolve when the music on hold starts or reject if there is an unrecoverable error
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
-		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), this::mapExceptions);
+		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), mapExceptions(bridgeId));
 	}
 
 	/**
@@ -178,7 +180,7 @@ public class AsteriskBridge {
 	 * @return a promise that will resolve when the music on hold stops or reject if there is an unrecoverable error
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), this::mapExceptions);
+		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), mapExceptions(bridgeId));
 	}
 	
 	/**
@@ -189,7 +191,7 @@ public class AsteriskBridge {
 	public CompletableFuture<Playback> playMedia(String fileToPlay) {
 		String playbackId = UUID.randomUUID().toString();
 		return Operation.<Playback>retry(
-				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), this::mapExceptions)
+				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), mapExceptions(bridgeId))
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 					arity.addEventHandler(PlaybackFinished.class, bridgeId, (pbf, se) -> {
@@ -209,14 +211,16 @@ public class AsteriskBridge {
 		return String.format("ARI/Bridges:%s(%s)", bridgeId, bridge.getName());
 	}
 	
-	private Exception mapExceptions(Throwable ariError) {
-		switch (ariError.getMessage()) {
-		case "Bridge not found": return new BridgeNotFoundException(ariError);
-		case "Bridge not in Stasis application": return new BridgeNotFoundException(ariError);
-		case "Channel not found": return new ChannelNotInBridgeException(ariError);
-		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
-		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
-		}
-		return null;
+	private Function<Throwable,Exception> mapExceptions(String bridgeId) {
+		return t -> {
+			switch (t.getMessage()) {
+			case "Bridge not found": return new BridgeNotFoundException(bridgeId, t);
+			case "Bridge not in Stasis application": return new BridgeNotFoundException(bridgeId, t);
+			case "Channel not found": return new ChannelNotInBridgeException(bridgeId, t);
+			case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, t.getMessage());
+			case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, t);
+			}
+			return null;
+		};
 	}
 }

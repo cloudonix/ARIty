@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,7 +74,7 @@ public class Bridges {
 	 * @return a promise that will resolve with an existing instance of a bridge or reject if the bridge does not exist
 	 */
 	public CompletableFuture<AsteriskBridge> get(String bridgeId) {
-		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb), this::mapExceptions)
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb), mapExceptions(bridgeId))
 				.thenApply(this::get);
 	}
 	
@@ -85,14 +86,16 @@ public class Bridges {
 		return get(bridge.getId());
 	}
 
-	private Exception mapExceptions(Throwable ariError) {
-		switch (ariError.getMessage()) {
-		case "Bridge not found": return new BridgeNotFoundException(ariError);
-		case "Channel not found": return new ChannelNotInBridgeException(ariError);
-		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(ariError.getMessage());
-		case "Channel not in this bridge": return new ChannelNotInBridgeException(ariError);
-		}
-		return null;
+	private Function<Throwable,Exception> mapExceptions(String bridgeId) {
+		return ariError -> {
+			switch (ariError.getMessage()) {
+			case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
+			case "Channel not found": return new ChannelNotInBridgeException(bridgeId, ariError);
+			case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, ariError.getMessage());
+			case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, ariError);
+			}
+			return null;
+		};
 	}
 
 }
