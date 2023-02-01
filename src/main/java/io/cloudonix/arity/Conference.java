@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class Conference {
 	private final static Logger logger = LoggerFactory.getLogger(Conference.class);
 	private Runnable handleChannelLeftConference = () -> {};
 	private String recordName = null;
-	volatile private AsteriskRecording conferenceRecord;
+	private AtomicReference<AsteriskRecording> conferenceRecord = new AtomicReference<>(null);
 	private CompletableFuture<AsteriskBridge> bridge;
 	private String musicOnHoldClassName = "default";
 	private ARIty arity;
@@ -134,14 +135,15 @@ public class Conference {
 	 * Start recording the conference
 	 * @return a promise that will be resolved when the recording starts
 	 */
-	public CompletableFuture<Void> recordConference() {
-		logger.info("Starting recording conference " + conferenceName);
+	public CompletableFuture<AsteriskRecording> recordConference() {
+		logger.info("Starting recording conference {}", conferenceName);
 		if (Objects.isNull(recordName))
 			recordName = UUID.randomUUID().toString();
 		return bridge.thenCompose(b -> b.record(a -> a.withName(recordName).withIfExists("overwrite").withPlayBeep(false)))
-				.thenAccept(recored -> {
-					conferenceRecord = recored;
-					logger.info("Started recording");
+				.thenApply(rec -> {
+					conferenceRecord.set(rec);
+					logger.info("Started recording {} [{}]", conferenceName, recordName);
+					return rec;
 				});
 	}
 	
@@ -150,9 +152,9 @@ public class Conference {
 	 * @return promise that will resolve when the recording ends, or immediately if there was no live recording
 	 */
 	public CompletableFuture<Void> stopRecording() {
-		if (Objects.isNull(conferenceRecord))
+		if (conferenceRecord.get() == null)
 			return CompletableFuture.completedFuture(null);
-		return conferenceRecord.stop().thenAccept(v -> {});
+		return conferenceRecord.get().stop().thenAccept(v -> {});
 	}
 
 	/**
@@ -244,7 +246,7 @@ public class Conference {
 	 * @return
 	 */
 	public AsteriskRecording getConferenceRecord() {
-		return conferenceRecord;
+		return conferenceRecord.get();
 	}
 
 	/**
