@@ -263,7 +263,9 @@ public abstract class Operation {
 		else
 			switch (ariError.getMessage()) {
 			case "Channel not found": return new ChannelNotFoundException(ariError);
-			case "Channel in invalid state": return new ChannelInInvalidState(ariError);
+			case "Channel in invalid state":
+			case "Channel not in Stasis application":
+				return new ChannelInInvalidState(ariError);
 			}
 		return null;
 	}
