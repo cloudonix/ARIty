@@ -231,7 +231,7 @@ public class CallState {
 						if (e instanceof VariableNotFound)
 							log.info(logmarker, "readVariable({}): not found", name);
 						else if (e != null)
-							log.info(logmarker, "readVariable({}): unexpected error", e, name);
+							log.info(logmarker, "readVariable({}): unexpected error", name, e);
 						else
 							value = var.getValue();
 						return this;
