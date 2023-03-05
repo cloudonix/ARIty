@@ -15,8 +15,8 @@ import ch.loway.oss.ari4java.generated.models.Message;
  */
 public class EventHandler<T extends Message> implements Consumer<T> {
 	private BiConsumer<T, EventHandler<T>> handler;
-	private String channelId;
-	private Class<T> clazz;
+	protected String channelId;
+	protected Class<T> clazz;
 	private ARIty arity;
 	private volatile boolean registered = true;
 	private final static Logger logger = LoggerFactory.getLogger(EventHandler.class);
