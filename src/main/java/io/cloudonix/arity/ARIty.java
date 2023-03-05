@@ -609,10 +609,10 @@ public class ARIty implements AriCallback<Message> {
 	 * @return 
 	 */
 	public <T extends Message> EventHandler<T> listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
-		return addEventHandler(type, channelId, (t,se) -> {
-			se.unregister();
-			eventHandler.accept(t);
-		});
+		logger.debug("Registering for a one time {} event on channel {}", type.getSimpleName(), channelId);
+		EventHandler<T> se = new OnetimeEventHandler<T>(channelId, eventHandler, type, this);
+		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).add(se);
+		return se;
 	}
 
 	/**
