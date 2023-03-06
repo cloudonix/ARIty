@@ -28,7 +28,7 @@ public class OnetimeEventHandler<T extends Message> extends EventHandler<T> {
 
 	@Override
 	public String toString() {
-		return "Event handler<" + clazz.getSimpleName() + ">[" + channelId + "]->" + handler.getClass();
+		return "Event handler<" + clazz.getSimpleName() + ">[" + channelId + "]->" + makeName(handler.getClass());
 	}
 
 }

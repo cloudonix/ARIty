@@ -68,6 +68,10 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 
 	@Override
 	public String toString() {
-		return "Event handler<" + clazz.getSimpleName() + ">[" + channelId + "]->" + handler.getClass();
+		return "Event handler<" + clazz.getSimpleName() + ">[" + channelId + "]->" + makeName(handler.getClass());
+	}
+
+	static protected String makeName(Class<?> clazz) {
+		return clazz.getName().replaceAll("\\$?\\$Lambda\\$(\\d+)/0x[a-f0-8]+", ":lambda:$1");
 	}
 }
