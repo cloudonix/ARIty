@@ -566,8 +566,8 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	public <T extends Message> EventHandler<T> addEventHandler(Class<T> type, String channelId, BiConsumer<T,EventHandler<T>> eventHandler) {
-		logger.debug("Registering for {} events on channel {}", type.getSimpleName(), channelId);
 		EventHandler<T> se = new EventHandler<T>(channelId, eventHandler, type, this);
+		logger.debug("Registering {}", se);
 		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).add(se);
 		return se;
 	}
@@ -579,8 +579,8 @@ public class ARIty implements AriCallback<Message> {
 	 * @param eventHandler  handler to call when the event arrives
 	 */
 	public <T extends Message> EventHandler<T> addGeneralEventHandler(Class<T> type, BiConsumer<T, EventHandler<T>> eventHandler) {
-		logger.debug("Registering for {} global events", type.getSimpleName());
 		EventHandler<T> se = new EventHandler<T>(null, eventHandler, type, this);
+		logger.debug("Registering {}", se);
 		rawEventHandlers.add(se);
 		return se;
 	}
@@ -596,7 +596,7 @@ public class ARIty implements AriCallback<Message> {
 		}
 		if (channelEventHandlers.computeIfAbsent(handler.getChannelId(), 
 				id -> new ConcurrentLinkedQueue<>()).remove(handler))
-			logger.debug("{} was removed", handler);
+			logger.debug("Removed {}", handler);
 	}
 
 	/**
@@ -609,8 +609,8 @@ public class ARIty implements AriCallback<Message> {
 	 * @return 
 	 */
 	public <T extends Message> EventHandler<T> listenForOneTimeEvent(Class<T> type, String channelId, Consumer<T> eventHandler) {
-		logger.debug("Registering for a one time {} event on channel {}", type.getSimpleName(), channelId);
 		EventHandler<T> se = new OnetimeEventHandler<T>(channelId, eventHandler, type, this);
+		logger.debug("Registering {}", se);
 		channelEventHandlers.computeIfAbsent(channelId, id -> new ConcurrentLinkedQueue<>()).add(se);
 		return se;
 	}
