@@ -244,7 +244,9 @@ public class CallState {
 
 		private Exception mapExceptions(Throwable ariError) {
 			switch (ariError.getMessage()) {
-			case "Unable to read provided function": // SIP_HEADER() might cause this to be returned when the channel is down or header is not found
+			case "Unable to read provided function": // Asterisk  returns "unable" when the function exists
+					// but reports an error about the arguments, e.g. calling SIP_HEADER() for a non-set header
+					return new VariableNotFound();
 			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
 			case "Provided variable was not found": return new VariableNotFound();
 			default:
