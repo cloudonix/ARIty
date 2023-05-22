@@ -70,11 +70,11 @@ public class AsteriskBridge {
 		return reload().thenApply(v -> true).exceptionally(Futures.on(BridgeNotFoundException.class, e -> false));
 	}
 	
-	/* Channel Management */
-	
-	public List<String> currentChannels() {
-		return bridge.getChannels();
+	public Bridge getData() {
+		return bridge;
 	}
+	
+	/* Channel Management */
 	
 	public CompletableFuture<Integer> getChannelCount() {
 		return reload().thenApply(v -> bridge.getChannels().size());
