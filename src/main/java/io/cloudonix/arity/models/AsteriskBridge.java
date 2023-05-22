@@ -72,6 +72,10 @@ public class AsteriskBridge {
 	
 	/* Channel Management */
 	
+	public List<String> currentChannels() {
+		return bridge.getChannels();
+	}
+	
 	public CompletableFuture<Integer> getChannelCount() {
 		return reload().thenApply(v -> bridge.getChannels().size());
 	}
