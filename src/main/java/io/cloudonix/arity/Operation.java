@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
@@ -29,6 +30,8 @@ import io.cloudonix.arity.helpers.Futures;
  * @author odeda
  */
 public abstract class Operation {
+
+	private static final Logger log = LoggerFactory.getLogger(Operation.class);
 
 	@FunctionalInterface
 	public static interface AriOperation<T> {
@@ -121,6 +124,11 @@ public abstract class Operation {
 		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(1).collect(Collectors.toList())
 				.toArray(new StackTraceElement[] {});
 	}
+	
+	public static String getLastSignificantCaller(StackTraceElement[] callstack) {
+		return Stream.of(callstack).filter(s -> !s.getClassName().contentEquals(Operation.class.getName())).findFirst()
+				.map(s -> s.toString()).orElse("unknown");
+	}
 
 	public static CompletionException rewrapError(String message, StackTraceElement[] originalStack, Throwable cause) {
 		while (cause instanceof CompletionException)
@@ -200,11 +208,17 @@ public abstract class Operation {
 				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
 			RestException restCause = findRestException(t);
 			if (restCause.getCode() >= 500) {// Asterisk error - no need to check mapping, we should immediately try again
-				LoggerFactory.getLogger(Operation.class).warn("ARI {}, retrying: {}", restCause, restCause.getResponse());
+				log.warn("[from {}] ARI {}, retrying: {}", getLastSignificantCaller(caller), restCause, restCause.getResponse());
 				return retrier.get();
 			}
-			if (t.getMessage().toLowerCase().contains("timeout"))
+			if (t.getMessage().toLowerCase().contains("timeout")) {
+				log.warn("[from [}] ARI timeout: {}", getLastSignificantCaller(caller), t.getMessage());
 				return retrier.get();
+			}
+			if (t.getMessage().contains("Client Shutdown")) {
+				log.warn("[from [}] ARI client shutdown: {}", getLastSignificantCaller(caller), t.getMessage());
+				return retrier.get();
+			}
 			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);
 		})
 		.thenCompose(x -> x);
@@ -259,7 +273,7 @@ public abstract class Operation {
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
 		if (ariError.getMessage() == null)
-			LoggerFactory.getLogger(getClass()).error("ARI error with no message???", ariError);
+			log.error("ARI error with no message???", ariError);
 		else
 			switch (ariError.getMessage()) {
 			case "Channel not found": return new ChannelNotFoundException(ariError);
