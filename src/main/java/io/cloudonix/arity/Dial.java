@@ -318,7 +318,7 @@ public class Dial extends CancelableOperations {
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
 				.thenCompose(v -> dialledCallState.get().setVariables(formatCallerIdVariables())) // set variables again as CALLERID is sometimes ignored
-				.whenComplete((v,t) -> logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge))
+				.whenComplete((v,t) -> { if (t == null) logger.debug("Early bridging adding channel {} to {}", channel.getId(), earlyBridge); })
 				.thenCompose(v -> earlyBridge.addChannel(channel.getId()))
 				.thenCompose(v -> dialledCallState.get().setVariables(formatCallerIdVariables())) // and again, just to be on the safe side
 				.whenComplete((v,t) -> logger.debug("Early bridging dialing out on {}", endpointChannelId))

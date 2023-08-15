@@ -88,7 +88,7 @@ public class RecordingData {
 	}
 	
 	public CompletableFuture<Void> deleteRecording() {
-		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName));
+		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb));
 	}
 
 	public int getDuration() {
