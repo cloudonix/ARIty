@@ -56,26 +56,25 @@ public class Application extends CallController {
 
 ## Installation
 
-In your `pom.xml` file, add the repository for ARIty (we are currently not hosted in the public Maven repository) as an element under `<project>`:
+ARIty is available from Jitpack. To use it, add the Jitpack repository to your `pom.xml`:
 
-```
+```xml
 <repositories>
   <repository>
-    <id>cloudonix-dist</id>
-    <url>https://cloudonix-dist.s3.amazonaws.com/maven2/releases</url>
+    <id>jitpack.io</id>
+    <url>https://jitpack.io</url>
   </repository>
 </repositories>
-```
+``
 
-Then add ARIty as a dependency:
+Then add the ARIty dependency to the dependencies list:
 
-```
+```xml
 <dependency>
-	<groupId>io.cloudonix</groupId>
-	<artifactId>arity</artifactId>
-	<version>[0,)</version>
+  <groupId>com.github.cloudonix</groupId>
+  <artifactId>arity</artifactId>
+  <version>0.12.0</version>
 </dependency>
-```
 
 ## Usage
 
