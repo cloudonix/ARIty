@@ -65,7 +65,7 @@ ARIty is available from Jitpack. To use it, add the Jitpack repository to your `
     <url>https://jitpack.io</url>
   </repository>
 </repositories>
-``
+```
 
 Then add the ARIty dependency to the dependencies list:
 
@@ -75,6 +75,7 @@ Then add the ARIty dependency to the dependencies list:
   <artifactId>arity</artifactId>
   <version>0.12.0</version>
 </dependency>
+```
 
 ## Usage
 
