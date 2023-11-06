@@ -16,6 +16,7 @@ import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
 import io.cloudonix.arity.helpers.Futures;
 import io.cloudonix.arity.models.AsteriskBridge;
+import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.models.AsteriskChannel.Mute;
 import io.cloudonix.arity.models.AsteriskRecording;
 
@@ -39,6 +40,13 @@ public class Conference {
 	private boolean mohStopped = false;
 	private Runnable talkingStatedHandler = ()->{};
 	private Runnable talkingFinishedEvent = ()->{};
+	// start conference states:
+	private boolean beepOnEnter = true;
+	private boolean mute = false;
+	private Mute muteChannelOnStart = Mute.NO;
+	private boolean absorbDTMF = false;
+	private boolean prompts;
+	private String role;
 
 	/**
 	 * Create a new conference bridge for this call controller
@@ -79,7 +87,73 @@ public class Conference {
 		this.talkingFinishedEvent = talkingFinishedH;
 		return this;
 	}
+	
+	/**
+	 * Sets whether a beep will be played to the channel before entering the conference.
+	 * @param beepOnEnter whether the caller will hear a beep when entering the conference
+	 * @return itself for fluent calls
+	 */
+	public Conference beepOnEnter(boolean beepOnEnter) {
+		this.beepOnEnter = beepOnEnter;
+		return this;
+	}
 
+	/**
+	 * Sets whether the channel should be muted in the conference.
+	 * The channel's input audio will not be played out to the conference at all. It is not
+	 * possible to unmute a channel muted that way - the channel must be disconnected from
+	 * the conference and be reconnected in order to achieve that.
+	 * @param mute whether to mute the channel in the conference
+	 * @return itself for fluent calls
+	 */
+	public Conference muteInConference(boolean mute) {
+		this.mute = mute;
+		return this;
+	}
+	
+	/**
+	 * Sets whether the channel should be muted before entering the conference.
+	 * This behavior is different than {@link #muteInConference(boolean)} in that the channel is muted
+	 * using the channel API and it can later be unmuted using the channel API.
+	 * @param muteDirection channel mute direction to be applied to the channel before it enters the conference.
+	 * @return itself for fluent calls
+	 */
+	public Conference muteChannelOnStart(AsteriskChannel.Mute muteDirection) {
+		this.muteChannelOnStart = muteDirection;
+		return this;
+	}
+	
+	/**
+	 * Sets whether DTMF coming from this channel, should be absorbed - preventing it from passing through to the
+	 * conference.
+	 * @param absorbDTMF should DTMF from the channel should be absorbed
+	 * @return itself for fluent calls
+	 */
+	public Conference absorbDTMF(boolean absorbDTMF) {
+		this.absorbDTMF = absorbDTMF;
+		return this;
+	}
+	
+	/**
+	 * Sets whether the channel should be announced to the conference when entering and leaving the conference
+	 * @param prompts whether channel entering/leaving prompts should be played to the conference
+	 * @return itself for fluent calls
+	 */
+	public Conference announce(boolean prompts) {
+		this.prompts = prompts;
+		return this;
+	}
+	
+	/**
+	 * Sets the channel's role in the bridge
+	 * @param role role name
+	 * @return itself for fluent calls
+	 */
+	public Conference role(String role) {
+		this.role = role;
+		return this;
+	}
+	
 	/**
 	 * Close conference
 	 * @return a promise that will resolve with the conference bridge has been shutdown
@@ -94,9 +168,10 @@ public class Conference {
 	 * @param beep should a "beep" sound play when the channel joins the conference
 	 * @param mute should the new channel be muted
 	 * @return A promise that will resolve when the channel has been added and announced
+	 * @deprecated Use configure the connection using the connection modifiers than {@link #addChannel()} instead.
 	 */
 	public CompletableFuture<Conference> addChannelToConf(boolean beep, Mute mute) {
-		return addChannelToConf(beep, mute, true);
+		return beepOnEnter(beep).muteChannelOnStart(mute).announce(true).addChannel();
 	}
 	
 	/**
@@ -104,26 +179,42 @@ public class Conference {
 	 * @param beep should a "beep" sound play when the channel joins the conference
 	 * @param mute should the new channel be muted
 	 * @return A promise that will resolve when the channel has been added and announced
+	 * @deprecated Use configure the connection using the connection modifiers than {@link #addChannel()} instead.
 	 */
-	public CompletableFuture<Conference> addChannelToConf(boolean beep, Mute mute, boolean joinLeavePrompts) {
-		CompletableFuture<Answer> answer = new CompletableFuture<Answer>();
+	public CompletableFuture<Conference> addChannelToConf(boolean beep, Mute mute, boolean announce) {
+		return beepOnEnter(beep).muteChannelOnStart(mute).announce(announce).addChannel();
+	}
+	
+	/**
+	 * Add a channel to conference
+	 * Use {@link #beepOnEnter(boolean)}, {@link #muteInConference(boolean)}, {@link #muteChannelOnStart(Mute)},
+	 * {@link #absorbDTMF(boolean)}, and {@link #announce(boolean)} to configure the connection to
+	 * the bridge.
+	 * @return A promise that will resolve when the channel has been added and announced
+	 */
+	public CompletableFuture<Conference> addChannel() {
+		CompletableFuture<Void> preConnect = CompletableFuture.completedFuture(null);
 		if (callController.getCallState().wasAnswered()) {
 			logger.info("Channel with id: " + callController.getChannelId() + " was already answered");
-			answer.complete(null);
 		} else {
 			logger.debug("Need to answer the channel with id: " + callController.getChannelId());
-			answer = callController.answer().run();
+			preConnect = callController.answer().run().thenAccept(__ -> {});
 		}
-		return answer.thenCompose(answerRes -> bridge).thenCompose(b -> b.addChannel(callController.getChannelId()))
-				.thenCompose(v -> {
-					logger.debug("Channel was added to the bridge");
-					return beep ? playMedia("beep") : CompletableFuture.completedFuture(null);
-				}).thenCompose(beepRes -> {
-					arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
-							e -> channelLeftConference(e, joinLeavePrompts));
-					return callController.mute(mute).run();
-				})
-				.thenCompose(muteRes -> annouceUser(joinLeavePrompts ? UserAnnounce.joined : UserAnnounce.quiet))
+		arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
+				e -> channelLeftConference(e).whenComplete((v,t) -> {
+					logger.error("Error handling the 'channel left bridge' event:",t);
+				}));
+		if (muteChannelOnStart != Mute.NO)
+			preConnect = preConnect.thenCompose(__ -> callController.mute(muteChannelOnStart).run()).thenAccept(__ -> {});
+		return preConnect.thenCompose(answerRes -> bridge)
+				.thenCompose(b -> b.addChannel(callController.getChannelId(), true, req -> {
+					if (role != null) req.setRole(role);
+					if (mute) req.setMute(true);
+					if (absorbDTMF) req.setAbsorbDTMF(true);
+				}))
+				.thenRun(() -> logger.debug("Channel was added to the bridge"))
+				.thenCompose(__ -> beepOnEnter ? playMedia("beep") : CompletableFuture.completedFuture(null))
+				.thenCompose(muteRes -> annouceUser(prompts ? UserAnnounce.joined : UserAnnounce.quiet))
 				.exceptionally(Futures.on(Exception.class, t -> {
 					logger.info("Unable to add channel to conference: " + t);
 					throw new ConferenceException(t);
@@ -175,25 +266,27 @@ public class Conference {
 	 * @param channelLeftBridge channelLeftBridge event instance
 	 * @param joinLeavePrompts 
 	 */
-	private void channelLeftConference(ChannelLeftBridge channelLeftBridge, boolean joinLeavePrompts) {
+	private CompletableFuture<Void> channelLeftConference(ChannelLeftBridge channelLeftBridge) {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
-		annouceUser(joinLeavePrompts ? UserAnnounce.left : UserAnnounce.quiet).thenAccept(pb -> {
-			bridge.thenCompose(b -> b.getChannelCount()).thenAccept(numberOfChannelsInConf -> {
-				if (numberOfChannelsInConf == 1) {
-					logger.info("Only one channel left in bridge, play music on hold");
-					bridge.thenCompose(b -> b.startMusicOnHold(musicOnHoldClassName));
-				}
-				if (numberOfChannelsInConf == 0) {
-					closeConference().thenAccept(
-							v2 -> logger.info("Nobody in the conference, closed the conference" + conferenceName))
-							.exceptionally(t -> {
-								logger.warn("Conference bridge was already destroyed");
-								return null;
-							});
-				}
-			});
-		});
+		return CompletableFuture.allOf(
+				(muteChannelOnStart != Mute.NO ? callController.mute(Mute.NO).run() : CompletableFuture.completedFuture(null)),
+				annouceUser(prompts ? UserAnnounce.left : UserAnnounce.quiet))
+				.thenCompose(__ -> bridge)
+				.thenCompose(b -> b.getChannelCount()).thenAccept(numberOfChannelsInConf -> {
+					if (numberOfChannelsInConf == 1) {
+						logger.info("Only one channel left in bridge, play music on hold");
+						bridge.thenCompose(b -> b.startMusicOnHold(musicOnHoldClassName));
+					}
+					if (numberOfChannelsInConf == 0) {
+						closeConference().thenAccept(
+								v2 -> logger.info("Nobody in the conference, closed the conference" + conferenceName))
+								.exceptionally(t -> {
+									logger.warn("Conference bridge was already destroyed");
+									return null;
+								});
+					}
+				});
 	}
 	
 	public enum UserAnnounce { quiet, joined, left }
