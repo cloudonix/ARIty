@@ -212,9 +212,7 @@ public class Conference {
 					if (t != null)
 						logger.error("Error handling the 'channel left bridge' event:",t);
 				}));
-		if (muteChannelOnStart != Mute.NO)
-			preConnect = preConnect.thenCompose(__ -> callController.mute(muteChannelOnStart).run()).thenAccept(__ -> {});
-		return preConnect.thenCompose(answerRes -> bridge)
+		return preConnect.thenCompose(__ -> muteChannelIfNeeded()).thenCompose(answerRes -> bridge)
 				.thenCompose(b -> b.addChannel(callController.getChannelId(), true, req -> {
 					if (role != null) req.setRole(role);
 					if (mute) req.setMute(true);
@@ -229,7 +227,25 @@ public class Conference {
 				}))
 				.thenApply(v -> this);
 	}
-
+	
+	private CompletableFuture<Void> muteChannelIfNeeded() {
+		if (muteChannelOnStart == Mute.NO)
+			return CompletableFuture.completedFuture(null);
+		return callController.mute(muteChannelOnStart).run()
+				// ignore errors in unmuting channels, these are likely "channel not found"
+				.exceptionally(__ -> null)
+				.thenAccept(__ -> {});
+	}
+	
+	private CompletableFuture<Void> unmuteChannelIfNeeded() {
+		if (muteChannelOnStart == Mute.NO)
+			return CompletableFuture.completedFuture(null);
+		return callController.mute(Mute.NO).run()
+				// ignore errors in unmuting channels, these are likely "channel not found"
+				.exceptionally(__ -> null)
+				.thenAccept(__ -> {});
+	}
+	
 	/**
 	 * Start recording the conference
 	 * @return a promise that will be resolved when the recording starts
@@ -275,8 +291,7 @@ public class Conference {
 	private CompletableFuture<Void> channelLeftConference(ChannelLeftBridge channelLeftBridge) {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
-		return CompletableFuture.allOf(
-				(muteChannelOnStart != Mute.NO ? callController.mute(Mute.NO).run() : CompletableFuture.completedFuture(null)),
+		return CompletableFuture.allOf(unmuteChannelIfNeeded(),
 				annouceUser(prompts ? UserAnnounce.left : UserAnnounce.quiet))
 				.thenCompose(__ -> bridge)
 				.thenCompose(b -> b.getChannelCount()).thenAccept(numberOfChannelsInConf -> {
