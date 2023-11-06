@@ -125,7 +125,8 @@ public class AsteriskBridge {
 					.thenCompose(v -> waitForAdded);
 		} catch (RestException e) { // this isn't supposed to ever happen
 			// because addChannel never actually throws exceptions, it just declares them
-			return CompletableFuture.failedFuture(mapExceptions(channelId).apply(e)); // but we play it safe
+			var translated = mapExceptions(channelId).apply(e); // but we play it safe
+			return CompletableFuture.failedFuture(translated != null ? translated : e);
 		}
 	}
 	

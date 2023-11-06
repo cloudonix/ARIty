@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
 import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
@@ -47,6 +48,8 @@ public class Conference {
 	private boolean absorbDTMF = false;
 	private boolean prompts;
 	private String role;
+	private EventHandler<ChannelEnteredBridge> memberAddedHandler;
+	private EventHandler<ChannelLeftBridge> memberRemovedHandler;
 
 	/**
 	 * Create a new conference bridge for this call controller
@@ -160,7 +163,11 @@ public class Conference {
 	 */
 	public CompletableFuture<Void> closeConference() {
 		logger.info("Closing conference");
-		return bridge.thenCompose(b -> b.destroy());
+		return bridge.thenCompose(b -> b.destroy())
+				.thenRun(() -> {
+					memberAddedHandler.unregister();
+					memberRemovedHandler.unregister();
+				});
 	}
 
 	/**
@@ -186,7 +193,7 @@ public class Conference {
 	}
 	
 	/**
-	 * Add a channel to conference
+	 * Add the channel to the conference
 	 * Use {@link #beepOnEnter(boolean)}, {@link #muteInConference(boolean)}, {@link #muteChannelOnStart(Mute)},
 	 * {@link #absorbDTMF(boolean)}, and {@link #announce(boolean)} to configure the connection to
 	 * the bridge.
@@ -202,11 +209,10 @@ public class Conference {
 		}
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
 				e -> channelLeftConference(e).whenComplete((v,t) -> {
-					logger.error("Error handling the 'channel left bridge' event:",t);
+					if (t != null)
+						logger.error("Error handling the 'channel left bridge' event:",t);
 				}));
-		if (muteChannelOnStart != Mute.NO)
-			preConnect = preConnect.thenCompose(__ -> callController.mute(muteChannelOnStart).run()).thenAccept(__ -> {});
-		return preConnect.thenCompose(answerRes -> bridge)
+		return preConnect.thenCompose(__ -> muteChannelIfNeeded()).thenCompose(answerRes -> bridge)
 				.thenCompose(b -> b.addChannel(callController.getChannelId(), true, req -> {
 					if (role != null) req.setRole(role);
 					if (mute) req.setMute(true);
@@ -221,7 +227,25 @@ public class Conference {
 				}))
 				.thenApply(v -> this);
 	}
-
+	
+	private CompletableFuture<Void> muteChannelIfNeeded() {
+		if (muteChannelOnStart == Mute.NO)
+			return CompletableFuture.completedFuture(null);
+		return callController.mute(muteChannelOnStart).run()
+				// ignore errors in unmuting channels, these are likely "channel not found"
+				.exceptionally(__ -> null)
+				.thenAccept(__ -> {});
+	}
+	
+	private CompletableFuture<Void> unmuteChannelIfNeeded() {
+		if (muteChannelOnStart == Mute.NO)
+			return CompletableFuture.completedFuture(null);
+		return callController.mute(Mute.NO).run()
+				// ignore errors in unmuting channels, these are likely "channel not found"
+				.exceptionally(__ -> null)
+				.thenAccept(__ -> {});
+	}
+	
 	/**
 	 * Start recording the conference
 	 * @return a promise that will be resolved when the recording starts
@@ -249,11 +273,9 @@ public class Conference {
 	}
 
 	/**
-	 * register handler to execute when channel left conference
-	 *
-	 * @param handler runnable function that will be running when channel left
-	 *                bridge occurs
-	 * @return
+	 * Register callback that will be invoked when the channel has left the conference.
+	 * @param handler handler to be called when the channel had disconnected from the conference
+	 * @return itself for fluent calls
 	 */
 	public Conference registerChannelLeftConferenceHandler(Runnable handler) {
 		handleChannelLeftConference = handler;
@@ -269,15 +291,17 @@ public class Conference {
 	private CompletableFuture<Void> channelLeftConference(ChannelLeftBridge channelLeftBridge) {
 		handleChannelLeftConference.run();
 		logger.info("Channel " + channelLeftBridge.getChannel().getId() + " left conference: " + conferenceName);
-		return CompletableFuture.allOf(
-				(muteChannelOnStart != Mute.NO ? callController.mute(Mute.NO).run() : CompletableFuture.completedFuture(null)),
+		return CompletableFuture.allOf(unmuteChannelIfNeeded(),
 				annouceUser(prompts ? UserAnnounce.left : UserAnnounce.quiet))
 				.thenCompose(__ -> bridge)
 				.thenCompose(b -> b.getChannelCount()).thenAccept(numberOfChannelsInConf -> {
+					// Let's not do that - there's no API to control whether moh sould play, so by default lets not be noisy
+					/*
 					if (numberOfChannelsInConf == 1) {
 						logger.info("Only one channel left in bridge, play music on hold");
 						bridge.thenCompose(b -> b.startMusicOnHold(musicOnHoldClassName));
 					}
+					*/
 					if (numberOfChannelsInConf == 0) {
 						closeConference().thenAccept(
 								v2 -> logger.info("Nobody in the conference, closed the conference" + conferenceName))
@@ -287,6 +311,42 @@ public class Conference {
 								});
 					}
 				});
+	}
+	
+	/**
+	 * Register callback that will be invoked when any of other conference member has entered the conference.
+	 * @param handler handler to be called when a member has joined the conference
+	 * @return itself for fluent calls
+	 */
+	public Conference registerMemberAddedHandler(Runnable handler) {
+		bridge.thenAccept(b -> {
+			var bridgeId = b.getId();
+			memberAddedHandler = arity.addGeneralEventHandler(ChannelEnteredBridge.class, (e, eh) -> {
+				if (!Objects.equals(bridgeId, e.getBridge().getId()) ||
+						Objects.equals(callController.getChannelId(), e.getChannel().getId()))
+					return;
+				handler.run();
+			});
+		});
+		return this;
+	}
+
+	/**
+	 * Register callback that will be invoked when any of other conference member has entered the conference.
+	 * @param handler handler to be called when a member has joined the conference
+	 * @return itself for fluent calls
+	 */
+	public Conference registerMemberRemovedHandler(Runnable handler) {
+		bridge.thenAccept(b -> {
+			var bridgeId = b.getId();
+			memberRemovedHandler = arity.addGeneralEventHandler(ChannelLeftBridge.class, (e, eh) -> {
+				if (!Objects.equals(bridgeId, e.getBridge().getId()) ||
+						Objects.equals(callController.getChannelId(), e.getChannel().getId()))
+					return;
+				handler.run();
+			});
+		});
+		return this;
 	}
 	
 	public enum UserAnnounce { quiet, joined, left }
