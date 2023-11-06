@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
+import ch.loway.oss.ari4java.generated.actions.requests.BridgesAddChannelPostRequest;
 import ch.loway.oss.ari4java.generated.models.Bridge;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
@@ -17,6 +18,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
+import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.Bridges.BridgeType;
@@ -105,13 +107,26 @@ public class AsteriskBridge {
 	}
 
 	public CompletableFuture<Void> addChannel(String channelId, boolean confirmWasAdded) {
+		return addChannel(channelId, confirmWasAdded, null);
+	}
+	
+	public CompletableFuture<Void> addChannel(String channelId, boolean confirmWasAdded,
+			Consumer<BridgesAddChannelPostRequest> configureRequest) {
 		CompletableFuture<Void> waitForAdded = new CompletableFuture<>();
 		if (confirmWasAdded)
 			arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, e -> waitForAdded.complete(null));
 		else
 			waitForAdded.complete(null);
-		return Operation.<Void>retry(cb -> api.addChannel(bridgeId, channelId).setRole("member").execute(cb), mapExceptions(bridgeId))
-				.thenCompose(v -> waitForAdded);
+		try {
+			var request = api.addChannel(bridgeId, channelId).setRole("member");
+			if (configureRequest != null)
+				configureRequest.accept(request);
+			return Operation.<Void>retry(cb -> request.execute(cb), mapExceptions(bridgeId))
+					.thenCompose(v -> waitForAdded);
+		} catch (RestException e) { // this isn't supposed to ever happen
+			// because addChannel never actually throws exceptions, it just declares them
+			return CompletableFuture.failedFuture(mapExceptions(channelId).apply(e)); // but we play it safe
+		}
 	}
 	
 	public CompletableFuture<Void> removeChannel(AsteriskChannel channel) {
