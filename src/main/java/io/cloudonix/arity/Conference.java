@@ -15,6 +15,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelTalkingFinished;
 import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.models.Playback;
 import io.cloudonix.arity.errors.ConferenceException;
+import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 import io.cloudonix.arity.models.AsteriskBridge;
 import io.cloudonix.arity.models.AsteriskChannel;
@@ -208,7 +209,9 @@ public class Conference {
 			preConnect = callController.answer().run().thenAccept(__ -> {});
 		}
 		arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
-				e -> channelLeftConference(e).whenComplete((v,t) -> {
+				e -> channelLeftConference(e)
+				.exceptionally(Futures.on(BridgeNotFoundException.class, ex -> null)) // this can happen when conferences are closed quickly 
+				.whenComplete((v,t) -> {
 					if (t != null)
 						logger.error("Error handling the 'channel left bridge' event:",t);
 				}));
