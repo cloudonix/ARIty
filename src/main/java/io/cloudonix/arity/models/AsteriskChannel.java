@@ -13,8 +13,7 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
-import io.cloudonix.arity.errors.ChannelInInvalidState;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.CallState.States;
 
 public class AsteriskChannel {
@@ -83,7 +82,7 @@ public class AsteriskChannel {
 	 * @return a promise that resolve to itself or rejects if the API encountered errors
 	 */
 	public CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
-		return Operation.<Void>retry(cb -> api.hangup(channelId).setReason(reason.reason).execute(cb), this::mapExceptions).thenApply(v -> this);
+		return Operation.<Void>retry(cb -> api.hangup(channelId).setReason(reason.reason).execute(cb), ARItyException::ariRestExceptionMapper).thenApply(v -> this);
 	}
 	
 	/**
@@ -210,16 +209,8 @@ public class AsteriskChannel {
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
-		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb), this::mapExceptions)
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
-	}
-	
-	private Exception mapExceptions(Throwable ariError) {
-		switch (ariError.getMessage()) {
-		case "Channel not in Stasis application": return new ChannelInInvalidState(ariError);
-		case "Channel not found": return new ChannelNotFoundException(ariError);
-		}
-		return null;
 	}
 	
 	public interface Snoop {
@@ -235,42 +226,42 @@ public class AsteriskChannel {
 		String snoopId = UUID.randomUUID().toString();
 		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(snoopId);
 		return Operation.<Channel>retry(cb -> api.snoopChannel(channelId, arity.getAppName())
-				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), this::mapExceptions)
+				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, cs))); // ignore new call state for now
 	}
 
 	public CompletableFuture<AsteriskChannel> startSilence() {
-		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> stopSilence() {
-		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> answer() {
-		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), this::mapExceptions)
+		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial() {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
-				.execute(cb), this::mapExceptions)
+				.execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller) {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller)
-				.execute(cb), this::mapExceptions)
+				.execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller, int timeout) {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller).setTimeout(timeout)
-				.execute(cb), this::mapExceptions)
+				.execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(v -> this);
 	}
 	

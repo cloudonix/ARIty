@@ -18,9 +18,8 @@ import ch.loway.oss.ari4java.generated.actions.ActionPlaybacks;
 import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ChannelInInvalidState;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.InvalidCallStateException;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 
 /**
@@ -276,14 +275,7 @@ public abstract class Operation {
 	protected Exception tryIdentifyError(Throwable ariError) {
 		if (ariError.getMessage() == null)
 			log.error("ARI error with no message???", ariError);
-		else
-			switch (ariError.getMessage()) {
-			case "Channel not found": return new ChannelNotFoundException(ariError);
-			case "Channel in invalid state":
-			case "Channel not in Stasis application":
-				return new ChannelInInvalidState(ariError);
-			}
-		return null;
+		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 
 	protected static Throwable unwrapCompletionError(Throwable error) {

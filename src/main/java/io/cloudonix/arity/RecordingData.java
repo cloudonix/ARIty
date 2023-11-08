@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.StoredRecording;
+import io.cloudonix.arity.errors.ARItyException;
 
 /**
  * Access to recording information, whether that recording is live or already stored.
@@ -69,24 +70,27 @@ public class RecordingData {
 		return startingTime;
 	}
 	
+	@SuppressWarnings("deprecation")
 	public CompletableFuture<StoredRecording> getStoredRecording() {
 		if (Objects.nonNull(stored))
 			return CompletableFuture.completedFuture(stored);
-		return Operation.<StoredRecording>retry(cb -> arity.getAri().recordings().getStored(recordingName).execute(cb))
+		return Operation.<StoredRecording>retry(cb -> arity.getAri().recordings().getStored(recordingName).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(s -> stored = s);
 	}
 
 	AtomicReference<byte[]> recordingCache = new AtomicReference<>();
+	@SuppressWarnings("deprecation")
 	public CompletableFuture<byte[]> getStoredRecordingData() {
 		if (recordingCache.get() != null)
 			return CompletableFuture.completedFuture(recordingCache.get());
-		return Operation.<byte[]>retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb))
+		return Operation.<byte[]>retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb), ARItyException::ariRestExceptionMapper)
 				.whenComplete((data, t) -> {
 					if (data != null && data.length > 0)
 						recordingCache.compareAndExchange(null, data);
 				});
 	}
 	
+	@SuppressWarnings("deprecation")
 	public CompletableFuture<Void> deleteRecording() {
 		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb));
 	}
@@ -106,4 +110,5 @@ public class RecordingData {
 		return String.format("RecordingData:%1$s:%2$s:%3$s", recordingName, startingTime,
 				stored != null ? "stored" : (recording != null ? "live" : "pending")); 
 	}
+	
 }
