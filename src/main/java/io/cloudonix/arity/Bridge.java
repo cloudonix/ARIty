@@ -18,10 +18,10 @@ import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 
 /**
@@ -419,11 +419,10 @@ public class Bridge {
 	private Exception mapExceptions(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
-		case "Channel not found": return new ChannelNotFoundException(ariError);
 		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, ariError.getMessage());
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, ariError);
 		}
-		return null;
+		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 	
 	private Exception mapExceptionsForDestroyBridge(Throwable ariError) {

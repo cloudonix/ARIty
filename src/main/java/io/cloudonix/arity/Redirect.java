@@ -25,6 +25,7 @@ public class Redirect extends Operation {
 		this.endpoint = endpoint;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public CompletableFuture<Redirect> run() {
 		if(Objects.isNull(endpoint)) {
