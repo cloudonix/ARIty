@@ -21,7 +21,10 @@ compile: $(wildcard src/main/java/**/*.java)
 test: $(wildcard src/test/java/**/*.java)
 	$(MVNCMD) test; $(CLEANUP)
 
-.PHONY: release image
+jshell:
+	mvn compile com.github.johnpoth:jshell-maven-plugin:1.3:run
+
+.PHONY: all compile test jshell clean release
 
 clean:
 	$(MVNCMD) clean; $(CLEANUP)
