@@ -25,7 +25,7 @@ import ch.loway.oss.ari4java.generated.models.Message;
 import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
-import io.cloudonix.arity.errors.ChannelNotFoundException;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.helpers.Futures;
 
 /**
@@ -247,10 +247,11 @@ public class CallState {
 			case "Unable to read provided function": // Asterisk  returns "unable" when the function exists
 					// but reports an error about the arguments, e.g. calling SIP_HEADER() for a non-set header
 					return new VariableNotFound();
-			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
 			case "Provided variable was not found": return new VariableNotFound();
 			default:
-			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+				return ARItyException.ariRestExceptionMapper(ariError, () -> {
+					return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
+				});
 			}
 		}
 		
@@ -298,11 +299,8 @@ public class CallState {
 
 		@Override
 		protected Exception tryIdentifyError(Throwable ariError) {
-			switch (ariError.getMessage()) {
-			case "Provided channel was not found": return new ChannelNotFoundException(ariError);
-			default:
-			return new Exception("Error reading variable " + name + ": " + ariError + ", possibly unset?");
-			}
+			return ARItyException.ariRestExceptionMapper(ariError, () -> new Exception(
+					"Error reading variable " + name + ": " + ariError + ", possibly unset?"));
 		}
 	}
 

@@ -731,13 +731,4 @@ public class Dial extends CancelableOperations {
 		return CompletableFuture.completedFuture(null);
 	}
 
-	@Override
-	protected Exception tryIdentifyError(Throwable ariError) {
-		var res = super.tryIdentifyError(ariError);
-		if (res == null && ariError.getMessage() != null)
-			switch (ariError.getMessage()) {
-			case "Callee not found": return new ChannelNotFoundException(ariError);
-			}
-		return res;
-	}
 }
