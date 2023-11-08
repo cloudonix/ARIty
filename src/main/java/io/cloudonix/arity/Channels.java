@@ -7,8 +7,7 @@ import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
-import ch.loway.oss.ari4java.tools.RestException;
-import io.cloudonix.arity.errors.ChannelNotFoundException;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.models.AsteriskChannel.HangupReasons;
 
@@ -142,7 +141,7 @@ public class Channels {
 	 * @return a promise that will resolve with an instance of {@link AsteriskChannel} or reject if the channel cannot be loaded
 	 */
 	public CompletableFuture<AsteriskChannel> get(String channelId) {
-		return Operation.<Channel>retry(cb -> api.get(channelId).execute(cb), Channels::mapChannelExceptions)
+		return Operation.<Channel>retry(cb -> api.get(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenApply(c -> new AsteriskChannel(arity, new CallState(c, arity)));
 	}
 
@@ -152,7 +151,7 @@ public class Channels {
 	 * @return a promise that will resolve when the channel was answered
 	 */
 	public CompletableFuture<Void> answer(String channelId) {
-		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), Channels::mapChannelExceptions);
+		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	/**
@@ -161,7 +160,7 @@ public class Channels {
 	 * @return a promise that will resolve when the channel was dialed
 	 */
 	public CompletableFuture<Void> dial(String channelId) {
-		return Operation.<Void>retry(cb -> api.dial(channelId).execute(cb), Channels::mapChannelExceptions);
+		return Operation.<Void>retry(cb -> api.dial(channelId).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	/**
@@ -171,7 +170,7 @@ public class Channels {
 	 * @return a promise that will resolve when the channel was dialed
 	 */
 	public CompletableFuture<Void> dial(String channelId, String caller) {
-		return Operation.<Void>retry(cb -> api.dial(channelId).setCaller(caller).execute(cb), Channels::mapChannelExceptions);
+		return Operation.<Void>retry(cb -> api.dial(channelId).setCaller(caller).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	/**
@@ -182,7 +181,7 @@ public class Channels {
 	 * @return a promise that will resolve when the channel was dialed
 	 */
 	public CompletableFuture<Void> dial(String channelId, String caller, int timeout) {
-		return Operation.<Void>retry(cb -> api.dial(channelId).setCaller(caller).setTimeout(timeout).execute(cb), Channels::mapChannelExceptions);
+		return Operation.<Void>retry(cb -> api.dial(channelId).setCaller(caller).setTimeout(timeout).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	/**
@@ -202,7 +201,7 @@ public class Channels {
 	 */
 	public CompletableFuture<Void> hangup(String channelId, HangupReasons reason) {
 		return Operation.<Void>retry(cb -> api.hangup(channelId)
-					.setReason(reason != null ? reason.toString() : null).execute(cb), Channels::mapChannelExceptions);
+					.setReason(reason != null ? reason.toString() : null).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	/* External Media Channels */
@@ -234,14 +233,6 @@ public class Channels {
 		return Operation.<Channel>retry(cb -> api.externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(channelId).setData(channelId).setEncapsulation("rtp").setTransport("udp").execute(cb))
 				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
-	}
-
-	private static Exception mapChannelExceptions(Throwable ariException) {
-		if (ariException instanceof RestException)
-			switch (((RestException)ariException).getCode()) {
-			case 404: return new ChannelNotFoundException(ariException);
-			}
-		return null;
 	}
 
 }

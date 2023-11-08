@@ -1,6 +1,7 @@
 package io.cloudonix.arity.errors;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,5 +51,20 @@ public class ARItyException extends ARIException {
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			return null;
 		}
+	}
+	
+	/**
+	 * Helper utility for exception mappers that must return an exception (to abort retries, or for any other reason
+	 * @param ariError the ari4java exception to be mapped
+	 * @param defaultSupplier if the autoloading mapper did not find an exception to match, the this supplier will be called
+	 *   and its value will be returned (even if it is null itself)
+	 * @return an autoloaded ARItyException that was mapped from the ari4java RestException, or the result from the supplier if
+	 * no autoloaded exception can be found
+	 */
+	public static Exception ariRestExceptionMapper(Throwable ariError, Supplier<Exception> defaultSupplier) {
+		var err = ariRestExceptionMapper(ariError);
+		if (err == null)
+			return defaultSupplier.get();
+		return err;
 	}
 }
