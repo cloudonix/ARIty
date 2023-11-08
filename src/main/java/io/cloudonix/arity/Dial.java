@@ -24,9 +24,9 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ChannelNotFoundException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
-import io.cloudonix.arity.errors.dial.ChannelNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 import io.cloudonix.arity.models.AsteriskBridge;
 
