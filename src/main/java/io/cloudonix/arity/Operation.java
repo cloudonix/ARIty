@@ -202,8 +202,10 @@ public abstract class Operation {
 			if (t == null)
 				return CompletableFuture.completedFuture(v);
 			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
-			if (recognizedFailure != null)
+			if (recognizedFailure != null) {
+				recognizedFailure.setStackTrace(caller);
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
+			}
 			if (triesLeft <= 0)
 				throw rewrapError("Unrecoverable ARI operation error (no more retries): " + t, caller, t);
 			RestException restCause = findRestException(t);
