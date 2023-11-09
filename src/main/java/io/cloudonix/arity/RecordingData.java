@@ -92,7 +92,7 @@ public class RecordingData {
 	
 	@SuppressWarnings("deprecation")
 	public CompletableFuture<Void> deleteRecording() {
-		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb));
+		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb), ARItyException::ariRestExceptionMapper);
 	}
 
 	public int getDuration() {
