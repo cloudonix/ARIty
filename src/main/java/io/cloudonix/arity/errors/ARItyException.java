@@ -42,6 +42,8 @@ public class ARItyException extends ARIException {
 		if (!(ariError instanceof RestException))
 			return null; // we only map RestExceptions
 		RestException err = (RestException) ariError;
+		if (err.getMessage() == null) // shouldn't happen, but it does
+			return null;
 		String exception = Stream.of(err.getMessage().trim().split("\\s+"))
 				.map(w -> w.substring(0,1).toUpperCase() + w.substring(1).toLowerCase())
 				.collect(Collectors.joining());
