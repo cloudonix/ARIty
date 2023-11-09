@@ -5,6 +5,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.LoggerFactory;
+
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.Operation;
@@ -51,6 +53,7 @@ public class ARItyException extends ARIException {
 			Class<?> exClazz = Class.forName(String.format("%s.%sException", ARItyException.class.getPackageName(), exception));
 			return (Exception) exClazz.getConstructor(Throwable.class).newInstance(ariError);
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			LoggerFactory.getLogger(ARItyException.class).debug("Problem parsing REST excetion {}: {}", err.toString(), e.toString());
 			return null;
 		}
 	}
