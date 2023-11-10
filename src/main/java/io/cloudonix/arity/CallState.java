@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
@@ -228,6 +229,8 @@ public class CallState {
 		public CompletableFuture<GetChannelVar> run() {
 			return Operation.<Variable>retry(cb -> channels().getChannelVar(getChannelId(), name).execute(cb), this::mapExceptions)
 					.handle((var,e) -> {
+						while (e instanceof CompletionException)
+							e = e.getCause();
 						if (e instanceof VariableNotFound)
 							log.info(logmarker, "readVariable({}): not found", name);
 						else if (e != null)
