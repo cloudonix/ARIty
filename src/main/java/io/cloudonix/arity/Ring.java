@@ -7,6 +7,9 @@ import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.cloudonix.arity.errors.ChannelNotFoundException;
+import io.cloudonix.arity.helpers.Futures;
+
 /**
  * Ring the call controller's channel.
  *
@@ -59,9 +62,10 @@ public class Ring extends CancelableOperations {
 	@Override
 	public CompletableFuture<Void> cancel() {
 		return this.<Void>retryOperation(h -> channels().ringStop(channelId).execute(h))
+				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> null))
 				.whenComplete((v,t) -> {
-					if (Objects.isNull(t)) logger.debug("Stoped ringing to channel with id: " + channelId);
-					else logger.warn("Failed to stop ringing to channel with id " + channelId, t);
+					if (t == null) logger.debug("Stoped ringing to channel with id: {}", channelId);
+					else logger.warn("Failed to stop ringing to channel with id {}", channelId, t);
 				});
 	}
 }
