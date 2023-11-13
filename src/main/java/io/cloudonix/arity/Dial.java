@@ -27,6 +27,7 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ChannelNotFoundException;
 import io.cloudonix.arity.errors.DialException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
+import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 import io.cloudonix.arity.helpers.Futures;
 import io.cloudonix.arity.models.AsteriskBridge;
 
@@ -328,6 +329,9 @@ public class Dial extends CancelableOperations {
 					logger.debug("Early bridged dial started " + callerId + " -> " + endpoint);
 				})
 				.thenCompose(v -> compFuture)
+				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> {
+					throw new DialException("Error starting dial due to channel gone while working on it - likely the caller hanged up?",e);
+				}))
 				.exceptionally(Futures.on(ChannelNotFoundException.class, e -> {
 					throw new DialException("Error starting dial due to channel gone while working on it - likely the caller hanged up?",e);
 				}))
