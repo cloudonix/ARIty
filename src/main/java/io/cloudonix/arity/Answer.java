@@ -27,7 +27,7 @@ public class Answer extends Operation {
 	 */
 	public CompletableFuture<Answer> run() {
 		return this.<Void>retryOperation(cb -> channels().answer(getChannelId()).execute(cb)).thenApply(res -> {
-			logger.info("Channel with id: " + getChannelId() + " was answered");
+			logger.info("Channel with id: {} was answered", getChannelId());
 			return this;
 		});
 	}
