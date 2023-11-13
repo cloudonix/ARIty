@@ -23,7 +23,7 @@ public class ARItyException extends ARIException {
 	}
 
 	public ARItyException(String message, Throwable cause) {
-		super(new Exception(message, cause));
+		super(message, cause);
 	}
 
 	/**
