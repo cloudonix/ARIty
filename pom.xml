@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.12.14</version>
+	<version>0.12.15-SNAPSHOT</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
