@@ -174,7 +174,8 @@ public class Play extends CancelableOperations {
 		return Operation.<Void>retry(cb -> playbacks().stop(currentPlaybackId).execute(cb), ARItyException::ariRestExceptionMapper)
 				.thenAccept(pb -> logger.info("{}|Playback canceled", currentPlaybackId))
 				.exceptionally(Futures.on(PlaybackNotFoundException.class, e -> {
-					logger.warn("Playback {} was not found during cancel - ignoring", currentPlaybackId);
+					if (playback.get() != null) // don't complain if playback has already successfully ended
+						logger.warn("Playback {} was not found during cancel - ignoring", currentPlaybackId);
 					return null;
 				}));
 	}

@@ -50,7 +50,7 @@ public class AsteriskChannel {
 			this.direction = direction;
 		}
 		
-		public String toString() {
+		public String value() {
 			return direction;
 		}
 	}

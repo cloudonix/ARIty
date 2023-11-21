@@ -25,7 +25,7 @@ import io.cloudonix.arity.helpers.Futures;
  */
 public class Ring extends CancelableOperations {
 
-	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
+	private final static Logger logger = LoggerFactory.getLogger(Ring.class);
 	private String channelId;
 
 	/**

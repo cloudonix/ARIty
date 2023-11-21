@@ -15,7 +15,7 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
  *
  */
 public class RecordSample extends CallController {
-	private final static Logger logger = LoggerFactory.getLogger(AnswerAndPlay.class);
+	private final static Logger logger = LoggerFactory.getLogger(RecordSample.class);
 
 	@Override
 	public CompletableFuture<Void> run() {
