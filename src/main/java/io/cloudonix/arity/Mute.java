@@ -46,15 +46,15 @@ public class Mute extends CancelableOperations {
 
 	private void executeMute(AriCallback<Void> cb) throws RestException {
 		if (direction == NO) {
-			channels().unmute(getChannelId()).setDirection(BOTH.toString()).execute(cb);
+			channels().unmute(getChannelId()).setDirection(BOTH.value()).execute(cb);
 			return;
 		}
-		channels().mute(getChannelId()).setDirection(direction.toString()).execute(cb);
+		channels().mute(getChannelId()).setDirection(direction.value()).execute(cb);
 	}
 
 	@Override
 	public CompletableFuture<Void> cancel() {
-		return this.<Void>retryOperation(cb -> channels().unmute(getChannelId()).setDirection(BOTH.toString()).execute(cb))
+		return this.<Void>retryOperation(cb -> channels().unmute(getChannelId()).setDirection(BOTH.value()).execute(cb))
 				.thenAccept(res -> {
 					logger.info("Unmute channel {} with audio direction {}", getChannelId(), direction);
 				})
