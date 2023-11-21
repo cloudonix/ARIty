@@ -23,7 +23,7 @@ public class Mute extends CancelableOperations {
 	public static final AsteriskChannel.Mute OUT = AsteriskChannel.Mute.OUT;
 	public static final AsteriskChannel.Mute NO = AsteriskChannel.Mute.NO;
 
-	private final static Logger logger = LoggerFactory.getLogger(Answer.class);
+	private final static Logger logger = LoggerFactory.getLogger(Mute.class);
 	private AsteriskChannel.Mute direction;
 
 	public Mute(CallController callController, AsteriskChannel.Mute direction) {

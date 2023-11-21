@@ -56,7 +56,7 @@ public class ARItySipLayer implements SipListener {
 	private String remoteRtpAudioIp;
 	private CompletableFuture<Void> waitForBye = new CompletableFuture<Void>();
 
-	private final static Logger logger = LoggerFactory.getLogger(ARItySipInitiator.class);
+	private final static Logger logger = LoggerFactory.getLogger(ARItySipLayer.class);
 
 	public ARItySipLayer(String username, String ip, int port) throws PeerUnavailableException,
 			TransportNotSupportedException, InvalidArgumentException, TooManyListenersException, ObjectInUseException, FileNotFoundException {

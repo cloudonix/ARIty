@@ -35,7 +35,7 @@ public class Answer extends Operation {
 	@Override
 	protected Exception tryIdentifyError(Throwable ariError) {
 		if (ariError.getMessage() == null)
-			LoggerFactory.getLogger(getClass()).error("ARI error with no message???", ariError);
+			logger.error("ARI error with no message???", ariError);
 		else
 			switch (ariError.getMessage()) {
 			case "Channel not found": return new FailedToAnswerChannel(ariError);
