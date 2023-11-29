@@ -159,7 +159,7 @@ public abstract class Operation {
 	 * @return result of the operation, if successful, or a failure if the operation failed all retries
 	 */
 	public static <V> CompletableFuture<V> retry(AriOperation<V> op) {
-		return retryOperationImpl(op, RETRIES, v -> null);
+		return retryOperationImpl(op, RETRIES, ARItyException::ariRestExceptionMapper);
 	}
 
 	/**
