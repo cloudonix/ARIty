@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.EventHandler;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.RecordingData;
+import io.cloudonix.arity.errors.RecordingNotFoundException;
 
 public class AsteriskRecording {
 	
@@ -206,7 +208,7 @@ public class AsteriskRecording {
 			waitUntilEnd().thenAccept(waitForDone::complete);
 		else
 			waitForDone.complete(this);
-		return Operation.<Void>retry(cb -> api.cancel(rec.getName()).execute(cb))
+		return Operation.<Void>retry(cb -> api.cancel(rec.getName()).execute(cb), genRecordingFailureMapper(rec.getName()))
 				.thenCompose(v -> waitForDone);
 	}
 	
@@ -221,7 +223,7 @@ public class AsteriskRecording {
 			waitUntilEnd().thenAccept(waitForDone::complete);
 		else
 			waitForDone.complete(this);
-		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb))
+		return Operation.<Void>retry(cb -> api.stop(rec.getName()).execute(cb), genRecordingFailureMapper(rec.getName()))
 				.thenCompose(v -> waitForDone);
 	}
 
@@ -234,4 +236,12 @@ public class AsteriskRecording {
 		return rec.getName() + ":" + rec.getState() + ":" + rec.getCause() + ":" + rec.getFormat() + ":" + rec.getDuration() + "s";
 	}
 
+	public Function<Throwable,Exception> genRecordingFailureMapper(String name) {
+		return ariError -> {
+			switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
+			case "Recording not found": return new RecordingNotFoundException(name, ariError);
+			}
+			return null;
+		};
+	}
 }
