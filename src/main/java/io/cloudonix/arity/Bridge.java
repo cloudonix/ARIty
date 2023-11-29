@@ -429,7 +429,7 @@ public class Bridge {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
 		}
-		return null;
+		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 	
 	@Override
