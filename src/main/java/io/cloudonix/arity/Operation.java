@@ -101,7 +101,7 @@ public abstract class Operation {
 		try {
 			op.accept(ariCallback);
 		} catch (RestException e1) {
-			CompletableFuture.runAsync(() -> cf.completeExceptionally(e1));
+			CompletableFuture.runAsync(() -> cf.completeExceptionally(rewrapError("ARI operation failed: " + e1, caller, e1)), opDispatch);
 		}
 		return cf;
 	}
@@ -121,7 +121,7 @@ public abstract class Operation {
 
 	public static StackTraceElement[] getCallingStack() {
 		return Stream.of(new Exception().fillInStackTrace().getStackTrace()).skip(1).collect(Collectors.toList())
-				.toArray(new StackTraceElement[] {});
+				.toArray(StackTraceElement[]::new);
 	}
 	
 	public static String getLastSignificantCaller(StackTraceElement[] callstack) {
@@ -133,6 +133,7 @@ public abstract class Operation {
 		while (cause instanceof CompletionException)
 			cause = cause.getCause();
 		CompletionException wrap = new CompletionException(message, cause);
+		wrap.fillInStackTrace();
 		wrap.setStackTrace(originalStack);
 		return wrap;
 	}
