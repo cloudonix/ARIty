@@ -2,6 +2,8 @@ package io.cloudonix.arity;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -147,6 +149,16 @@ public class Dial extends CancelableOperations {
 		super(originatingChannelId, arity);
 		this.endpoint = destination;
 		this.callerId = callerId;
+		if (endpointIsUnicode())
+			this.endpoint = URLEncoder.encode(endpoint, StandardCharsets.UTF_8);
+	}
+
+	private boolean endpointIsUnicode() {
+		for (char c : endpoint.toCharArray()) {
+			if (Character.isUnicodeIdentifierPart(c))
+				return true;
+		}
+		return false;
 	}
 
 	/**
