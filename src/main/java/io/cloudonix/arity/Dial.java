@@ -149,13 +149,13 @@ public class Dial extends CancelableOperations {
 		super(originatingChannelId, arity);
 		this.endpoint = destination;
 		this.callerId = callerId;
-		if (endpointIsUnicode())
+		if (endpointNeedsEscaping())
 			this.endpoint = URLEncoder.encode(endpoint, StandardCharsets.UTF_8);
 	}
 
-	private boolean endpointIsUnicode() {
+	private boolean endpointNeedsEscaping() {
 		for (char c : endpoint.toCharArray()) {
-			if (Character.isUnicodeIdentifierPart(c))
+			if (Character.UnicodeBlock.of( c ) != Character.UnicodeBlock.BASIC_LATIN || Character.isISOControl(c))
 				return true;
 		}
 		return false;
