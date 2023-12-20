@@ -40,7 +40,7 @@ deploy:maven:
   script:
     - >
       mvn -B -s gitlab-maven-settings.xml -DskipTests -Dmaven.gpg.skip=true 
-      -DaltDeploymentRepository=repo::default::${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/maven
+      -DaltDeploymentRepository=gitlab-maven::default::${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/maven
       deploy
 #  rules:
 #    - if: $CI_COMMIT_TAG
