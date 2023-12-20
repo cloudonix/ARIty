@@ -69,7 +69,7 @@ public class Conference {
 		this.arity = callController.getARIty();
 		this.callController = callController;
 		this.bridge = bridgeId != null ? arity.bridges().get(bridgeId) : new CompletableFuture<>();
-		callController.talkDetection(1500, 750);
+		callController.talkDetection(null, 750);
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 	}
