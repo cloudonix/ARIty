@@ -334,12 +334,16 @@ public abstract class CallController {
 	
 	/**
 	 * Enable talk detection using TALK_DETECTION function and set the detection thresholds
-	 * @param talkMS talking detection threshold in milliseconds
-	 * @param silenceMS silence detection threshold in milliseconds
+	 * Either parameter can be set to {@code null} to use the defaults from the Asterisk {@code dsp.conf}
+	 * configuration.
+	 * @param talkEnergy minimum sound energy threshold that would be considered speech (default 256).
+	 * @param silenceMS minimum time under the talking threshold that would be considered silence (default 2500).
 	 * @return a promise that will be completed when the TALK_DETECTION function had been called
 	 */
-	public CompletableFuture<Void> talkDetection(int talkMS, int silenceMS) {
-		return setVariable("TALK_DETECT(set)", silenceMS + "," + talkMS);
+	public CompletableFuture<Void> talkDetection(Integer talkEnergy, Integer silenceMS) {
+		String param = talkEnergy == null ? (silenceMS == null ? "" : String.valueOf(silenceMS)) :
+			(silenceMS == null ? String.format(",%d", talkEnergy) : String.format("%d,%d", silenceMS, talkEnergy));
+		return setVariable("TALK_DETECT(set)", param);
 	}
 
 	/**
