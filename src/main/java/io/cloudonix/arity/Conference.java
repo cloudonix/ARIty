@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -49,6 +50,9 @@ public class Conference {
 	private boolean absorbDTMF = false;
 	private boolean prompts;
 	private String role;
+	private Integer talkDetectionEnergy = null;
+	private Integer talkDetectionSilenceTime = 750;
+	private AtomicBoolean detectingTalk = new AtomicBoolean(false);
 	private EventHandler<ChannelEnteredBridge> memberAddedHandler;
 	private EventHandler<ChannelLeftBridge> memberRemovedHandler;
 
@@ -69,25 +73,62 @@ public class Conference {
 		this.arity = callController.getARIty();
 		this.callController = callController;
 		this.bridge = bridgeId != null ? arity.bridges().get(bridgeId) : new CompletableFuture<>();
-		callController.talkDetection(null, 750);
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 	}
 
-	public void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, EventHandler<ChannelTalkingStarted>se) {
+	private void memberTalkingStartedEvent(ChannelTalkingStarted talkingStarted, EventHandler<ChannelTalkingStarted>se) {
 		this.talkingStatedHandler.run();
 	}
 
-	public void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, EventHandler<ChannelTalkingFinished>se) {
+	private void memberTalkingFinishedEvent(ChannelTalkingFinished talkingStarted, EventHandler<ChannelTalkingFinished>se) {
 		this.talkingFinishedEvent .run();
 	}
 
+	/**
+	 * Set the talking detection threshold for the talking detection functionality in this conference wrapper.
+	 * The values specified are later used in the call to {@link CallController#talkDetection(Integer, Integer)}.
+	 * @param talkEnergy minimum sound energy threshold that would be considered speech (default 256).
+	 * @param silenceThreshold minimum time (in ms) under the talking threshold that would be considered silence (default 2500).
+	 * @return itself for fluent calls
+	 * @deprecated this functionality is actually a simple wrapper over the talking detection in {@link CallController}
+	 *   and provides no added value. Implementations should be ported to use the native functionality in {@code CallController}
+	 *   as this API will be removed in a future release.
+	 */
+	public Conference setTalkingDetectionThresholds(Integer talkEnergy, Integer silenceThreshold) {
+		this.talkDetectionEnergy = talkEnergy;
+		this.talkDetectionSilenceTime = silenceThreshold;
+		return this;
+	}
+	
+	/**
+	 * Register for receiving talking "member started talking" for the current member
+	 * @param talkingStartedH handler that will be called with talking is detected on channel for which the conference
+	 *   was created
+	 * @return itself for fluent calls
+	 * @deprecated this functionality is actually a simple wrapper over the talking detection in {@link CallController}
+	 *   and provides no added value. Implementations should be ported to use the native functionality in {@code CallController}
+	 *   as this API will be removed in a future release.
+	 */
 	public Conference registerMemberStartedTalkingHandler(Runnable talkingStartedH) {
+		if (detectingTalk.compareAndExchange(false, true) == false)
+			callController.talkDetection(talkDetectionEnergy, talkDetectionSilenceTime);
 		this.talkingStatedHandler = talkingStartedH;
 		return this;
 	}
 
+	/**
+	 * Register for receiving talking "member stopped talking" for the current member
+	 * @param talkingFinishedH handler that will be called with silence is detected on channel for which the conference
+	 *   was created
+	 * @return itself for fluent calls
+	 * @deprecated this functionality is actually a simple wrapper over the talking detection in {@link CallController}
+	 *   and provides no added value. Implementations should be ported to use the native functionality in {@code CallController}
+	 *   as this API will be removed in a future release.
+	 */
 	public Conference registerMemberFinishedTalkingHandler(Runnable talkingFinishedH) {
+		if (detectingTalk.compareAndExchange(false, true) == false)
+			callController.talkDetection(talkDetectionEnergy, talkDetectionSilenceTime);
 		this.talkingFinishedEvent = talkingFinishedH;
 		return this;
 	}

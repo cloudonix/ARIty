@@ -337,7 +337,7 @@ public abstract class CallController {
 	 * Either parameter can be set to {@code null} to use the defaults from the Asterisk {@code dsp.conf}
 	 * configuration.
 	 * @param talkEnergy minimum sound energy threshold that would be considered speech (default 256).
-	 * @param silenceMS minimum time under the talking threshold that would be considered silence (default 2500).
+	 * @param silenceMS minimum time (in ms) under the talking threshold that would be considered silence (default 2500).
 	 * @return a promise that will be completed when the TALK_DETECTION function had been called
 	 */
 	public CompletableFuture<Void> talkDetection(Integer talkEnergy, Integer silenceMS) {
