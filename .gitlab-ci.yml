@@ -5,6 +5,7 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_DRIVER: overlay2
   MAVEN_OPTS: "-Dmaven.repo.local=.m2"
+  MAVEN_IMG: maven:3-jdk-11
 
 cache:
   paths:
@@ -18,22 +19,35 @@ stages:
 
 offline-deps:
   stage: setup
-  image: maven:3-jdk-11
+  image: $MAVEN_IMG
   script:
     - '[ "$(($RANDOM%10))" == 0 ] && mvn -B -U dependency:go-offline || mvn -B dependency:go-offline'
 
 test:
   stage: test
+  image: $MAVEN_IMG
   script:
     - mvn -B test || true
   artifacts:
     expire_in: 1 week
     paths:
       - target
-  image: maven:3-jdk-11
+
+deploy:maven:
+  stage: package
+  needs: [ package ]
+  image: $MAVEN_IMG
+  script:
+    - >
+      mvn -B -s gitlab-maven-settings.xml -DskipTests -Dmaven.gpg.skip=true 
+      -DaltDeploymentRepository=gitlab-maven::default::${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/maven
+      deploy
+#  rules:
+#    - if: $CI_COMMIT_TAG
 
 package:
   stage: package
+  image: $MAVEN_IMG
   script:
     - mvn -B -DskipTests package
     - mvn -B -DaltDeploymentRepository=repo::default::file:./target/staging deploy -DskipTests 
@@ -42,7 +56,6 @@ package:
     expire_in: 1 week
     paths:
       - target
-  image: maven:3-jdk-11
 
 s3:
   stage: s3
