@@ -14,6 +14,7 @@ import ch.loway.oss.ari4java.generated.actions.requests.BridgesAddChannelPostReq
 import ch.loway.oss.ari4java.generated.models.Bridge;
 import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelEnteredBridge;
+import ch.loway.oss.ari4java.generated.models.ChannelHangupRequest;
 import ch.loway.oss.ari4java.generated.models.ChannelLeftBridge;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.Playback;
@@ -22,10 +23,12 @@ import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.Bridges.BridgeType;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
 import io.cloudonix.arity.helpers.Futures;
+import io.cloudonix.arity.helpers.Timers;
 
 public class AsteriskBridge {
 
@@ -113,9 +116,21 @@ public class AsteriskBridge {
 	public CompletableFuture<Void> addChannel(String channelId, boolean confirmWasAdded,
 			Consumer<BridgesAddChannelPostRequest> configureRequest) {
 		CompletableFuture<Void> waitForAdded = new CompletableFuture<>();
-		if (confirmWasAdded)
-			arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, e -> waitForAdded.complete(null));
-		else
+		if (confirmWasAdded) {
+			var enterEv = arity.listenForOneTimeEvent(ChannelEnteredBridge.class, channelId, e -> waitForAdded.complete(null));
+			var hangupEv = arity.listenForOneTimeEvent(ChannelHangupRequest.class, channelId, e -> waitForAdded
+					.completeExceptionally(new ChannelNotInBridgeException(bridgeId, new ARItyException(
+							"Channel " + channelId + " was hanged up while waiting to be entered into bridge"))));
+			Timers.schedule(() -> {
+				if (!waitForAdded.isDone())
+					waitForAdded.completeExceptionally(new ChannelNotInBridgeException(bridgeId, new ARItyException(
+							"Channel " + channelId + " did not enter bridge after 5 seconds timeout!")));
+			}, 5000);
+			waitForAdded.thenRun(() -> {
+				enterEv.unregister();
+				hangupEv.unregister();
+			});
+		} else
 			waitForAdded.complete(null);
 		try {
 			var request = api.addChannel(bridgeId, channelId).setRole("member");
