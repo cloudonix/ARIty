@@ -139,9 +139,11 @@ public class AsteriskRecording {
 		
 		private BiConsumer<RecordingStarted, EventHandler<RecordingStarted>> recordingStartedHandler(ARIty arity) {
 			return (rs,se) -> {
-				if (!Objects.equals(rs.getRecording().getName(), filename) || startHandler.get() == null) return;
-				se.unregister();
+				if (!Objects.equals(rs.getRecording().getName(), filename)) return;
 				Consumer<AsteriskRecording> h = startHandler.getAndSet(null);
+				if (h == null)
+					return;
+				se.unregister();
 				h.accept(new AsteriskRecording(arity, rs.getRecording()));
 			};
 		}
