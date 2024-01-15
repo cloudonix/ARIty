@@ -172,6 +172,11 @@ public class AsteriskBridge {
 		else
 			waitForRemoved.complete(null);
 		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), mapExceptions(bridgeId))
+				.exceptionally(Futures.on(ChannelNotAllowedInBridge.class, e -> {
+					// can happen if the channel was hanged up and is no longer in stasis
+					waitForRemoved.complete(null);
+					return null;
+				}))
 				.exceptionally(Futures.on(ChannelNotInBridgeException.class, e -> {
 					waitForRemoved.complete(null);
 					return null;
