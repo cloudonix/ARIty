@@ -1,6 +1,7 @@
 package io.cloudonix.arity.errors;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.SocketException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,6 +47,9 @@ public class ARItyException extends ARIException {
 		RestException err = (RestException) ariError;
 		if (err.getMessage() == null) // shouldn't happen, but it does
 			return null;
+		if (err.getCause() != null && err.getCause() instanceof SocketException) {
+			new ConnectionFailedException((SocketException)err.getCause());
+		}
 		String exception = Stream.of(err.getMessage().trim().split("\\s+"))
 				.map(w -> w.substring(0,1).toUpperCase() + w.substring(1).toLowerCase())
 				.collect(Collectors.joining());
