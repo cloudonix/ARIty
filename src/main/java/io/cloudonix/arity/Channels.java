@@ -228,8 +228,21 @@ public class Channels {
 	 * @return a promise that will resolve with the new channel when the RTP stream starts
 	 */
 	public CompletableFuture<AsteriskChannel> externalMediaRTP(String channelId, InetSocketAddress serverAddr) {
-		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
-		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
+		return externalMediaRTP(channelId, serverAddr.getAddress().getHostAddress(), serverAddr.getPort());
+	}
+	
+	/**
+	 * Create a new channel that streams media to an external RTP socket. The provided hostname of the RTP UDP
+	 * socket will be sent directly to Asterisk without resolving in advance.
+	 *
+	 * @param channelId channel id for new channel
+	 * @param host hostname of the RTP UDP socket address
+	 * @param port port of the RTP UDP socket address
+	 * @return a promise that will resolve with the new channel when the RTP stream starts
+	 */
+	public CompletableFuture<AsteriskChannel> externalMediaRTP(final String channelId, final String host, final int port) {
+		final String sockaddr = host + ":" + port;
+		final CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
 		return Operation.<Channel>retry(cb -> api.externalMedia(arity.getAppName(), sockaddr, "slin")
 				.setChannelId(channelId).setData(channelId).setEncapsulation("rtp").setTransport("udp").execute(cb))
 				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
