@@ -214,10 +214,24 @@ public class Channels {
 	 * @return a promise that will resolve with the new channel when the audio socket protocol starts
 	 */
 	public CompletableFuture<AsteriskChannel> externalMediaAudioSocket(String channelId, InetSocketAddress serverAddr) {
-		String sockaddr = serverAddr.getAddress().getHostAddress() + ":" + serverAddr.getPort();
-		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
+		return externalMediaAudioSocket(channelId, serverAddr.getAddress().getHostAddress(), serverAddr.getPort());
+	}
+	
+	/**
+	 * Create a new channel that streams media to an external audio socket.
+	 * (see the <a href="https://wiki.asterisk.org/wiki/display/AST/AudioSocket">Asterisk Audio Socket protocol</a>)
+	 * Provided host will be sent directly to Asterisk without resolving in advance.
+	 *
+	 * @param channelId channel id for the new channel
+	 * @param host host of the external audio TCP socket
+	 * @param port port of the external audio TCP socket
+	 * @return a promise that will resolve with the new channel when the audio socket protocol starts
+	 */
+	public CompletableFuture<AsteriskChannel> externalMediaAudioSocket(final String channelId, final String host, final int port) {
+		final String sockaddr = host + ":" + port;
+		final CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(channelId);
 		return Operation.<Channel>retry(cb -> api.externalMedia(arity.getAppName(), sockaddr, "slin")
-				.setChannelId(channelId).setData(channelId).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
+			   .setChannelId(channelId).setData(channelId).setEncapsulation("audiosocket").setTransport("tcp").execute(cb))
 				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
 	}
 
