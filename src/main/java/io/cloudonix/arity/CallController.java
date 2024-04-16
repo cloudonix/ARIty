@@ -1,5 +1,6 @@
 package io.cloudonix.arity;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -127,6 +128,16 @@ public abstract class CallController {
 	 */
 	public Play play(String file) {
 		return new Play(this, file).withBridge(getBoundBridge());
+	}
+	
+	/**
+	 * Plays silence into the current channel for provided duration of time.
+	 *
+	 * @param duration duration of silence
+	 * @return operation that can be cancelled
+	 */
+	public Silence playSilence(final Duration duration) {
+		return new Silence(this, duration);
 	}
 
 	/**
