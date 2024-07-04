@@ -55,6 +55,7 @@ public class Conference {
 	private AtomicBoolean detectingTalk = new AtomicBoolean(false);
 	private EventHandler<ChannelEnteredBridge> memberAddedHandler;
 	private EventHandler<ChannelLeftBridge> memberRemovedHandler;
+	private String bridgeId;
 
 	/**
 	 * Create a new conference bridge for this call controller
@@ -73,6 +74,7 @@ public class Conference {
 		this.arity = callController.getARIty();
 		this.callController = callController;
 		this.bridge = bridgeId != null ? arity.bridges().get(bridgeId) : new CompletableFuture<>();
+		this.bridgeId = bridgeId;
 		arity.addEventHandler(ChannelTalkingStarted.class, callController.getChannelId(),this::memberTalkingStartedEvent);
 		arity.addEventHandler(ChannelTalkingFinished.class, callController.getChannelId(),this::memberTalkingFinishedEvent);
 	}
@@ -249,13 +251,8 @@ public class Conference {
 			logger.debug("Need to answer the channel with id: " + callController.getChannelId());
 			preConnect = callController.answer().run().thenAccept(__ -> {});
 		}
-		arity.listenForOneTimeEvent(ChannelLeftBridge.class, callController.getChannelId(),
-				e -> channelLeftConference(e)
-				.exceptionally(Futures.on(BridgeNotFoundException.class, ex -> null)) // this can happen when conferences are closed quickly 
-				.whenComplete((v,t) -> {
-					if (t != null)
-						logger.error("Error handling the 'channel left bridge' event:",t);
-				}));
+		callController.listenForEvent(ChannelEnteredBridge.class, this::addedToBridge);
+		callController.listenForEvent(ChannelLeftBridge.class, this::checkLeftBridge);
 		return preConnect.thenCompose(__ -> muteChannelIfNeeded()).thenCompose(answerRes -> bridge)
 				.thenCompose(b -> b.addChannel(callController.getChannelId(), true, req -> {
 					if (role != null) req.setRole(role);
@@ -270,6 +267,29 @@ public class Conference {
 					throw new ConferenceException(t);
 				}))
 				.thenApply(v -> this);
+	}
+	
+	AtomicBoolean enteredBridge = new AtomicBoolean(false);
+	
+	private void addedToBridge(ChannelEnteredBridge event, EventHandler<ChannelEnteredBridge> handler) {
+		if (!bridgeId.equals(event.getBridge().getId()))
+			return;
+		enteredBridge.setRelease(true);
+		handler.unregister();
+	}
+	
+	private void checkLeftBridge(ChannelLeftBridge event, EventHandler<ChannelLeftBridge> handler) {
+		if (!bridgeId.equals(event.getBridge().getId()))
+			return;
+		if (!enteredBridge.getAcquire())
+			return;
+		channelLeftConference(event)
+		.exceptionally(Futures.on(BridgeNotFoundException.class, ex -> null)) // this can happen when conferences are closed quickly 
+		.whenComplete((v,t) -> {
+			if (t != null)
+				logger.error("Error handling the 'channel left bridge' event:",t);
+		});
+		handler.unregister();
 	}
 	
 	private CompletableFuture<Void> muteChannelIfNeeded() {
