@@ -27,6 +27,7 @@ import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
 import io.cloudonix.arity.errors.ARItyException;
+import io.cloudonix.arity.errors.ProvidedChannelWasNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 
 /**
@@ -173,7 +174,22 @@ public class CallState {
 	public <T> T get(String key) {
 		return (T) metadata.get(key);
 	}
-
+	
+	/**
+	 * Load custom meta-data from the transferable call state
+	 *
+	 * The data will be cast to the expected data type, so make sure you always store and load the same type
+	 * for the same field name
+	 *
+	 * @param key name of the data field to load
+	 * @param defaultValue the default value to return if there is no such value in the call state
+	 * @return the value stored, casted to the expected type
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T getOrDefault(String key, T defaultValue) {
+		return (T) metadata.getOrDefault(key, defaultValue);
+	}
+	
 	/**
 	 * Check if specific custom meta-data field was stored in the transferable call state
 	 * @param key name of the data field to check
@@ -233,6 +249,8 @@ public class CallState {
 							e = e.getCause();
 						if (e instanceof VariableNotFound)
 							log.info(logmarker, "readVariable({}): not found", name);
+						if (e instanceof ProvidedChannelWasNotFoundException)
+							log.info(logmarker, "readVariable({}): channel no longer exists", name);
 						else if (e != null)
 							log.info(logmarker, "readVariable({}): unexpected error", name, e);
 						else
