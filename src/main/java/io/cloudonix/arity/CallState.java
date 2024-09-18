@@ -27,6 +27,7 @@ import ch.loway.oss.ari4java.generated.models.StasisEnd;
 import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.generated.models.Variable;
 import io.cloudonix.arity.errors.ARItyException;
+import io.cloudonix.arity.errors.ProvidedChannelWasNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 
 /**
@@ -248,6 +249,8 @@ public class CallState {
 							e = e.getCause();
 						if (e instanceof VariableNotFound)
 							log.info(logmarker, "readVariable({}): not found", name);
+						if (e instanceof ProvidedChannelWasNotFoundException)
+							log.info(logmarker, "readVariable({}): channel no longer exists", name);
 						else if (e != null)
 							log.info(logmarker, "readVariable({}): unexpected error", name, e);
 						else
