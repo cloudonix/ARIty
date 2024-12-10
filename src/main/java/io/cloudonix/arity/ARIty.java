@@ -3,13 +3,16 @@ package io.cloudonix.arity;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -118,6 +121,23 @@ public class ARIty implements AriCallback<Message> {
 		}
 	}
 	
+	private class ChannelCleanup {
+		private Instant schedule;
+		private String channelId;
+		
+		public ChannelCleanup(String channelId) {
+			this.channelId = channelId;
+			schedule = Instant.now().plusSeconds(30);
+		}
+		
+		private boolean checkCleanup() {
+			if (Instant.now().isBefore(schedule))
+				return false;
+			channelEventHandlers.remove(channelId);
+			return true;
+		}
+	}
+	
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
 	private ConcurrentHashMap<String,Queue<EventHandler<?>>> channelEventHandlers = new ConcurrentHashMap<>();
 	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
@@ -125,6 +145,7 @@ public class ARIty implements AriCallback<Message> {
 	private String appName;
 	private Consumer<CallState> defaultCallHandler = this::hangupDefault;
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
+	private Deque<ChannelCleanup> scheduledCleanups = new ConcurrentLinkedDeque<>();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
 	private Lazy<Bridges> bridges = new Lazy<>(() -> new Bridges(this));
@@ -535,6 +556,9 @@ public class ARIty implements AriCallback<Message> {
 		// dispatch global event handlers
 		for (Iterator<EventHandler<?>> itr = rawEventHandlers.iterator(); itr.hasNext(); )
 			itr.next().accept(event);
+		var c = scheduledCleanups.poll();
+		if (c != null && !c.checkCleanup())
+			scheduledCleanups.offerFirst(c);
 	}
 
 	private void handleChannelEvents(Message event, String channelId) {
@@ -544,7 +568,7 @@ public class ARIty implements AriCallback<Message> {
 		.descendingIterator().forEachRemaining(h -> h.accept(event));
 		// clear event handlers for this channel on stasis end
 		if (event instanceof StasisEnd)
-			channelEventHandlers.remove(channelId);
+			scheduledCleanups.offerLast(new ChannelCleanup(channelId));
 	}
 
 	private void handleStasisStart(Message event) {
