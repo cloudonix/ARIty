@@ -3,13 +3,16 @@ package io.cloudonix.arity;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,6 +40,8 @@ import ch.loway.oss.ari4java.generated.models.StasisStart;
 import ch.loway.oss.ari4java.tools.ARIException;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
+import ch.loway.oss.ari4java.tools.WsClient;
+import ch.loway.oss.ari4java.tools.http.NettyHttpClient;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.helpers.Lazy;
 import io.cloudonix.arity.helpers.Timers;
@@ -49,6 +54,90 @@ import io.cloudonix.arity.helpers.Timers;
  *
  */
 public class ARIty implements AriCallback<Message> {
+	
+	public class Builder {
+
+		private String uri;
+		private String appName;
+		private String login;
+		private String password;
+		private boolean openWebSocket = true;
+		private AriVersion ariVersion = AriVersion.IM_FEELING_LUCKY;
+		private Consumer<Exception> errorHandler = e -> {};
+		private int connectionAttempts = 0; // do not change
+		private NettyHttpClient httpClient;
+
+		public Builder setUri(String uri) {
+			this.uri = uri;
+			return this;
+		}
+
+		public Builder setAppName(String appName) {
+			this.appName = appName;
+			return this;
+		}
+
+		public Builder setLogin(String login) {
+			this.login = login;
+			return this;
+		}
+
+		public Builder setPassword(String password) {
+			this.password = password;
+			return this;
+		}
+
+		public Builder setOpenWebSocket(boolean open) {
+			this.openWebSocket = open;
+			return this;
+		}
+
+		public Builder setAriVersion(AriVersion version) {
+			this.ariVersion = version;
+			return this;
+		}
+
+		public Builder setErrorHandler(Consumer<Exception> handler) {
+			this.errorHandler = handler;
+			return this;
+		}
+		
+		public Builder setMaxConnectionAttempts(int attempts) {
+			this.connectionAttempts = attempts;
+			return this;
+		}
+
+		public NettyHttpClient createHttpClient() {
+			if (httpClient != null)
+				return httpClient;
+			httpClient = new NettyHttpClient();
+			if (connectionAttempts != 0)
+				httpClient.setMaxReconnectCount(connectionAttempts);
+			return httpClient;
+		}
+
+		public WsClient createWsClient() {
+			return createHttpClient();
+		}
+	}
+	
+	private class ChannelCleanup {
+		private Instant schedule;
+		private String channelId;
+		
+		public ChannelCleanup(String channelId) {
+			this.channelId = channelId;
+			schedule = Instant.now().plusSeconds(30);
+		}
+		
+		private boolean checkCleanup() {
+			if (Instant.now().isBefore(schedule))
+				return false;
+			channelEventHandlers.remove(channelId);
+			return true;
+		}
+	}
+	
 	private final static Logger logger = LoggerFactory.getLogger(ARIty.class);
 	private ConcurrentHashMap<String,Queue<EventHandler<?>>> channelEventHandlers = new ConcurrentHashMap<>();
 	private Queue<EventHandler<?>> rawEventHandlers = new ConcurrentLinkedQueue<>();
@@ -56,6 +145,7 @@ public class ARIty implements AriCallback<Message> {
 	private String appName;
 	private Consumer<CallState> defaultCallHandler = this::hangupDefault;
 	private ConcurrentHashMap<String, Consumer<CallState>> stasisStartListeners = new ConcurrentHashMap<>();
+	private Deque<ChannelCleanup> scheduledCleanups = new ConcurrentLinkedDeque<>();
 	private Consumer<Exception> ce;
 	private Lazy<Channels> channels = new Lazy<>(() -> new Channels(this));
 	private Lazy<Bridges> bridges = new Lazy<>(() -> new Bridges(this));
@@ -133,19 +223,27 @@ public class ARIty implements AriCallback<Message> {
 	 */
 	public ARIty(String uri, String appName, String login, String pass, boolean openWebSocket, AriVersion version, Consumer<Exception> ce)
 			throws ConnectionFailedException, URISyntaxException {
-		this.appName = appName;
-		this.ce = (Objects.isNull(ce)) ? e -> {
-		} : ce;
-		if (uri == null)
+		this(b -> b.setUri(uri).setAppName(appName).setLogin(login).setPassword(pass).setOpenWebSocket(openWebSocket)
+				.setAriVersion(version).setErrorHandler(ce));
+	}
+		
+	public ARIty(Consumer<Builder> builder) throws ConnectionFailedException, URISyntaxException {
+		var b = new Builder();
+		builder.accept(b);
+		this.appName = Objects.requireNonNull(b.appName, "Application name must be specified");
+		this.ce = b.errorHandler;
+		if (b.uri == null)
 			return; // users might want to not connect, start ARIty just for tests
-		if (!uri.endsWith("/"))
-			uri += "/";
+		if (!b.uri.endsWith("/"))
+			b.uri += "/";
 
 		try {
-			ari = ARI.build(this.url = uri, appName, login, pass, version);
+			ari = ARI.build(this.url = b.uri, appName, b.login, b.password, b.ariVersion);
+			ari.setHttpClient(b.createHttpClient());
+			ari.setWsClient(b.createWsClient());
 			logger.info("Ari created {}", url);
 			logger.info("Ari version: " + ari.getVersion());
-			if (openWebSocket) {
+			if (b.openWebSocket) {
 				ari.events().eventWebsocket(appName).setSubscribeAll(true).execute(this);
 				logger.info("Websocket is open");
 			}
@@ -176,7 +274,7 @@ public class ARIty implements AriCallback<Message> {
 		this.autoBindBridges = shouldAutoBind;
 		return this;
 	}
-	
+
 	/**
 	 * Execute a task (such as completing a CompletableFuture) in the ARIty completion executor service 
 	 * @param task task to dispatch using the executor
@@ -458,6 +556,9 @@ public class ARIty implements AriCallback<Message> {
 		// dispatch global event handlers
 		for (Iterator<EventHandler<?>> itr = rawEventHandlers.iterator(); itr.hasNext(); )
 			itr.next().accept(event);
+		var c = scheduledCleanups.poll();
+		if (c != null && !c.checkCleanup())
+			scheduledCleanups.offerFirst(c);
 	}
 
 	private void handleChannelEvents(Message event, String channelId) {
@@ -467,7 +568,7 @@ public class ARIty implements AriCallback<Message> {
 		.descendingIterator().forEachRemaining(h -> h.accept(event));
 		// clear event handlers for this channel on stasis end
 		if (event instanceof StasisEnd)
-			channelEventHandlers.remove(channelId);
+			scheduledCleanups.offerLast(new ChannelCleanup(channelId));
 	}
 
 	private void handleStasisStart(Message event) {
