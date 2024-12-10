@@ -107,16 +107,17 @@ public class ARIty implements AriCallback<Message> {
 			return this;
 		}
 
-		public NettyHttpClient createHttpClient() {
+		public NettyHttpClient createHttpClient() throws URISyntaxException {
 			if (httpClient != null)
 				return httpClient;
 			httpClient = new NettyHttpClient();
+			httpClient.initialize(uri, login, password);
 			if (connectionAttempts != 0)
 				httpClient.setMaxReconnectCount(connectionAttempts);
 			return httpClient;
 		}
 
-		public WsClient createWsClient() {
+		public WsClient createWsClient() throws URISyntaxException {
 			return createHttpClient();
 		}
 	}
