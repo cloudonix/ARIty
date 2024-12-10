@@ -295,7 +295,7 @@ public class CallState {
 			.thenApply(val -> { // cache the variable value locally for next time
 				if (val != null)
 					variables.put(name, val); // the map can't store nulls
-				log.debug("Read channel variable {}: {}", name, val);
+				log.debug(logmarker, "Read channel variable {}: {}", name, val);
 				return val;
 			});
 	}
