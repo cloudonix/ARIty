@@ -399,6 +399,7 @@ public abstract class CallController {
 	/**
 	 * Retrieve the current call state
 	 * @return the current call state object
+	 * @throws InvalidCallStateException if the call state has not been initialized yet
 	 */
 	public CallState getCallState() {
 		if (Objects.isNull(callState))
