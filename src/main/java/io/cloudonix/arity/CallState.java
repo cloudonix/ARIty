@@ -230,7 +230,7 @@ public class CallState {
 	}
 	
 	@SuppressWarnings("serial")
-	private class VariableNotFound extends Exception {}
+	private static class VariableNotFound extends Exception {}
 
 	class GetChannelVar extends Operation {
 		private String name;
@@ -249,7 +249,7 @@ public class CallState {
 							e = e.getCause();
 						if (e instanceof VariableNotFound)
 							log.info(logmarker, "readVariable({}): not found", name);
-						if (e instanceof ProvidedChannelWasNotFoundException)
+						else if (e instanceof ProvidedChannelWasNotFoundException)
 							log.info(logmarker, "readVariable({}): channel no longer exists", name);
 						else if (e != null)
 							log.info(logmarker, "readVariable({}): unexpected error", name, e);
