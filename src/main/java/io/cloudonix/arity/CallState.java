@@ -230,7 +230,7 @@ public class CallState {
 	}
 	
 	@SuppressWarnings("serial")
-	private class VariableNotFound extends Exception {}
+	private static class VariableNotFound extends Exception {}
 
 	class GetChannelVar extends Operation {
 		private String name;
