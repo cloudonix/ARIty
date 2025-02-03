@@ -696,8 +696,8 @@ public class ARIty implements AriCallback<Message> {
 			rawEventHandlers.remove(handler);
 			return;
 		}
-		if (channelEventHandlers.computeIfAbsent(handler.getChannelId(), 
-				id -> new ConcurrentLinkedQueue<>()).remove(handler))
+		var channelEvents = channelEventHandlers.get(handler.getChannelId());
+		if (channelEvents != null && channelEvents.remove(handler))
 			logger.debug("Removed {}", handler);
 	}
 
