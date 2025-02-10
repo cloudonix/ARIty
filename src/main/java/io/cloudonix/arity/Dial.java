@@ -357,8 +357,6 @@ public class Dial extends CancelableOperations {
 				.setChannelId(endpointChannelId);
 		if (shouldAttachToCallingChannel)
 			op.setOriginator(getChannelId());
-		if (otherChannelId == null)
-			otherChannelId = UUID.randomUUID().toString();
 		return op.setCallerId(callerId).setTimeout(timeout).setVariables(formatVariables()).setOtherChannelId(otherChannelId);
 	}
 
