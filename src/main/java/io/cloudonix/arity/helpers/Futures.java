@@ -146,8 +146,11 @@ public class Futures {
 	public static <T> Function<T, CompletableFuture<T>> delay(long delay) {
 		CompletableFuture<T> future = new CompletableFuture<>();
 		return value -> {
-			Timers.schedule(() -> future.complete(value), delay);
-			return future;
+			var callable = Timers.schedule(() -> future.complete(value), delay);
+			return future.whenComplete((v,t) -> {
+				if (future.isCancelled())
+					callable.cancel();
+			});
 		};
 	}
 
