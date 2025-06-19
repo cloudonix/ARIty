@@ -262,4 +262,21 @@ public class Channels {
 				.thenCompose(v -> waitForStart).thenApply(cs -> new AsteriskChannel(arity, cs));
 	}
 
+	/**
+	 * Start playing silence into the specified channel. use {@link #stopSilence(String)} to stop playing silence.
+	 * @param channelId channel to play silence into
+	 * @return a promise that will resolve when the call completes successfully or reject if there's an error
+	 */
+	public CompletableFuture<Void> startSilence(final String channelId) {
+		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb));
+	}
+
+	/**
+	 * Stop playing silence into the specified channel.
+	 * @param channelId channel where silence is currently playing
+	 * @return a promise that will resolve when the call completes successfully or reject if there's an error
+	 */
+	public CompletableFuture<Void> stopSilence(final String channelId) {
+		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb));
+	}
 }
