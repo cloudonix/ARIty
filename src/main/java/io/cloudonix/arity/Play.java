@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
-import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.ChannelNotFoundException;
 import io.cloudonix.arity.errors.PlaybackException;
 import io.cloudonix.arity.errors.PlaybackNotFoundException;
@@ -171,7 +170,7 @@ public class Play extends CancelableOperations {
 			// if double canceling, or canceling before we generate the ID on start, we're done here
 			return CompletableFuture.completedFuture(null); // start() will check if it was cancelled
 		logger.info("{}|Trying to cancel a playback", currentPlaybackId);
-		return Operation.<Void>retry(cb -> playbacks().stop(currentPlaybackId).execute(cb), ARItyException::ariRestExceptionMapper)
+		return this.<Void>retryOperation(cb -> playbacks().stop(currentPlaybackId).execute(cb))
 				.thenAccept(pb -> logger.info("{}|Playback canceled", currentPlaybackId))
 				.exceptionally(Futures.on(PlaybackNotFoundException.class, e -> {
 					if (playback.get() != null) // don't complain if playback has already successfully ended

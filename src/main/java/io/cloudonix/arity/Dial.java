@@ -307,7 +307,7 @@ public class Dial extends CancelableOperations {
 		if (earlyBridge != null)
 			return runEarlyBridingWorkflow();
 
-		return this.<Channel>retryOperation(cb -> genOriginateChannelOperation().execute(cb))
+		return retryOperation(Channel.class, cb -> genOriginateChannelOperation().execute(cb))
 				.thenAccept(channel -> {
 					this.channel =  channel;
 					logger.info("Dial started");
@@ -327,7 +327,7 @@ public class Dial extends CancelableOperations {
 		whenActive(() -> activated.complete(null));
 		
 		logger.debug("Starting early bridging dial " + callerId + " -> " + endpoint);
-		return this.<Channel>retryOperation(h -> genCreateChannelOperation().execute(h))
+		return retryOperation(Channel.class, h -> genCreateChannelOperation().execute(h))
 				.thenApply(ch -> channel = ch)
 				.thenCompose(v -> activated) // wait until channels enter stasis
 				.thenCompose(v -> dialledCallState.get().setVariables(formatCallerIdVariables())) // set variables again as CALLERID is sometimes ignored
@@ -480,7 +480,7 @@ public class Dial extends CancelableOperations {
 		dialStatus = wasConnected ? Status.ANSWER : Status.CANCEL;
 		cancelled();
 		return (earlyBridge != null ? earlyBridge.removeChannel(endpointChannelId).exceptionally(t -> null) : completedFuture(null))
-				.thenCompose(v -> this.<Void>retryOperation(cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb)))
+				.thenCompose(v -> retryOperation(Void.class, cb -> channels().hangup(endpointChannelId).setReason("normal").execute(cb)))
 				.thenAccept(v -> logger.info("Hang up the endpoint call"));
 	}
 
