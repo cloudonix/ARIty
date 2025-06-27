@@ -73,7 +73,7 @@ Then add the ARIty dependency to the dependencies list:
 <dependency>
   <groupId>com.github.cloudonix</groupId>
   <artifactId>arity</artifactId>
-  <version>0.12.39</version>
+  <version>0.12.40</version>
 </dependency>
 ```
 
