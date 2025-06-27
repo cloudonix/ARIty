@@ -2,10 +2,14 @@ package io.cloudonix.arity.errors;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.SocketException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.tools.ARIException;
@@ -14,6 +18,8 @@ import io.cloudonix.arity.Operation;
 
 @SuppressWarnings("serial")
 public class ARItyException extends ARIException {
+	
+	private static final Logger log = LoggerFactory.getLogger(ARItyException.class);
 
 	public ARItyException(Throwable cause) {
 		super(cause);
@@ -41,12 +47,18 @@ public class ARItyException extends ARIException {
 	 * @param ariError the ari4java exception to be mapped
 	 * @return an instance of a logical ARItyException, if a matching one is found, null otherwise 
 	 */
-	public static Exception ariRestExceptionMapper(Throwable ariError) {
-		if (!(ariError instanceof RestException))
+	public static ARItyException ariRestExceptionMapper(Throwable ariError) {
+		if (ariError instanceof ARItyException) // no need to double map
+			return (ARItyException) ariError;
+		if (!(ariError instanceof RestException)) {
+			log.error("Unexpected type of ARI error", ariError);
 			return null; // we only map RestExceptions
+		}
 		RestException err = (RestException) ariError;
-		if (err.getMessage() == null) // shouldn't happen, but it does
+		if (err.getMessage() == null) { // shouldn't happen, but it does
+			log.error("Cannot parse ARI error with no message!", ariError);
 			return null;
+		}
 		if (err.getCause() != null && err.getCause() instanceof SocketException) {
 			new ConnectionFailedException((SocketException)err.getCause());
 		}
@@ -55,11 +67,29 @@ public class ARItyException extends ARIException {
 				.collect(Collectors.joining());
 		try {
 			Class<?> exClazz = Class.forName(String.format("%s.%sException", ARItyException.class.getPackageName(), exception));
-			return (Exception) exClazz.getConstructor(Throwable.class).newInstance(ariError);
+			if (!exClazz.isAssignableFrom(ARItyException.class)) {
+				log.error("Error mapping exceptio {} to ARItyException: class {} is incompatible", ariError, exClazz);
+				return null;
+			}
+			return (ARItyException) exClazz.getConstructor(Throwable.class).newInstance(ariError);
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			LoggerFactory.getLogger(ARItyException.class).debug("Problem parsing REST excetion {}: {}", err.toString(), e.toString());
+			log.error("Problem parsing REST excetion {}: {}", err.toString(), e.toString());
 			return null;
 		}
+	}
+
+	/**
+	 * This function is a tool for a custom exception mapper, so it can easily delegate first to the generic exception
+	 * mapper {@link #ariRestExceptionMapper(Throwable)} and only handle failures.
+	 * @param ariError the error being mapped
+	 * @param fallback a fallback provider that - in case the generic mapper fails to find a valid ARIty error implementation -
+	 *   will receive the non-null error message and can come up with a custom ARIty error
+	 * @return An {@link ARItyException} instance that logically explains the ARI error message, or {@code null} if the
+	 *   ARI error did not have a message to be parsed, or the fallback provider also failed to create a relevant instance
+	 */
+	public static ARItyException ariRestExceptionMapper(Throwable ariError, Function<String, ARItyException> fallback) {
+		return Objects.requireNonNullElseGet(ariRestExceptionMapper(ariError), () -> Optional.ofNullable(ariError.getMessage())
+				.map(fallback).orElse(null));
 	}
 	
 	/**

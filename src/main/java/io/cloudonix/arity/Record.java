@@ -19,6 +19,7 @@ import ch.loway.oss.ari4java.generated.models.ChannelTalkingStarted;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.tools.RestException;
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.RecordingException;
 import io.cloudonix.arity.errors.RecordingNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
@@ -301,10 +302,9 @@ public class Record extends CancelableOperations {
 	
 	@Override
 	protected Exception tryIdentifyError(Throwable ariError) {
-		return Objects.requireNonNullElseGet(super.tryIdentifyError(ariError), () -> {
-			switch (Objects.requireNonNullElse(ariError.getMessage(), "")) {
-			case "Recording not found": return new RecordingNotFoundException(name, ariError);
-			}
+		return ARItyException.ariRestExceptionMapper(ariError, message -> {
+			if (message.contains("Recording not found"))
+				return new RecordingNotFoundException(name, ariError);
 			return null;
 		});
 	}
