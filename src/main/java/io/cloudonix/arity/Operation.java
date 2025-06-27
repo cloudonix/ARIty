@@ -152,6 +152,18 @@ public abstract class Operation {
 	public <V> CompletableFuture<V> retryOperation(AriOperation<V> op) {
 		return retryOperationImpl(op, RETRIES, this::tryIdentifyError);
 	}
+	
+	/**
+	 * Alias to {@link #retryOperation(AriOperation)} to force the generic type in a possibly more readable way
+	 * @param <V>  The generic type of the resulting promise's value
+	 * @param type the class for the generic type - this is just used for enforcing the type and its value is not used
+	 * @param op the ARI operation to execute
+	 * @return result of the operation, if successful, or a failure if the operation failed all retries, or the
+	 *   current operation implementation determined an error to be fatal without retrying.
+	 */
+	public <V> CompletableFuture<V> retryOperation(Class<V> type, AriOperation<V> op) {
+		return retryOperationImpl(op, RETRIES, this::tryIdentifyError);
+	}
 
 	/**
 	 * Retry to execute ARI operation few times
@@ -274,8 +286,6 @@ public abstract class Operation {
 	 * @return an exception, if the operation should not be retried
 	 */
 	protected Exception tryIdentifyError(Throwable ariError) {
-		if (ariError.getMessage() == null)
-			log.error("ARI error with no message???", ariError);
 		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 

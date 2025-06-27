@@ -421,15 +421,15 @@ public class Bridge {
 		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
 		case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, ariError.getMessage());
 		case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, ariError);
+		default: return ARItyException.ariRestExceptionMapper(ariError);
 		}
-		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 	
 	private Exception mapExceptionsForDestroyBridge(Throwable ariError) {
 		switch (ariError.getMessage()) {
 		case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
+		default: return ARItyException.ariRestExceptionMapper(ariError);
 		}
-		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 	
 	@Override

@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.StoredRecording;
-import io.cloudonix.arity.errors.ARItyException;
 
 /**
  * Access to recording information, whether that recording is live or already stored.
@@ -74,7 +73,7 @@ public class RecordingData {
 	public CompletableFuture<StoredRecording> getStoredRecording() {
 		if (Objects.nonNull(stored))
 			return CompletableFuture.completedFuture(stored);
-		return Operation.<StoredRecording>retry(cb -> arity.getAri().recordings().getStored(recordingName).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<StoredRecording>retry(cb -> arity.getAri().recordings().getStored(recordingName).execute(cb))
 				.thenApply(s -> stored = s);
 	}
 
@@ -83,7 +82,7 @@ public class RecordingData {
 	public CompletableFuture<byte[]> getStoredRecordingData() {
 		if (recordingCache.get() != null)
 			return CompletableFuture.completedFuture(recordingCache.get());
-		return Operation.<byte[]>retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<byte[]>retry(cb -> arity.getAri().recordings().getStoredFile(recordingName).execute(cb))
 				.whenComplete((data, t) -> {
 					if (data != null && data.length > 0)
 						recordingCache.compareAndExchange(null, data);
@@ -92,7 +91,7 @@ public class RecordingData {
 	
 	@SuppressWarnings("deprecation")
 	public CompletableFuture<Void> deleteRecording() {
-		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb), ARItyException::ariRestExceptionMapper);
+		return Operation.retry(cb -> arity.getAri().recordings().deleteStored(recordingName).execute(cb));
 	}
 
 	public int getDuration() {
