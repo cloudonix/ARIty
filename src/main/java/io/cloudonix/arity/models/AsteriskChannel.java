@@ -13,7 +13,6 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
-import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.CallState.States;
 
 public class AsteriskChannel {
@@ -82,7 +81,7 @@ public class AsteriskChannel {
 	 * @return a promise that resolve to itself or rejects if the API encountered errors
 	 */
 	public CompletableFuture<AsteriskChannel> hangup(HangupReasons reason) {
-		return Operation.<Void>retry(cb -> api.hangup(channelId).setReason(reason.reason).execute(cb), ARItyException::ariRestExceptionMapper).thenApply(v -> this);
+		return Operation.<Void>retry(cb -> api.hangup(channelId).setReason(reason.reason).execute(cb)).thenApply(v -> this);
 	}
 	
 	/**
@@ -209,7 +208,7 @@ public class AsteriskChannel {
 	}
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
-		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(api.record(getId(), null, null), arity).execute(cb))
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 	
@@ -226,42 +225,42 @@ public class AsteriskChannel {
 		String snoopId = UUID.randomUUID().toString();
 		CompletableFuture<CallState> waitForStart = arity.waitForNewCallState(snoopId);
 		return Operation.<Channel>retry(cb -> api.snoopChannel(channelId, arity.getAppName())
-				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb), ARItyException::ariRestExceptionMapper)
+				.setSnoopId(snoopId).setSpy(spy.name()).setWhisper(whisper.name()).execute(cb))
 				.thenCompose(c -> waitForStart.thenApply(cs -> new AsteriskChannel(arity, cs))); // ignore new call state for now
 	}
 
 	public CompletableFuture<AsteriskChannel> startSilence() {
-		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<Void>retry(cb -> api.startSilence(channelId).execute(cb))
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> stopSilence() {
-		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<Void>retry(cb -> api.stopSilence(channelId).execute(cb))
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> answer() {
-		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb), ARItyException::ariRestExceptionMapper)
+		return Operation.<Void>retry(cb -> api.answer(channelId).execute(cb))
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial() {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
-				.execute(cb), ARItyException::ariRestExceptionMapper)
+				.execute(cb))
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller) {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller)
-				.execute(cb), ARItyException::ariRestExceptionMapper)
+				.execute(cb))
 				.thenApply(v -> this);
 	}
 
 	public CompletableFuture<AsteriskChannel> dial(String caller, int timeout) {
 		return Operation.<Void>retry(cb -> api.dial(channelId)
 				.setCaller(caller).setTimeout(timeout)
-				.execute(cb), ARItyException::ariRestExceptionMapper)
+				.execute(cb))
 				.thenApply(v -> this);
 	}
 	
