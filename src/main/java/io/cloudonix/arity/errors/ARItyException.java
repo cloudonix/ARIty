@@ -72,7 +72,10 @@ public class ARItyException extends ARIException {
 				return null;
 			}
 			return (ARItyException) exClazz.getConstructor(Throwable.class).newInstance(ariError);
-		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+		} catch (ClassNotFoundException e) {
+			log.warn("No error type {} found", exception);
+			return null;
+		} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			log.error("Problem parsing REST excetion {}: {}", err.toString(), e.toString());
 			return null;
 		}
