@@ -67,7 +67,7 @@ public class ARItyException extends ARIException {
 				.collect(Collectors.joining());
 		try {
 			Class<?> exClazz = Class.forName(String.format("%s.%sException", ARItyException.class.getPackageName(), exception));
-			if (!exClazz.isAssignableFrom(ARItyException.class)) {
+			if (!ARItyException.class.isAssignableFrom(exClazz)) {
 				log.error("Error mapping exceptio {} to ARItyException: class {} is incompatible", ariError, exClazz);
 				return null;
 			}
