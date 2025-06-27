@@ -7,6 +7,7 @@ import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.ChannelNotFoundException;
 import io.cloudonix.arity.helpers.Futures;
 
@@ -51,12 +52,14 @@ public class Ring extends CancelableOperations {
 	 */
 	public CompletableFuture<Ring> run(boolean throwError) {
 		return this.<Void>retryOperation(h -> channels().ring(channelId).execute(h))
-				.handle((v,t) -> {
-					if (Objects.isNull(t)) logger.debug("Ringing");
-					else if (throwError) throw new CompletionException(t);
-					else logger.warn("Failed ringing", t);
-					return this;
-				});
+				.thenAccept(__ -> logger.debug("Ringing"))
+				.exceptionally(Futures.on(ARItyException.class, e -> {
+					if (throwError)
+						throw e;
+					logger.warn("Failed ringing due to: {}", e.toString());
+					return null;
+				}))
+				.thenApply(__ -> this);
 	}
 
 	@Override
