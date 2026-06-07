@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.cloudonix</groupId>
 	<artifactId>arity</artifactId>
-	<version>0.12.41</version>
+	<version>0.12.42</version>
 	<repositories>
 		<repository>
 			<id>jcenter</id>
@@ -56,6 +56,11 @@
 			<groupId>com.github.cloudonix</groupId>
 			<artifactId>ari4java</artifactId>
 			<version>CX-0.16.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-all</artifactId>
+			<version>4.1.105.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
