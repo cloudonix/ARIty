@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
+import ch.loway.oss.ari4java.ArityARIFactory;
 import ch.loway.oss.ari4java.generated.models.BridgeCreated;
 import ch.loway.oss.ari4java.generated.models.BridgeDestroyed;
 import ch.loway.oss.ari4java.generated.models.Channel;
@@ -239,7 +240,8 @@ public class ARIty implements AriCallback<Message> {
 			b.uri += "/";
 
 		try {
-			ari = ARI.build(this.url = b.uri, appName, b.login, b.password, b.ariVersion);
+			ArityARIFactory.setupHttpClient(b.uri, b.login, b.password);
+			ari = ArityARIFactory.nettyHttp(this.url = b.uri, b.login, b.password, b.ariVersion, appName, true);
 			ari.setHttpClient(b.createHttpClient());
 			ari.setWsClient(b.createWsClient());
 			logger.info("Ari created {}", url);
