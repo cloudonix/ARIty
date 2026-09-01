@@ -517,7 +517,9 @@ public class Conference {
 	 * @return a promise that will complete when the call controller has been removed from the conference bridge
 	 */
 	public CompletableFuture<Void> removeChannelFromConf() {
-		return bridge.thenCompose(b -> b.removeChannel(callController.getChannelId()));
+		return CompletableFuture.allOf(
+				bridge.thenCompose(b -> b.removeChannel(callController.getChannelId())),
+				stopRecording());
 	}
 
 	/**
