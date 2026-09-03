@@ -735,6 +735,10 @@ public class ARIty implements AriCallback<Message> {
 		if (ari.isWsConnected());
 			ari.cleanup();
 	}
+	
+	public boolean isConnected() {
+		return ari.isWsConnected();
+	}
 
 	/**
 	 * Initiate an unsolicited dial
