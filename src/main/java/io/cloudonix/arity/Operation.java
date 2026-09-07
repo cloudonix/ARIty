@@ -248,27 +248,27 @@ public abstract class Operation {
 	}
 
 	protected ActionChannels channels() {
-		if (arity == null || arity.getAri() == null)
+		if (arity == null || ((ARItyImpl)arity).getAri() == null)
 				throw new InvalidCallStateException();
-		return arity.getAri().channels();
+		return ((ARItyImpl)arity).getAri().channels();
 	}
 
 	protected ActionBridges bridges() {
-		if (arity == null || arity.getAri() == null)
+		if (arity == null || ((ARItyImpl)arity).getAri() == null)
 				throw new InvalidCallStateException();
-		return arity.getAri().bridges();
+		return ((ARItyImpl)arity).getAri().bridges();
 	}
 
 	protected ActionPlaybacks playbacks() {
-		if (arity == null || arity.getAri() == null)
+		if (arity == null || ((ARItyImpl)arity).getAri() == null)
 				throw new InvalidCallStateException();
-		return arity.getAri().playbacks();
+		return ((ARItyImpl)arity).getAri().playbacks();
 	}
 
 	protected ActionRecordings recordings() {
-		if (arity == null || arity.getAri() == null)
+		if (arity == null || ((ARItyImpl)arity).getAri() == null)
 				throw new InvalidCallStateException();
-		return arity.getAri().recordings();
+		return ((ARItyImpl)arity).getAri().recordings();
 	}
 
 	/**

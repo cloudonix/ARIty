@@ -11,6 +11,7 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import ch.loway.oss.ari4java.generated.models.ChannelStateChange;
 import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyImpl;
 import io.cloudonix.arity.CallState;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.CallState.States;
@@ -63,7 +64,7 @@ public class AsteriskChannel {
 		this.arity = arity;
 		this.callState = callState;
 		this.localOtherId = localOtherId;
-		this.api = arity.getAri().channels();
+		this.api = ((ARItyImpl)arity).getAri().channels();
 		this.channelId = callState.getChannelId();
 	}
 	

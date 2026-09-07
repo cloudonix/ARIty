@@ -37,11 +37,11 @@ public class Bridges {
 		}
 	}
 
-	private ARIty arity;
+	private ARItyImpl arity;
 	private ActionBridges api;
 
 	@SuppressWarnings("deprecation")
-	public Bridges(ARIty arity) {
+	public Bridges(ARItyImpl arity) {
 		this.arity = arity;
 		this.api = arity.getAri().bridges();
 	}

@@ -13,7 +13,9 @@ import com.github.dockerjava.api.model.InternetProtocol;
 import com.github.dockerjava.api.model.Ports.Binding;
 
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyOptions;
 import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.vertx.core.Vertx;
 
 public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 
@@ -92,10 +94,10 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		return this.getContainerIpAddress()+ ":" + mappedPort;
 	}
 
-	public ARIty getARIty() {
+	public ARIty getARIty(Vertx vertx) {
 		return arity = Objects.requireNonNullElseGet(arity, () -> {
 				try {
-					return new ARIty(getAriURL(), "stasisApp", "testuser", "123");
+					return ARIty.create(vertx, new ARItyOptions().uri(getAriURL()).appName("stasisApp").login("testuser").password("123"));
 				} catch (ConnectionFailedException | URISyntaxException e) {
 					logger().error("Failed to create ARIty", e);
 					return null;

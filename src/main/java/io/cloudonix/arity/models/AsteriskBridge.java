@@ -21,6 +21,7 @@ import ch.loway.oss.ari4java.generated.models.Playback;
 import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyImpl;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.Bridges.BridgeType;
 import io.cloudonix.arity.errors.ARItyException;
@@ -38,7 +39,7 @@ public class AsteriskBridge {
 	private ActionBridges api;
 
 	@SuppressWarnings("deprecation")
-	public AsteriskBridge(ARIty arity, Bridge bridge) {
+	public AsteriskBridge(ARItyImpl arity, Bridge bridge) {
 		this.arity = arity;
 		this.bridge = bridge;
 		bridgeId = bridge.getId();

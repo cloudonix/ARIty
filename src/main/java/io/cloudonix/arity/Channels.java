@@ -7,17 +7,16 @@ import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
-import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.models.AsteriskChannel.HangupReasons;
 
 public class Channels {
 
-	private ARIty arity;
+	private ARItyImpl arity;
 	private ActionChannels api;
 
 	@SuppressWarnings("deprecation")
-	public Channels(ARIty arity) {
+	public Channels(ARItyImpl arity) {
 		this.arity = arity;
 		this.api = arity.getAri().channels();
 	}

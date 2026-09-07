@@ -21,7 +21,7 @@ public class OnetimeEventHandler<T extends Message> extends EventHandler<T> {
 	 * @param type message type
 	 * @param arity owner ARIty instance
 	 */
-	OnetimeEventHandler(String channelId, Consumer<T> handler, Class<T> type, ARIty arity) {
+	OnetimeEventHandler(String channelId, Consumer<T> handler, Class<T> type, ARItyImpl arity) {
 		super(channelId, (t,se) -> { se.unregister(); handler.accept(t); }, type, arity);
 		this.handler = handler;
 	}

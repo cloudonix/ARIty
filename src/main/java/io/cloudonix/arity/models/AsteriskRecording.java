@@ -18,6 +18,7 @@ import ch.loway.oss.ari4java.generated.models.LiveRecording;
 import ch.loway.oss.ari4java.generated.models.RecordingFinished;
 import ch.loway.oss.ari4java.generated.models.RecordingStarted;
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyImpl;
 import io.cloudonix.arity.EventHandler;
 import io.cloudonix.arity.Operation;
 import io.cloudonix.arity.RecordingData;
@@ -35,7 +36,7 @@ public class AsteriskRecording {
 
 	public AsteriskRecording(ARIty arity, LiveRecording rec) {
 		this.rec = rec;
-		this.api = arity.getAri().recordings();
+		this.api = ((ARItyImpl)arity).getAri().recordings();
 		this.storedRecording = new RecordingData(arity, rec.getName());
 		storedRecording.setLiveRecording(rec);
 		log.debug("recording {}", storedRecording);

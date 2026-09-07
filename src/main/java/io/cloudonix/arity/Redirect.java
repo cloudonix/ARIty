@@ -33,7 +33,7 @@ public class Redirect extends Operation {
 			return failedFuture(new RedirectException("Endpoint can not be null!"));
 		}
 		logger.info("Now redirecting... channel id: "+getChannelId()+" , to: "+endpoint);
-		return this.<Void>retryOperation(cb->getArity().getAri().channels().redirect(getChannelId(), endpoint).execute(cb))
+		return this.<Void>retryOperation(cb->((ARItyImpl)getArity()).getAri().channels().redirect(getChannelId(), endpoint).execute(cb))
 				.thenApply(v->null);
 	}
 

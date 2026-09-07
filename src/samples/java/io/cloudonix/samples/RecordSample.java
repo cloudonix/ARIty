@@ -7,8 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyOptions;
 import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.vertx.core.Vertx;
 /**
  * Sample for recording and playing the recording after finished recording
  * @author naamag
@@ -23,7 +25,7 @@ public class RecordSample extends CallController {
 	}
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "userid", "secret");
+		ARIty arity = ARIty.create(Vertx.vertx(), new ARItyOptions().uri("http://127.0.0.1:8088/").appName("stasisApp").login("userid").password("secret"));
 		logger.info("websocket is connected to: " + arity.getConnetion());
 
 		// lambda case

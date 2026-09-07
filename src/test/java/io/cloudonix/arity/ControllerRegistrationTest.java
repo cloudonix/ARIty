@@ -8,13 +8,19 @@ import java.util.concurrent.CompletableFuture;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cloudonix.ARItySipInitiator;
 import io.cloudonix.test.support.AsteriskContainer;
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
 
 public class ControllerRegistrationTest {
+
+	@RegisterExtension
+	static VertxExtension vertxExtension = new VertxExtension();
 
 	public static class MyCallController extends CallController {
 		@Override
@@ -48,10 +54,10 @@ public class ControllerRegistrationTest {
 	}
 
 	@Test(timeout = 15000)
-	public void testRegisterClass() throws Exception {
+	public void testRegisterClass(Vertx vertx) throws Exception {
 		runCount = 0;
 		logger.info("testRegisterClass starting");
-		asterisk.getARIty().registerVoiceApp(MyCallController.class);
+		asterisk.getARIty(vertx).registerVoiceApp(MyCallController.class);
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
 		logger.info("testRegisterClass done");
 		assertTrue(runCount > 0);
@@ -59,10 +65,10 @@ public class ControllerRegistrationTest {
 	}
 
 	@Test(timeout = 15000)
-	public void testRegisterSupplier() throws Exception {
+	public void testRegisterSupplier(Vertx vertx) throws Exception {
 		runCount = 0;
 		logger.info("testRegisterSupplier starting");
-		asterisk.getARIty().registerVoiceApp(PrivateMyCallController::new);
+		asterisk.getARIty(vertx).registerVoiceApp(PrivateMyCallController::new);
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), "0.0.0.0" ,"1234").get();
 		logger.info("testRegisterSupplier done");
 		assertTrue(runCount > 0);
@@ -70,10 +76,10 @@ public class ControllerRegistrationTest {
 	}
 
 	@Test(timeout = 15000)
-	public void testRegisterLambda() throws Exception {
+	public void testRegisterLambda(Vertx vertx) throws Exception {
 		runCount = 0;
 		logger.info("testRegisterLambda starting");
-		asterisk.getARIty().registerVoiceApp(call -> {
+		asterisk.getARIty(vertx).registerVoiceApp(call -> {
 			runCount++;
 			call.answer().run()
 			.thenCompose(v -> CompletableFuture.runAsync(() -> {
@@ -91,9 +97,9 @@ public class ControllerRegistrationTest {
 	}
 
 	@Test(timeout = 12000)
-	public void testErrAbstractClass() throws Exception {
+	public void testErrAbstractClass(Vertx vertx) throws Exception {
 		try {
-			asterisk.getARIty().registerVoiceApp(BrokenApp.class);
+			asterisk.getARIty(vertx).registerVoiceApp(BrokenApp.class);
 			int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
 			assertEquals(603, status);
 		} catch (NoSuchMethodException e) {

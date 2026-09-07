@@ -17,7 +17,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	private BiConsumer<T, EventHandler<T>> handler;
 	protected String channelId;
 	protected Class<T> clazz;
-	private ARIty arity;
+	private ARItyImpl arity;
 	private volatile boolean registered = true;
 	private final static Logger logger = LoggerFactory.getLogger(EventHandler.class);
 
@@ -29,7 +29,7 @@ public class EventHandler<T extends Message> implements Consumer<T> {
 	 * @param type message type
 	 * @param arity owner ARIty instance
 	 */
-	EventHandler(String channelId, BiConsumer<T, EventHandler<T>> handler, Class<T> type, ARIty arity) {
+	EventHandler(String channelId, BiConsumer<T, EventHandler<T>> handler, Class<T> type, ARItyImpl arity) {
 		this.channelId = channelId;
 		this.handler = handler;
 		this.clazz = type;

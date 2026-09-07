@@ -7,8 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cloudonix.arity.ARIty;
+import io.cloudonix.arity.ARItyOptions;
 import io.cloudonix.arity.CallController;
 import io.cloudonix.arity.errors.ConnectionFailedException;
+import io.vertx.core.Vertx;
 
 /**
  * Sample for answering the call and playing "hello-world" 3 times
@@ -18,14 +20,14 @@ import io.cloudonix.arity.errors.ConnectionFailedException;
  */
 public class AnswerAndPlay extends CallController {
 	private final static Logger logger = LoggerFactory.getLogger(AnswerAndPlay.class);
-
+	
 	@Override
 	public CompletableFuture<Void> run() {
 		return CompletableFuture.completedFuture(null);
 	}
 
 	public static void main(String[] args) throws ConnectionFailedException, URISyntaxException {
-		ARIty arity = new ARIty("http://127.0.0.1:8088/", "stasisApp", "userid", "secret");
+		ARIty arity = ARIty.create(Vertx.vertx(), new ARItyOptions().uri("http://127.0.0.1:8088/").appName("stasisApp").login("userid").password("secret"));
 		logger.info("websocket is connected to: " + arity.getConnetion());
 
 		// lambda case

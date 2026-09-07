@@ -60,7 +60,7 @@ public class Bridge {
 	public Bridge(ARIty arity, String id) {
 		this.arity = arity;
 		this.bridgeId = id;
-		this.api = arity.getAri().bridges();
+		this.api = ((ARItyImpl)arity).getAri().bridges();
 	}
 
 	/**
@@ -307,7 +307,7 @@ public class Bridge {
 		RecordingData data = getRecodingByName(recordingName);
 		if (Objects.isNull(data))
 			return CompletableFuture.completedFuture(data);
-		return Operation.<Void>retry(cb -> arity.getAri().recordings().stop(recordingName).execute(cb))
+		return Operation.<Void>retry(cb -> ((ARItyImpl)arity).getAri().recordings().stop(recordingName).execute(cb))
 				.thenApply(v -> data);
 	}
 

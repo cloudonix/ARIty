@@ -14,11 +14,17 @@ import ch.loway.oss.ari4java.generated.models.Channel;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.cloudonix.ARItySipInitiator;
 import io.cloudonix.test.support.AsteriskContainer;
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
 
 public class ARItyTest {
+	
+	@RegisterExtension
+	static VertxExtension vertxExtension = new VertxExtension();
 
 	public static class Application extends CallController {
 		public static boolean isSucceeded = false;
@@ -51,9 +57,9 @@ public class ARItyTest {
 	private final static Logger logger = LoggerFactory.getLogger(ARItyTest.class);
 
 	@Test(timeout = 15000)
-	public void testConnection() throws Exception {
+	public void testConnection(Vertx vertx) throws Exception {
 		logger.info("Started testConnection");
-		ARIty arity = asterisk.getARIty();
+		ARIty arity = asterisk.getARIty(vertx);
 		List<Channel> connections = arity.getActiveChannels().get();
 		logger.info("Currently {} active connections", connections.size());
 		assertEquals(0, connections.size());
@@ -61,10 +67,10 @@ public class ARItyTest {
 
 	@Test(timeout = 30000)
 	// error while running an application
-	public void testErrRun() throws Exception {
+	public void testErrRun(Vertx vertx) throws Exception {
 		AtomicBoolean wasCalled = new AtomicBoolean(false);
 		logger.info("Starting testErrRun");
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
+		ARIty arity = ARIty.create(vertx, new ARItyOptions().uri(asterisk.getAriURL()).appName("stasisApp").login("testuser").password("123"));
 		logger.info("Setup complete");
 		arity.registerVoiceApp(call -> {
 			logger.info("Call started");
@@ -91,10 +97,10 @@ public class ARItyTest {
 
 	@Test(timeout = 30000)
 	//application is not registered
-	public void testNotRegisteredApp() throws Exception {
+	public void testNotRegisteredApp(Vertx vertx) throws Exception {
 		try {
 		logger.info("Starting testNotRegisteredApp");
-		ARIty arity = new ARIty(asterisk.getAriURL(), "stasisApp", "testuser", "123");
+		ARIty arity = ARIty.create(vertx, new ARItyOptions().uri(asterisk.getAriURL()).appName("stasisApp").login("testuser").password("123"));
 		int status = ARItySipInitiator.call(asterisk.getSipHostPort(), asterisk.getContainerIpAddress() ,"1234").get();
 		arity.disconnect();
 		assertEquals(603, status);
