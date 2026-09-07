@@ -226,11 +226,11 @@ public abstract class Operation {
 				return retrier.get();
 			}
 			if (t.getMessage().toLowerCase().contains("timeout")) {
-				log.warn("[from [}] ARI timeout: {}", getLastSignificantCaller(caller), t.getMessage());
+				log.warn("[from {}] ARI timeout: {}", getLastSignificantCaller(caller), t.getMessage());
 				return retrier.get();
 			}
 			if (t.getMessage().contains("Client Shutdown")) {
-				log.warn("[from [}] ARI client shutdown: {}", getLastSignificantCaller(caller), t.getMessage());
+				log.warn("[from {}] ARI client shutdown: {}", getLastSignificantCaller(caller), t.getMessage());
 				return retrier.get();
 			}
 			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);
