@@ -1,10 +1,10 @@
 package io.cloudonix.arity;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -19,6 +19,7 @@ import ch.loway.oss.ari4java.generated.actions.ActionRecordings;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.errors.ARItyException;
+import io.cloudonix.arity.errors.ClientShutdown;
 import io.cloudonix.arity.errors.InvalidCallStateException;
 import io.cloudonix.arity.helpers.Futures;
 
@@ -185,7 +186,7 @@ public abstract class Operation {
 	 *   be propagated as the failure.
 	 * @return result of the operation, if successful, or a failure if the operation failed all retries
 	 */
-	public static <V> CompletableFuture<V> retry(AriOperation<V> op, Function<Throwable, Exception> exceptionMapper) {
+	public static <V> CompletableFuture<V> retry(AriOperation<V> op, ExceptionMapper exceptionMapper) {
 		return retryOperationImpl(op, RETRIES, exceptionMapper);
 	}
 
@@ -201,19 +202,19 @@ public abstract class Operation {
 	 *   the provided exception mapper determined the exception to be fatal before retrying
 	 */
 	private static <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
-			Function<Throwable, Exception> exceptionMapper) {
+			ExceptionMapper exceptionMapper) {
 		StackTraceElement[] caller = getCallingStack();
 		return retryOperationImpl(op, triesLeft, exceptionMapper, caller);
 	}
 	
 	private static <V> CompletableFuture<V> retryOperationImpl(AriOperation<V> op, int triesLeft,
-			Function<Throwable, Exception> exceptionMapper, StackTraceElement[] caller) {
+			ExceptionMapper exceptionMapper, StackTraceElement[] caller) {
 		Supplier<CompletableFuture<V>> retrier = () -> Futures.delay(RETRY_TIME).apply(null)
 				.thenCompose(v1->retryOperationImpl(op, triesLeft - 1, exceptionMapper, caller));
 		return toFuture(op).handle((v,t) -> {
 			if (t == null)
 				return CompletableFuture.completedFuture(v);
-			Exception recognizedFailure = exceptionMapper.apply(unwrapCompletionError(t));
+			Exception recognizedFailure = exceptionMapper.unwrapAndMap(t);
 			if (recognizedFailure != null) {
 				recognizedFailure.setStackTrace(caller);
 				throw rewrapError("Unrecoverable ARI operation error: " + recognizedFailure, caller, recognizedFailure);
@@ -227,10 +228,6 @@ public abstract class Operation {
 			}
 			if (t.getMessage().toLowerCase().contains("timeout")) {
 				log.warn("[from {}] ARI timeout: {}", getLastSignificantCaller(caller), t.getMessage());
-				return retrier.get();
-			}
-			if (t.getMessage().contains("Client Shutdown")) {
-				log.warn("[from {}] ARI client shutdown: {}", getLastSignificantCaller(caller), t.getMessage());
 				return retrier.get();
 			}
 			throw rewrapError("Unexpected ARI operation error: " + t, caller, t);
@@ -289,13 +286,41 @@ public abstract class Operation {
 		return ARItyException.ariRestExceptionMapper(ariError);
 	}
 
-	protected static Throwable unwrapCompletionError(Throwable error) {
-		while (error instanceof CompletionException) {
-			Throwable cause = error.getCause();
-			if (cause == null)
-				return error;
-			error = cause;
+	@FunctionalInterface
+	public static interface ExceptionMapper {
+		default Exception mapWithbase(Throwable error) {
+			Objects.requireNonNull(error);
+			Exception result = map(error);
+			if (result != null)
+				return result;
+			final String message = error.getMessage();
+			if (message.contains("Client Shutdown")) // it may contain more information
+				return new ClientShutdown(error);
+//			switch (message) {
+//			case "Channel not found": return new ChannelNotInBridgeException(bridgeId, t);
+//			case "Channel not in Stasis application": return new ChannelNotAllowedInBridge(bridgeId, t.getMessage());
+//			}
+			return null;
+
 		}
-		return error;
+		
+		abstract Exception map(Throwable exception);
+
+		/**
+		 * Unwrap {@linkplain CompletionException}s before calling {@link #map(Exception)} 
+		 * @param error the (possible completion exception wrapped) to unwrap and map
+		 * @return the mapped exception type
+		 */
+		default Exception unwrapAndMap(Throwable error) {
+			while (error instanceof CompletionException) {
+				Throwable cause = error.getCause();
+				if (cause == null)
+					return mapWithbase(error);
+				error = cause;
+			}
+			return mapWithbase(error);
+		}
+		
 	}
+
 }

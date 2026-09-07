@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,6 +21,7 @@ import ch.loway.oss.ari4java.generated.models.PlaybackFinished;
 import ch.loway.oss.ari4java.tools.RestException;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.Operation;
+import io.cloudonix.arity.Operation.ExceptionMapper;
 import io.cloudonix.arity.Bridges.BridgeType;
 import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
@@ -46,7 +46,7 @@ public class AsteriskBridge {
 	}
 	
 	public CompletableFuture<Void> destroy() {
-		return Operation.retry(cb -> api.destroy(bridgeId).execute(cb), mapExceptions(bridgeId));
+		return Operation.retry(cb -> api.destroy(bridgeId).execute(cb), new BridgeExceptionMapper(bridgeId));
 	}
 	
 	/* getters */
@@ -60,7 +60,7 @@ public class AsteriskBridge {
 	}
 	
 	private CompletableFuture<AsteriskBridge> reload() {
-		return Operation.<Bridge>retry(cb -> api.get(bridgeId).execute(cb), mapExceptions(bridgeId))
+		return Operation.<Bridge>retry(cb -> api.get(bridgeId).execute(cb), new BridgeExceptionMapper(bridgeId))
 				.thenApply(b -> { bridge = b; return this; });
 	}
 	
@@ -136,11 +136,11 @@ public class AsteriskBridge {
 			var request = api.addChannel(bridgeId, channelId).setRole("member");
 			if (configureRequest != null)
 				configureRequest.accept(request);
-			return Operation.<Void>retry(cb -> request.execute(cb), mapExceptions(bridgeId))
+			return Operation.<Void>retry(cb -> request.execute(cb), new BridgeExceptionMapper(bridgeId))
 					.thenCompose(v -> waitForAdded);
 		} catch (RestException e) { // this isn't supposed to ever happen
 			// because addChannel never actually throws exceptions, it just declares them
-			var translated = mapExceptions(channelId).apply(e); // but we play it safe
+			var translated = new BridgeExceptionMapper(channelId).map(e); // but we play it safe
 			return CompletableFuture.failedFuture(translated != null ? translated : e);
 		}
 	}
@@ -171,7 +171,7 @@ public class AsteriskBridge {
 			arity.listenForOneTimeEvent(ChannelLeftBridge.class, channelId, e -> waitForRemoved.complete(null));
 		else
 			waitForRemoved.complete(null);
-		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), mapExceptions(bridgeId))
+		return Operation.<Void>retry(cb -> api.removeChannel(bridgeId, channelId).execute(cb), new BridgeExceptionMapper(bridgeId))
 				.exceptionally(Futures.on(ChannelNotAllowedInBridge.class, e -> {
 					// can happen if the channel was hanged up and is no longer in stasis
 					waitForRemoved.complete(null);
@@ -202,7 +202,7 @@ public class AsteriskBridge {
 	
 	public CompletableFuture<AsteriskRecording> record(Consumer<AsteriskRecording.Builder> withBuilder) {
 		return Operation.<LiveRecording>retry(cb ->  AsteriskRecording.build(withBuilder).build(
-				api.record(bridgeId, null, null), arity).execute(cb), mapExceptions(bridgeId))
+				api.record(bridgeId, null, null), arity).execute(cb), new BridgeExceptionMapper(bridgeId))
 				.thenApply(rec -> new AsteriskRecording(arity, rec));
 	}
 
@@ -212,7 +212,7 @@ public class AsteriskBridge {
 	 * @return a promise that will resolve when the music on hold starts or reject if there is an unrecoverable error
 	 */
 	public CompletableFuture<Void> startMusicOnHold(String musicOnHoldClass) {
-		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), mapExceptions(bridgeId));
+		return Operation.<Void>retry(cb -> api.startMoh(bridgeId).setMohClass(musicOnHoldClass).execute(cb), new BridgeExceptionMapper(bridgeId));
 	}
 
 	/**
@@ -220,7 +220,7 @@ public class AsteriskBridge {
 	 * @return a promise that will resolve when the music on hold stops or reject if there is an unrecoverable error
 	 */
 	public CompletableFuture<Void> stopMusicOnHold() {
-		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), mapExceptions(bridgeId));
+		return Operation.<Void>retry(cb -> api.stopMoh(bridgeId).execute(cb), new BridgeExceptionMapper(bridgeId));
 	}
 	
 	/**
@@ -231,7 +231,7 @@ public class AsteriskBridge {
 	public CompletableFuture<Playback> playMedia(String fileToPlay) {
 		String playbackId = UUID.randomUUID().toString();
 		return Operation.<Playback>retry(
-				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), mapExceptions(bridgeId))
+				cb -> api.play(bridgeId, "sound:" + fileToPlay).setLang("en").setPlaybackId(playbackId).execute(cb), new BridgeExceptionMapper(bridgeId))
 				.thenCompose(result -> {
 					CompletableFuture<Playback> future = new CompletableFuture<Playback>();
 					arity.addEventHandler(PlaybackFinished.class, bridgeId, (pbf, se) -> {
@@ -251,8 +251,12 @@ public class AsteriskBridge {
 		return String.format("ARI/Bridges:%s(%s)", bridgeId, bridge.getName());
 	}
 	
-	private Function<Throwable,Exception> mapExceptions(String bridgeId) {
-		return t -> {
+	private class BridgeExceptionMapper implements ExceptionMapper {
+		private String bridgeId;
+		BridgeExceptionMapper(String bridgeId) {
+			this.bridgeId = bridgeId;
+		}
+		public Exception map(Throwable t) {
 			switch (t.getMessage()) {
 			case "Bridge not found": return new BridgeNotFoundException(bridgeId, t);
 			case "Bridge not in Stasis application": return new BridgeNotFoundException(bridgeId, t);
@@ -261,6 +265,6 @@ public class AsteriskBridge {
 			case "Channel not in this bridge": return new ChannelNotInBridgeException(bridgeId, t);
 			}
 			return null;
-		};
+		}
 	}
 }

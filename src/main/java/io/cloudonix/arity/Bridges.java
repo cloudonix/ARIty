@@ -6,11 +6,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionBridges;
+import io.cloudonix.arity.Operation.ExceptionMapper;
 import io.cloudonix.arity.errors.bridge.BridgeNotFoundException;
 import io.cloudonix.arity.errors.bridge.ChannelNotAllowedInBridge;
 import io.cloudonix.arity.errors.bridge.ChannelNotInBridgeException;
@@ -74,7 +74,7 @@ public class Bridges {
 	 * @return a promise that will resolve with an existing instance of a bridge or reject if the bridge does not exist
 	 */
 	public CompletableFuture<AsteriskBridge> get(String bridgeId) {
-		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb), mapExceptions(bridgeId))
+		return Operation.<ch.loway.oss.ari4java.generated.models.Bridge>retry(cb -> api.get(bridgeId).execute(cb), new BridgeExceptionMapper(bridgeId))
 				.thenApply(this::get);
 	}
 	
@@ -86,8 +86,12 @@ public class Bridges {
 		return get(bridge.getId());
 	}
 
-	private Function<Throwable,Exception> mapExceptions(String bridgeId) {
-		return ariError -> {
+	private class BridgeExceptionMapper implements ExceptionMapper {
+		private String bridgeId;
+		public BridgeExceptionMapper(String bridgeId) {
+			this.bridgeId = bridgeId;
+		}
+		public Exception map(Throwable ariError) {
 			switch (ariError.getMessage()) {
 			case "Bridge not found": return new BridgeNotFoundException(bridgeId, ariError);
 			case "Channel not found": return new ChannelNotInBridgeException(bridgeId, ariError);
