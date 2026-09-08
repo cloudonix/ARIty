@@ -1,8 +1,6 @@
 package io.cloudonix.arity;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

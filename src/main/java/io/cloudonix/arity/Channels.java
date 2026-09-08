@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 
 import ch.loway.oss.ari4java.generated.actions.ActionChannels;
 import ch.loway.oss.ari4java.generated.models.Channel;
-import io.cloudonix.arity.errors.ARItyException;
 import io.cloudonix.arity.models.AsteriskChannel;
 import io.cloudonix.arity.models.AsteriskChannel.HangupReasons;
 
