@@ -1,6 +1,7 @@
 package io.cloudonix.arity;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.ConnectException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,6 +47,7 @@ import ch.loway.oss.ari4java.tools.http.NettyHttpClient;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 import io.cloudonix.arity.helpers.Lazy;
 import io.cloudonix.arity.helpers.Timers;
+import io.netty.channel.AbstractChannel;
 
 /**
  * The class represents the creation of ARI and websocket service that handles
@@ -253,6 +255,10 @@ public class ARIty implements AriCallback<Message> {
 		} catch (ARIException e) {
 			logger.error("Connection failed: ",e);
 			throw new ConnectionFailedException(e);
+		} catch (RuntimeException e) {
+			if (e.getCause() instanceof ConnectException) // thrown by AriFactory.detectAriVersion
+				throw new ConnectionFailedException(e.getCause());
+			throw e;
 		}
 	}
 	
