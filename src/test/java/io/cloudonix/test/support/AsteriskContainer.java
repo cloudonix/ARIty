@@ -4,6 +4,9 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
 
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 
@@ -15,13 +18,15 @@ import com.github.dockerjava.api.model.Ports.Binding;
 import io.cloudonix.arity.ARIty;
 import io.cloudonix.arity.errors.ConnectionFailedException;
 
-public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
+public class AsteriskContainer extends GenericContainer<AsteriskContainer> implements TestRule {
 
 	private ARIty arity;
 	private boolean testDebug = System.getProperty("io.cloudonix.arity.asterisk.debug", "false").equalsIgnoreCase("true");
 
 	public AsteriskContainer () {
-		super("andrius/asterisk:glibc-18.x");
+//		super("andrius/asterisk:glibc-18.x");
+		super("quay.io/cloudonix/asterisk:18");
+		withNetworkAliases("asterisk");
 		this.addFileSystemBind("src/test/resources/modules.conf", "/etc/asterisk/modules.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/extensions.conf", "/etc/asterisk/extensions.conf", BindMode.READ_ONLY);
 		this.addFileSystemBind("src/test/resources/http.conf", "/etc/asterisk/http.conf", BindMode.READ_ONLY);
@@ -31,6 +36,7 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 		this.withCreateContainerCmdModifier(c -> c
 				.withExposedPorts(new ExposedPort(5060, InternetProtocol.UDP))
 				.withExposedPorts(new ExposedPort(8088, InternetProtocol.TCP)));
+		withExposedPorts(8088);
 	}
 
 	@Override
@@ -101,5 +107,20 @@ public class AsteriskContainer extends GenericContainer<AsteriskContainer> {
 					return null;
 				}
 			});
+	}
+
+	@Override
+	public Statement apply(Statement base, Description description) {
+		return new Statement() {
+			@Override
+			public void evaluate() throws Throwable {
+				start();
+				try {
+					base.evaluate();
+				} finally {
+					stop();
+				}
+			}
+		};
 	}
 }

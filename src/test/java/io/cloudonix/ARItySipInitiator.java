@@ -20,13 +20,17 @@ import webphone.webphone;
 
 public class ARItySipInitiator {
 
-	private static final String WEBPHONE_BASE_IMAGE = "openjdk:11-jre";
+	private static final String WEBPHONE_BASE_IMAGE = "ubuntu:26.04";
 	static Future<String> webphoneImage = buildWebPhone();
 
 	public static class XVFBContainer extends GenericContainer<XVFBContainer> {
 		XVFBContainer() {
-			super("misoca/xvfb");
+			super(new ImageFromDockerfile("xvfb", false)
+					.withDockerfileFromBuilder(b -> b
+							.from("alpine:latest")
+							.run("apk add xvfb")));
 			withNetworkAliases("xvfb");
+			withCommand("Xvfb", ":1", "-ac", "-listen", "tcp");
 		}
 	}
 
@@ -40,9 +44,12 @@ public class ARItySipInitiator {
 		@SuppressWarnings("resource")
 		WebphoneContainer(String address, String destination) {
 			super(webphoneImage);
-			xvfb = new XVFBContainer().withExposedPorts(6001);
+			xvfb = new XVFBContainer();//.withExposedPorts(6001);
 			xvfb.start();
 			logger().info("Started XVFB");
+			logger().info("Setting DISPLAY={}",xvfb.getContainerInfo().getNetworkSettings().getNetworks().entrySet()
+					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
+					.findFirst().orElseThrow(RuntimeException::new) + ":1");
 			withEnv("DISPLAY", xvfb.getContainerInfo().getNetworkSettings().getNetworks().entrySet()
 					.stream().map(e -> e.getValue().getIpAddress()).filter(Objects::nonNull)
 					.findFirst().orElseThrow(RuntimeException::new) + ":1");
@@ -112,14 +119,14 @@ public class ARItySipInitiator {
 	
 	private static Future<String> buildWebPhone() {
 		return new ImageFromDockerfile("webphone", false)
-		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.4/jvoip-8.4.jar"))
+		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/9.6/jvoip-9.6.jar"))
 		.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
 				"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
 				"	username=usertest password=123 \\\n" +
 				"	autocall=true loglevel=5 register=0 hasgui=false logtocnosole=true \\\n" +
 				"	events=3 canlogtofile=false iscommandline=true")
 		.withDockerfileFromBuilder(b -> b.from(WEBPHONE_BASE_IMAGE)
-				.run("apt update && apt install -q -y x11-utils")
+				.run("apt update && apt install -q -y openjdk-11-jre x11-utils")
 				.add("jvoip.jar", "/app/jvoip.jar")
 				.add("jvoip.sh", "/app/jvoip.sh")
 				.run("chmod a+x /app/jvoip.sh"));
