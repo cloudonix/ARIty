@@ -1,5 +1,7 @@
 services:
-  - docker:dind
+  - name: docker:25-dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
 
 variables:
   DOCKER_HOST: tcp://docker:2375
