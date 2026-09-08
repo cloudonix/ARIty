@@ -119,7 +119,7 @@ public class ARItySipInitiator {
 	
 	private static Future<String> buildWebPhone() {
 		return new ImageFromDockerfile("webphone", false)
-		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/8.6/jvoip-8.6.jar"))
+		.withFileFromFile("jvoip.jar", new File("repo/jvoip/jvoip/9.6/jvoip-9.6.jar"))
 		.withFileFromString("jvoip.sh", "#!/bin/bash -xe\n"+
 				"java -jar /app/jvoip.jar serveraddress=\"$1\" callto=\"$2\" \\\n" +
 				"	username=usertest password=123 \\\n" +
